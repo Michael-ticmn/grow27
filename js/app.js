@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── MODULE + SUBTAB NAVIGATION ──────────────────────────────────────────────
-const MODULE_NAMES={markets:'MARKETS',herd:'HERD',fields:'FIELDS',finance:'FINANCE'};
+const MODULE_NAMES={markets:'MARKETS',herd:'HERD',fields:'FIELDS',finance:'FINANCE',about:'ABOUT'};
 
 function switchModule(mod, navEl){
   document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
