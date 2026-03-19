@@ -12,7 +12,10 @@ function switchModule(mod, navEl){
   navEl.classList.add('active');
   document.getElementById('module-bar').dataset.mod=mod;
   document.getElementById('header-module-name').textContent=MODULE_NAMES[mod];
-  const titles={markets:'#27Markets',herd:'#27Herd',fields:'#27Fields',finance:'#27Finance',about:'#27About'};
+  const subs={markets:'watching the boards...'};
+  const subEl=document.getElementById('header-module-sub');
+  if(subEl){subEl.textContent=subs[mod]||'';subEl.style.display=subs[mod]?'':'none';}
+  const titles={markets:'#27Markets',herd:'#27Herd',fields:'#27Fields',finance:'#27Finance'};
   document.title=titles[mod]||'#27Markets';
   // update footer active
   ['markets','herd','fields','finance'].forEach(m=>{
