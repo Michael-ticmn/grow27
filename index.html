@@ -35,6 +35,7 @@
   .topbar{background:var(--bg1);border-bottom:1px solid var(--border);padding:13px max(20px,env(safe-area-inset-right)) 13px max(20px,env(safe-area-inset-left));padding-top:calc(13px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;}
   .brand{display:flex;align-items:center;gap:14px;}
   .brand-title{font-size:15px;font-weight:700;letter-spacing:3px;color:var(--txt1);text-transform:uppercase;}
+  .brand-subtitle{font-size:10px;letter-spacing:2px;color:var(--txt3);font-style:italic;margin-top:2px;}
   .clock-bar{font-size:11px;color:var(--txt3);display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
   .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--up);margin-right:6px;animation:pulse 2.5s infinite;}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -266,7 +267,10 @@
 <div class="topbar">
   <div class="brand">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="28" style="display:block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg>
-    <span class="brand-title" id="header-module-name">Markets</span>
+    <div style="display:flex;flex-direction:column;">
+      <span class="brand-title" id="header-module-name">Markets</span>
+      <span class="brand-subtitle" id="header-module-sub">watching the boards...</span>
+    </div>
   </div>
   <div class="clock-bar">
     <span><span class="status-dot"></span><span id="status-txt">Loading...</span></span>
