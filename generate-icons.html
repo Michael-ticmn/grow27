@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>grow27 — Icon Generator</title>
+<style>
+  body { background: #0a0a0a; font-family: 'Courier New', monospace; color: #e8e9ea; padding: 40px; }
+  h2 { color: #d4a027; letter-spacing: 3px; font-size: 13px; margin-bottom: 24px; }
+  .row { display: flex; gap: 24px; align-items: flex-end; margin-bottom: 32px; flex-wrap: wrap; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .label { font-size: 11px; color: #5e6369; letter-spacing: 2px; }
+  a { display: block; margin-top: 6px; font-size: 11px; color: #3ea8aa; letter-spacing: 1px; text-decoration: none; border: 1px solid rgba(62,168,170,.3); padding: 4px 10px; border-radius: 4px; text-align: center; }
+  a:hover { background: rgba(62,168,170,.1); }
+  p { font-size: 12px; color: #5e6369; line-height: 1.8; margin-top: 24px; max-width: 480px; }
+  strong { color: #a0a4aa; }
+</style>
+</head>
+<body>
+<h2>grow27 — icon generator</h2>
+<div class="row" id="icon-row"></div>
+<p>
+  <strong>Instructions:</strong> Click each download link to save the PNG.<br>
+  Create an <strong>icons/</strong> folder in your GitHub repo and add all three files.<br>
+  The service worker and manifest will pick them up automatically.
+</p>
+<script>
+const SIZES=[{size:512,label:'icon-512.png',display:160},{size:192,label:'icon-192.png',display:96},{size:32,label:'icon-32.png',display:48}];
+function drawIcon(canvas,S){
+  const ctx=canvas.getContext('2d');
+  const r=S*0.22;
+  ctx.fillStyle='#111214';
+  ctx.beginPath();
+  ctx.moveTo(r,0);ctx.lineTo(S-r,0);ctx.quadraticCurveTo(S,0,S,r);
+  ctx.lineTo(S,S-r);ctx.quadraticCurveTo(S,S,S-r,S);
+  ctx.lineTo(r,S);ctx.quadraticCurveTo(0,S,0,S-r);
+  ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);
+  ctx.closePath();ctx.fill();
+  ctx.save();ctx.clip();
+  ctx.fillStyle='#d4a027';ctx.fillRect(0,0,S,S*0.055);
+  ctx.fillStyle='#3ea8aa';ctx.globalAlpha=0.4;ctx.fillRect(0,S*0.945,S,S*0.06);ctx.globalAlpha=1;
+  if(S>=64){
+    const x1=S*0.22,x2=S*0.36,top=S*0.14,bot=S*0.88;
+    ctx.strokeStyle='#2a2a1a';ctx.lineWidth=S*0.028;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x1,bot);ctx.lineTo(x1,top+S*0.06);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x2,bot);ctx.lineTo(x2,top+S*0.1);ctx.stroke();
+    ctx.strokeStyle='#3ea8aa';ctx.lineWidth=S*0.018;
+    ctx.beginPath();ctx.moveTo(x1,top+S*0.06);ctx.lineTo(x1,top);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x2,top+S*0.1);ctx.lineTo(x2,top+S*0.04);ctx.stroke();
+    ctx.lineWidth=S*0.015;
+    [[x1,0.48,-0.13,0.44,-0.08,0.38],[x1,0.60,0.13,0.56,0.08,0.50],
+     [x2,0.52,-0.13,0.48,-0.08,0.42],[x2,0.64,0.13,0.60,0.08,0.54]].forEach(([x,y1,dx1,dy1,dx2,dy2])=>{
+      ctx.beginPath();ctx.moveTo(x,S*y1);ctx.quadraticCurveTo(x+S*dx1,S*dy1,x+S*dx2,S*dy2);ctx.stroke();
+    });
+    ctx.fillStyle='#5e6369';ctx.font=`700 ${S*0.10}px 'Courier New',monospace`;ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    ctx.fillText('#',S*0.52,S*0.46);
+  }
+  ctx.fillStyle='#d4a027';
+  const fs=S>=64?S*0.38:S*0.52,nx=S>=64?S*0.52:S*0.5;
+  ctx.font=`700 ${fs}px 'Courier New',monospace`;ctx.textAlign=S>=64?'left':'center';ctx.textBaseline='alphabetic';
+  ctx.fillText('27',nx,S*(S>=64?0.80:0.78));
+  if(S>=192){ctx.fillStyle='#5e6369';ctx.font=`400 ${S*0.075}px 'Courier New',monospace`;ctx.textAlign='left';ctx.fillText('grow27',S*0.52,S*0.93);}
+  ctx.restore();
+}
+const row=document.getElementById('icon-row');
+SIZES.forEach(({size,label,display})=>{
+  const canvas=document.createElement('canvas');
+  canvas.width=size;canvas.height=size;
+  canvas.style.width=display+'px';canvas.style.height=display+'px';
+  drawIcon(canvas,size);
+  const a=document.createElement('a');
+  a.textContent='Download '+label;a.href=canvas.toDataURL('image/png');a.download=label;
+  const item=document.createElement('div');item.className='item';
+  const lbl=document.createElement('div');lbl.className='label';lbl.textContent=size+' × '+size;
+  item.appendChild(canvas);item.appendChild(lbl);item.appendChild(a);
+  row.appendChild(item);
+});
+</script>
+</body>
+</html>
