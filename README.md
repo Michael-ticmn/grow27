@@ -2,7 +2,7 @@
 
 > *worth more than its weight*
 
-Farm intelligence platform for the #27 operation — grain markets, cattle markets, herd, fields & finance. Built as a progressive web app (PWA) that installs to your phone home screen and works like a native app.
+Farm intelligence platform from the #27 operation — grain markets, cattle markets, herd, fields & finance. Built as a progressive web app (PWA) that installs to your phone home screen and works like a native app.
 
 ---
 
