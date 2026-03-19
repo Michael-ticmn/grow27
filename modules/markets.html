@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+<!-- ══════════════════════════════════════════════════
+     MODULE: MARKETS
+══════════════════════════════════════════════════ -->
+<div class="module active" id="mod-markets">
+
+  <!-- Sub-tab bar: Grain / Cattle -->
+  <div class="subtabs">
+    <div class="subtab active" id="subtab-grain" onclick="switchSubtab('grain')">Grain</div>
+    <div class="subtab" id="subtab-cattle" onclick="switchSubtab('cattle')">Cattle</div>
+  </div>
+
+  <!-- ── GRAIN SUBMODULE ── -->
+  <div class="submodule active" id="sub-grain">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('grain','prices',this)">Prices</div>
+      <div class="tab" onclick="switchTab('grain','buyers',this)">Local Buyers</div>
+      <div class="tab" onclick="switchTab('grain','margin',this)">Margin Calc</div>
+      <div class="tab" onclick="switchTab('grain','calendar',this)">Calendar</div>
+      <div class="tab" onclick="switchTab('grain','news',this)">Market News</div>
+    </div>
+    <div class="content">
+
+      <!-- GRAIN PRICES -->
+      <div class="section active" id="grain-prices">
+        <div class="elevator-bar">
+          <div class="elevator-label">Region</div>
+          <div class="region-toggle">
+            <button class="region-btn active" data-region="auto" onclick="setRegion('auto')">Auto</button>
+            <button class="region-btn" data-region="A" onclick="setRegion('A')">Area 1</button>
+            <button class="region-btn" data-region="B" onclick="setRegion('B')">Area 2</button>
+            <button class="region-btn" data-region="both" onclick="setRegion('both')">Both</button>
+          </div>
+          <div class="elevator-label" style="margin-left:8px;">Buyer</div>
+          <select class="elevator-select" id="elev-select" onchange="onElevChange()">
+            <option value="">Select local buyer…</option>
+          </select>
+          <div class="elev-basis" id="elev-basis-display" style="display:none;"></div>
+          <div class="elev-detail" id="elev-dist-display"></div>
+          <div id="discovery-status" style="font-size:11px;color:var(--txt3);margin-left:auto;font-style:italic;"></div>
+        </div>
+        <div style="font-size:11px;color:var(--txt3);margin:-12px 0 16px;padding-left:4px;" id="active-region-label"></div>
+
+        <div class="insight-strip" id="grain-insight">Fetching market data...</div>
+
+        <div class="section-divider">CBOT Futures — Nearby Contract</div>
+        <div class="cards">
+          <div class="card cn"><div class="card-label">CBOT · Corn Futures</div><div class="card-name">December Corn</div><div class="card-price" id="p-cn">—</div><div class="card-unit">$ / bushel</div><div class="badge flat" id="b-cn">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-cn">—</strong></div><div class="meta-item">LOW<strong id="l-cn">—</strong></div><div class="meta-item">PREV<strong id="v-cn">—</strong></div></div></div>
+          <div class="card cn2"><div class="card-label">CBOT · Corn Futures</div><div class="card-name">Next Crop Corn</div><div class="card-price" id="p-cn2">—</div><div class="card-unit">$ / bushel</div><div class="badge flat" id="b-cn2">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-cn2">—</strong></div><div class="meta-item">LOW<strong id="l-cn2">—</strong></div><div class="meta-item">PREV<strong id="v-cn2">—</strong></div></div></div>
+          <div class="card sb"><div class="card-label">CBOT · Soybean Futures</div><div class="card-name">November Beans</div><div class="card-price" id="p-sb">—</div><div class="card-unit">$ / bushel</div><div class="badge flat" id="b-sb">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-sb">—</strong></div><div class="meta-item">LOW<strong id="l-sb">—</strong></div><div class="meta-item">PREV<strong id="v-sb">—</strong></div></div></div>
+          <div class="card sb2"><div class="card-label">CBOT · Soybean Futures</div><div class="card-name">New Crop Beans</div><div class="card-price" id="p-sb2">—</div><div class="card-unit">$ / bushel</div><div class="badge flat" id="b-sb2">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-sb2">—</strong></div><div class="meta-item">LOW<strong id="l-sb2">—</strong></div><div class="meta-item">PREV<strong id="v-sb2">—</strong></div></div></div>
+        </div>
+
+        <div class="section-divider">Local Cash Prices — All Buyers</div>
+        <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
+          <table class="cash-table"><thead><tr><th>Local Buyer</th><th>Corn Cash</th><th>Corn Basis</th><th>Soy Cash</th><th>Soy Basis</th><th>Distance</th></tr></thead><tbody id="cash-table-body"><tr><td colspan="6" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody></table>
+        </div>
+
+        <div class="two-col">
+          <div class="panel"><div class="panel-title">Midwest Conditions — Grain Belt</div><div class="weather-row"><div class="wx-item"><div class="wx-city" id="wx-city-1">—</div><div class="wx-temp" id="wx-1">—</div><div class="wx-cond" id="wc-1">—</div><div class="wx-note" id="wn-1">—</div></div><div class="wx-item"><div class="wx-city" id="wx-city-2">—</div><div class="wx-temp" id="wx-2">—</div><div class="wx-cond" id="wc-2">—</div><div class="wx-note" id="wn-2">—</div></div><div class="wx-item"><div class="wx-city" id="wx-city-3">—</div><div class="wx-temp" id="wx-3">—</div><div class="wx-cond" id="wc-3">—</div><div class="wx-note" id="wn-3">—</div></div><div class="wx-item"><div class="wx-city" id="wx-city-4">—</div><div class="wx-temp" id="wx-4">—</div><div class="wx-cond" id="wc-4">—</div><div class="wx-note" id="wn-4">—</div></div><div class="wx-item"><div class="wx-city" id="wx-city-5">YOUR AREA</div><div class="wx-temp" id="wx-5">—</div><div class="wx-cond" id="wc-5">—</div><div class="wx-note" id="wn-5">—</div></div></div></div>
+          <div class="panel"><div class="panel-title">How to use this dashboard</div><div class="guide-section"><div class="guide-heading">Price Colors</div><div class="guide-row"><span class="guide-badge up-ex">Green</span><span class="guide-desc">Up from yesterday — positive selling signal</span></div><div class="guide-row"><span class="guide-badge down-ex">Red</span><span class="guide-desc">Down from yesterday — monitor closely</span></div><div class="guide-row"><span class="guide-badge flat-ex">Amber</span><span class="guide-desc">Flat — little change from yesterday</span></div></div><div class="guide-section"><div class="guide-heading">Basis</div><div class="guide-row"><span class="guide-desc">Cash price minus the nearby futures price. A negative basis means the buyer pays that amount under futures. Tighter = better local market.</span></div></div></div>
+        </div>
+      </div>
+
+      <!-- GRAIN LOCAL BUYERS -->
+      <div class="section" id="grain-buyers">
+        <div class="insight-strip">Curated grain buyers plus any additional grain buyers found within ~50 miles of your location. Basis on discovered buyers is estimated — verify with the buyer directly. <span id="discovery-status-dir" style="color:var(--corn);"></span></div>
+        <div id="elev-directory"><div style="text-align:center;padding:40px;color:var(--txt3);font-size:13px;">Locating nearby grain buyers…</div></div>
+      </div>
+
+      <!-- GRAIN MARGIN CALC -->
+      <div class="section" id="grain-margin">
+        <div class="calc-toggle">
+          <button class="calc-btn active" onclick="switchCalc('corn',this)">Corn</button>
+          <button class="calc-btn" onclick="switchCalc('soy',this)">Soybeans</button>
+        </div>
+        <div class="calc-panel active" id="calc-corn">
+          <div class="two-col">
+            <div class="panel">
+              <div class="panel-title">Corn Production Inputs</div>
+              <div class="field"><label>Expected yield (bu/ac) <span class="field-val" id="cv-yield">180</span></label><input type="range" id="c-yield" min="100" max="260" value="180" oninput="document.getElementById('cv-yield').textContent=this.value;calcGrain()"></div>
+              <div class="field"><label>Seed cost ($/ac) <span class="field-val" id="cv-seed">$110</span></label><input type="range" id="c-seed" min="60" max="250" value="110" oninput="document.getElementById('cv-seed').textContent='$'+this.value;calcGrain()"></div>
+              <div class="field"><label>Fertilizer ($/ac) <span class="field-val" id="cv-fert">$180</span></label><input type="range" id="c-fert" min="60" max="400" value="180" oninput="document.getElementById('cv-fert').textContent='$'+this.value;calcGrain()"></div>
+              <div class="field"><label>Chemical ($/ac) <span class="field-val" id="cv-chem">$60</span></label><input type="range" id="c-chem" min="20" max="200" value="60" oninput="document.getElementById('cv-chem').textContent='$'+this.value;calcGrain()"></div>
+              <div class="field"><label>Land / cash rent ($/ac) <span class="field-val" id="cv-land">$220</span></label><input type="range" id="c-land" min="50" max="500" value="220" oninput="document.getElementById('cv-land').textContent='$'+this.value;calcGrain()"></div>
+              <div class="field"><label>Machinery / labor ($/ac) <span class="field-val" id="cv-mach">$85</span></label><input type="range" id="c-mach" min="30" max="200" value="85" oninput="document.getElementById('cv-mach').textContent='$'+this.value;calcGrain()"></div>
+              <div class="field"><label>Drying ($/bu) <span class="field-val" id="cv-dry">$0.10</span></label><input type="range" id="c-dry" min="0" max="60" value="10" oninput="document.getElementById('cv-dry').textContent='$'+(this.value/100).toFixed(2);calcGrain()"></div>
+              <div class="field"><label>Target sale price ($/bu) <span class="field-val" id="cv-sale">—</span></label><input type="range" id="c-sale" min="300" max="800" value="430" oninput="document.getElementById('cv-sale').textContent='$'+(this.value/100).toFixed(2);calcGrain()"></div>
+              <div class="field"><label>Acres</label><input type="number" id="c-acres" value="400" min="1" max="5000" oninput="calcGrain()" style="margin-top:4px;"></div>
+            </div>
+            <div>
+              <div class="panel" style="margin-bottom:18px;">
+                <div class="panel-title">Per-Acre Summary — Corn</div>
+                <div class="result-box" style="margin-top:0;">
+                  <div class="result-row"><span>Seed</span><span id="cr-seed">—</span></div>
+                  <div class="result-row"><span>Fertilizer</span><span id="cr-fert">—</span></div>
+                  <div class="result-row"><span>Chemicals</span><span id="cr-chem">—</span></div>
+                  <div class="result-row"><span>Land / rent</span><span id="cr-land">—</span></div>
+                  <div class="result-row"><span>Machinery / labor</span><span id="cr-mach">—</span></div>
+                  <div class="result-row"><span>Drying</span><span id="cr-dry">—</span></div>
+                  <div class="result-row total"><span>Total cost / ac</span><span id="cr-total">—</span></div>
+                  <div class="result-row"><span>Break-even</span><span id="cr-be">—</span></div>
+                  <div class="result-row"><span>Gross revenue / ac</span><span id="cr-rev">—</span></div>
+                  <div class="result-row total" id="cr-margin-row"><span>Net margin / ac</span><span id="cr-margin">—</span></div>
+                </div>
+                <div class="verdict neutral" id="c-verdict">Adjust sliders to see recommendation</div>
+              </div>
+              <div class="panel"><div class="panel-title">Full Field</div><div class="stat-grid"><div class="stat-box"><div class="stat-label">TOTAL REVENUE</div><div class="stat-val" id="cf-rev">—</div><div class="stat-sub">all acres</div></div><div class="stat-box"><div class="stat-label">TOTAL COST</div><div class="stat-val" id="cf-cost">—</div><div class="stat-sub">all in</div></div><div class="stat-box"><div class="stat-label">NET PROFIT/LOSS</div><div class="stat-val" id="cf-margin">—</div><div class="stat-sub">total</div></div><div class="stat-box"><div class="stat-label">BREAK-EVEN</div><div class="stat-val" id="cf-be">—</div><div class="stat-sub">per bushel</div></div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="calc-panel" id="calc-soy">
+          <div class="two-col">
+            <div class="panel">
+              <div class="panel-title">Soybean Production Inputs</div>
+              <div class="field"><label>Expected yield (bu/ac) <span class="field-val" id="sv-yield">50</span></label><input type="range" id="s-yield" min="25" max="90" value="50" oninput="document.getElementById('sv-yield').textContent=this.value;calcSoy()"></div>
+              <div class="field"><label>Seed cost ($/ac) <span class="field-val" id="sv-seed">$65</span></label><input type="range" id="s-seed" min="30" max="150" value="65" oninput="document.getElementById('sv-seed').textContent='$'+this.value;calcSoy()"></div>
+              <div class="field"><label>Fertilizer / lime ($/ac) <span class="field-val" id="sv-fert">$60</span></label><input type="range" id="s-fert" min="0" max="200" value="60" oninput="document.getElementById('sv-fert').textContent='$'+this.value;calcSoy()"></div>
+              <div class="field"><label>Chemical ($/ac) <span class="field-val" id="sv-chem">$55</span></label><input type="range" id="s-chem" min="20" max="150" value="55" oninput="document.getElementById('sv-chem').textContent='$'+this.value;calcSoy()"></div>
+              <div class="field"><label>Land / cash rent ($/ac) <span class="field-val" id="sv-land">$220</span></label><input type="range" id="s-land" min="50" max="500" value="220" oninput="document.getElementById('sv-land').textContent='$'+this.value;calcSoy()"></div>
+              <div class="field"><label>Machinery / labor ($/ac) <span class="field-val" id="sv-mach">$70</span></label><input type="range" id="s-mach" min="30" max="200" value="70" oninput="document.getElementById('sv-mach').textContent='$'+this.value;calcSoy()"></div>
+              <div class="field"><label>Target sale price ($/bu) <span class="field-val" id="sv-sale">—</span></label><input type="range" id="s-sale" min="700" max="1600" value="975" oninput="document.getElementById('sv-sale').textContent='$'+(this.value/100).toFixed(2);calcSoy()"></div>
+              <div class="field"><label>Acres</label><input type="number" id="s-acres" value="400" min="1" max="5000" oninput="calcSoy()" style="margin-top:4px;"></div>
+            </div>
+            <div>
+              <div class="panel" style="margin-bottom:18px;">
+                <div class="panel-title">Per-Acre Summary — Soybeans</div>
+                <div class="result-box" style="margin-top:0;">
+                  <div class="result-row"><span>Seed</span><span id="sr-seed">—</span></div>
+                  <div class="result-row"><span>Fertilizer / lime</span><span id="sr-fert">—</span></div>
+                  <div class="result-row"><span>Chemicals</span><span id="sr-chem">—</span></div>
+                  <div class="result-row"><span>Land / rent</span><span id="sr-land">—</span></div>
+                  <div class="result-row"><span>Machinery / labor</span><span id="sr-mach">—</span></div>
+                  <div class="result-row total"><span>Total cost / ac</span><span id="sr-total">—</span></div>
+                  <div class="result-row"><span>Break-even</span><span id="sr-be">—</span></div>
+                  <div class="result-row"><span>Gross revenue / ac</span><span id="sr-rev">—</span></div>
+                  <div class="result-row total" id="sr-margin-row"><span>Net margin / ac</span><span id="sr-margin">—</span></div>
+                </div>
+                <div class="verdict neutral" id="s-verdict">Adjust sliders to see recommendation</div>
+              </div>
+              <div class="panel"><div class="panel-title">Full Field</div><div class="stat-grid"><div class="stat-box"><div class="stat-label">TOTAL REVENUE</div><div class="stat-val" id="sf-rev">—</div><div class="stat-sub">all acres</div></div><div class="stat-box"><div class="stat-label">TOTAL COST</div><div class="stat-val" id="sf-cost">—</div><div class="stat-sub">all in</div></div><div class="stat-box"><div class="stat-label">NET PROFIT/LOSS</div><div class="stat-val" id="sf-margin">—</div><div class="stat-sub">total</div></div><div class="stat-box"><div class="stat-label">BREAK-EVEN</div><div class="stat-val" id="sf-be">—</div><div class="stat-sub">per bushel</div></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRAIN CALENDAR -->
+      <div class="section" id="grain-calendar">
+        <div class="two-col">
+          <div class="panel"><div class="panel-title">Upcoming USDA Reports</div>
+            <div class="cal-item"><div class="cal-date">Mar 28</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Grain Stocks — Quarterly Report</div><div class="cal-sub">On-farm and off-farm stocks as of March 1. Major price mover.</div></div></div>
+            <div class="cal-item"><div class="cal-date">Mar 28</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Prospective Plantings</div><div class="cal-sub">Farmer planting intentions — biggest report of spring.</div></div></div>
+            <div class="cal-item"><div class="cal-date">Apr 10</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">WASDE — World Ag Supply &amp; Demand</div><div class="cal-sub">Monthly supply/demand balance sheet update.</div></div></div>
+            <div class="cal-item"><div class="cal-date">May 12</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">WASDE — May (First New Crop Estimates)</div><div class="cal-sub">First official projections for the upcoming marketing year.</div></div></div>
+            <div class="cal-item"><div class="cal-date">Jun 30</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Acreage Report + Mid-Year Grain Stocks</div><div class="cal-sub">Often the most volatile report day of the year.</div></div></div>
+          </div>
+          <div class="panel"><div class="panel-title">CBOT &amp; Market Events</div>
+            <div class="cal-item"><div class="cal-date">Mar 21</div><div><span class="cal-tag cme">CBOT</span><div class="cal-text">May Corn First Notice Day</div><div class="cal-sub">Traders must roll or take delivery by this date.</div></div></div>
+            <div class="cal-item"><div class="cal-date">Apr 14</div><div><span class="cal-tag cme">CBOT</span><div class="cal-text">May Soybean Last Trade Day</div><div class="cal-sub">Cash-and-carry traders roll May bean positions to July.</div></div></div>
+            <div class="cal-item"><div class="cal-date">May 5</div><div><span class="cal-tag cme">CBOT</span><div class="cal-text">Weekly Export Sales Report</div><div class="cal-sub">USDA FAS weekly grain export sales.</div></div></div>
+            <div class="cal-item"><div class="cal-date">May 23</div><div><span class="cal-tag cme">CBOT</span><div class="cal-text">July Corn — Active Contract Begins</div><div class="cal-sub">Volume and open interest shift to the July contract.</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRAIN NEWS -->
+      <div class="section" id="grain-news">
+        <div class="news-toggle">
+          <button class="news-mode-btn active" onclick="switchNews('grain-brief',this)">Morning Brief</button>
+          <button class="news-mode-btn" onclick="switchNews('grain-source',this)">From the Source</button>
+        </div>
+        <div class="news-panel active" id="panel-grain-brief">
+          <div class="brief-grid">
+            <div class="brief-item"><div class="brief-tag corn">Corn</div><div><div class="brief-headline">CBOT corn futures finish higher on export demand optimism and tightening South American supplies</div><div class="brief-meta">2h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Positive export signals support short-term upside. Watch basis at your local buyer — tightening basis plus higher futures = strong selling window.</div></div></div>
+            <div class="brief-item"><div class="brief-tag soy">Soybeans</div><div><div class="brief-headline">Soybean complex mixed — meal firm while oil under pressure as biodiesel margins soften</div><div class="brief-meta">3h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Meal strength supports bean values but biofuel softness is a headwind. Watch WASDE ending stocks — South American harvest pace is the near-term driver.</div></div></div>
+            <div class="brief-item"><div class="brief-tag market">Market</div><div><div class="brief-headline">Prospective Plantings report due March 28 — corn vs. soybean acreage battle expected to be close</div><div class="brief-meta">4h ago · USDA</div><div class="brief-note"><strong>What it means for you:</strong> This report is the most price-moving event of spring. Consider pricing a portion of expected production ahead of the report.</div></div></div>
+            <div class="brief-item"><div class="brief-tag corn">Corn</div><div><div class="brief-headline">Ethanol production margins improve — weekly EIA report shows strong grind pace</div><div class="brief-meta">5h ago · EIA</div><div class="brief-note"><strong>What it means for you:</strong> Strong ethanol margins mean POET is incentivized to pay competitive bids — check their daily cash price versus co-op buyers.</div></div></div>
+          </div>
+        </div>
+        <div class="news-panel" id="panel-grain-source">
+          <div class="source-intro">Live feeds from trusted grain and commodity sources. Each link opens the full article in a new tab.</div>
+          <div class="source-section"><div class="source-section-title">Government &amp; Official Data</div><div class="source-links">
+            <a class="source-link" href="https://www.ams.usda.gov/market-news/grain-and-feed" target="_blank" rel="noopener"><div class="source-link-icon">🌽</div><div class="source-link-body"><div class="source-link-title">USDA AMS — Grain &amp; Feed Market News</div><div class="source-link-desc">Official corn, soybean, and hay price reports including local cash prices across the Midwest</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.nass.usda.gov/Publications/Todays_Reports/" target="_blank" rel="noopener"><div class="source-link-icon">📊</div><div class="source-link-body"><div class="source-link-title">USDA NASS — Today's Reports</div><div class="source-link-desc">Grain Stocks, Prospective Plantings, WASDE, Crop Progress as released</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.fas.usda.gov/data/grain-and-feed-export-sales" target="_blank" rel="noopener"><div class="source-link-icon">🚢</div><div class="source-link-body"><div class="source-link-title">USDA FAS — Export Sales Report</div><div class="source-link-desc">Weekly corn and soybean export sales — China, Japan, and Mexico demand</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+          </div></div>
+          <div class="source-section"><div class="source-section-title">Exchanges &amp; Market Data</div><div class="source-links">
+            <a class="source-link" href="https://www.cmegroup.com/markets/agriculture/grains/corn.html" target="_blank" rel="noopener"><div class="source-link-icon">🟡</div><div class="source-link-body"><div class="source-link-title">CME Group — Corn Futures</div><div class="source-link-desc">Official CBOT corn futures quotes, contract specs, options, and settlement prices</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.cmegroup.com/markets/agriculture/oilseeds/soybean.html" target="_blank" rel="noopener"><div class="source-link-icon">🌱</div><div class="source-link-body"><div class="source-link-title">CME Group — Soybean Futures</div><div class="source-link-desc">Official CBOT soybean futures quotes, contract specs, options chains</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.dtnpf.com/agriculture/web/ag/grains/local-grain-prices" target="_blank" rel="noopener"><div class="source-link-icon">📍</div><div class="source-link-body"><div class="source-link-title">DTN — Local Grain Prices</div><div class="source-link-desc">Searchable local buyer cash bids and basis levels</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+          </div></div>
+        </div>
+      </div>
+
+    </div><!-- /grain content -->
+  </div><!-- /sub-grain -->
+
+  <!-- ── CATTLE SUBMODULE ── -->
+  <div class="submodule" id="sub-cattle">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('cattle','prices',this)">Prices</div>
+      <div class="tab" onclick="switchTab('cattle','charts',this)">Charts</div>
+      <div class="tab" onclick="switchTab('cattle','margin',this)">Margin Calc</div>
+      <div class="tab" onclick="switchTab('cattle','news',this)">Market News</div>
+      <div class="tab" onclick="switchTab('cattle','barns',this)">Auction Barns</div>
+      <div class="tab" onclick="switchTab('cattle','lockers',this)">Meat Lockers</div>
+    </div>
+    <div class="content">
+
+      <!-- CATTLE PRICES -->
+      <div class="section active" id="cattle-prices">
+        <div class="insight-strip" id="cattle-insight">Fetching market data...</div>
+        <div class="cards" style="grid-template-columns:repeat(3,minmax(0,1fr));">
+          <div class="card lc"><div class="card-label">CME · Live Cattle</div><div class="card-name">Market Steer</div><div class="card-price" id="p-lc">—</div><div class="card-unit">cents / lb</div><div class="badge flat" id="b-lc">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-lc">—</strong></div><div class="meta-item">LOW<strong id="l-lc">—</strong></div><div class="meta-item">PREV<strong id="v-lc">—</strong></div></div></div>
+          <div class="card fc"><div class="card-label">CME · Feeder Cattle</div><div class="card-name">Incoming Calf</div><div class="card-price" id="p-fc">—</div><div class="card-unit">cents / lb</div><div class="badge flat" id="b-fc">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-fc">—</strong></div><div class="meta-item">LOW<strong id="l-fc">—</strong></div><div class="meta-item">PREV<strong id="v-fc">—</strong></div></div></div>
+          <div class="card cn"><div class="card-label">CBOT · Corn</div><div class="card-name">Home Grown Feed</div><div class="card-price" id="p-cn-c">—</div><div class="card-unit">$ / bushel</div><div class="badge flat" id="b-cn-c">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-cn-c">—</strong></div><div class="meta-item">LOW<strong id="l-cn-c">—</strong></div><div class="meta-item">PREV<strong id="v-cn-c">—</strong></div></div></div>
+        </div>
+        <div class="two-col">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="panel" style="padding:14px 18px;"><div class="panel-title">Midwest Conditions — Corn Belt</div><div class="weather-row"><div class="wx-item"><div class="wx-city" id="cwx-city-1">—</div><div class="wx-temp" id="cwx-1">—</div><div class="wx-cond" id="cwc-1">—</div><div class="wx-note" id="cwn-1">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-2">—</div><div class="wx-temp" id="cwx-2">—</div><div class="wx-cond" id="cwc-2">—</div><div class="wx-note" id="cwn-2">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-3">—</div><div class="wx-temp" id="cwx-3">—</div><div class="wx-cond" id="cwc-3">—</div><div class="wx-note" id="cwn-3">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-4">—</div><div class="wx-temp" id="cwx-4">—</div><div class="wx-cond" id="cwc-4">—</div><div class="wx-note" id="cwn-4">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-5">YOUR AREA</div><div class="wx-temp" id="cwx-5">—</div><div class="wx-cond" id="cwc-5">—</div><div class="wx-note" id="cwn-5">—</div></div></div></div>
+            <div class="panel"><div class="panel-title">Upcoming Market Events</div>
+              <div class="cal-item"><div class="cal-date">Mar 20</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Cattle on Feed Report</div><div class="cal-sub">Monthly inventory — market-moving</div></div></div>
+              <div class="cal-item"><div class="cal-date">Mar 21</div><div><span class="cal-tag cme">CME</span><div class="cal-text">April Live Cattle Options Expiry</div><div class="cal-sub">LC contract settlement</div></div></div>
+              <div class="cal-item"><div class="cal-date">Mar 28</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Grain Stocks &amp; Prospective Plantings</div><div class="cal-sub">Major corn supply signal</div></div></div>
+              <div class="cal-item"><div class="cal-date">Apr 18</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Cattle on Feed Report</div><div class="cal-sub">Monthly placement numbers</div></div></div>
+            </div>
+          </div>
+          <div class="panel"><div class="panel-title">How to Use This Dashboard</div><div class="guide-section"><div class="guide-heading">Price Colors</div><div class="guide-row"><span class="guide-badge up-ex">Green</span><span class="guide-desc">Up from yesterday — good selling signal</span></div><div class="guide-row"><span class="guide-badge down-ex">Red</span><span class="guide-desc">Down from yesterday — monitor closely</span></div><div class="guide-row"><span class="guide-badge flat-ex">Amber</span><span class="guide-desc">Flat — little change from yesterday</span></div></div><div class="guide-section"><div class="guide-heading">Key Numbers</div><div class="guide-row"><span class="guide-label">Live Cattle</span><span class="guide-desc">What the market pays for finished steers (¢/lb)</span></div><div class="guide-row"><span class="guide-label">Feeder Cattle</span><span class="guide-desc">What incoming calves cost at auction (¢/lb)</span></div><div class="guide-row"><span class="guide-label">Corn</span><span class="guide-desc">Market value of home-grown feed ($/bu)</span></div></div></div>
+        </div>
+      </div>
+
+      <!-- CATTLE CHARTS -->
+      <div class="section" id="cattle-charts">
+        <div class="hist-controls"><button class="hist-btn" onclick="setRange(7,this)">7D</button><button class="hist-btn" onclick="setRange(30,this)">30D</button><button class="hist-btn active" onclick="setRange(90,this)">90D</button><button class="hist-btn" onclick="setRange(180,this)">180D</button></div>
+        <div class="panel full" style="margin-bottom:16px;"><div class="panel-title">Live Cattle — Historical (¢/lb)</div><div style="position:relative;width:100%;height:210px;"><canvas id="hist-lc"></canvas></div></div>
+        <div class="two-col"><div class="panel"><div class="panel-title">Feeder Cattle — Historical (¢/lb)</div><div style="position:relative;width:100%;height:200px;"><canvas id="hist-fc"></canvas></div></div><div class="panel"><div class="panel-title">Corn — Historical ($/bu)</div><div style="position:relative;width:100%;height:200px;"><canvas id="hist-cn-chart"></canvas></div></div></div>
+        <div class="panel full"><div class="panel-title">Live / Feeder Spread — Margin Indicator</div><div style="position:relative;width:100%;height:170px;"><canvas id="hist-spread"></canvas></div></div>
+      </div>
+
+      <!-- CATTLE MARGIN CALC -->
+      <div class="section" id="cattle-margin">
+        <div class="two-col" style="align-items:start;">
+          <div class="panel">
+            <div class="panel-title">Steer — Feed to Finish</div>
+            <div class="field"><label>Buy weight (lbs) <span class="field-val" id="bw-val">500</span></label><input type="range" min="200" max="800" value="500" step="10" oninput="calc();document.getElementById('bw-val').textContent=this.value" id="bw"></div>
+            <div class="field"><label>Buy price (¢/lb) <span class="field-val" id="bp-val">350</span></label><input type="range" min="200" max="500" value="350" step="1" oninput="calc();document.getElementById('bp-val').textContent=this.value" id="bp"></div>
+            <div class="field"><label>Target sell weight (lbs) <span class="field-val" id="sw-val">1200</span></label><input type="range" min="800" max="1600" value="1200" step="10" oninput="calc();document.getElementById('sw-val').textContent=this.value" id="sw"></div>
+            <div class="field"><label>Days on feed <span class="field-val" id="dof-val">180</span></label><input type="range" min="60" max="400" value="180" step="5" oninput="calc();document.getElementById('dof-val').textContent=this.value" id="dof"></div>
+            <div class="field"><label>Corn fed (bu/day/head) <span class="field-val" id="cf-val">0.25</span></label><input type="range" min="0.1" max="1.0" value="0.25" step="0.05" oninput="calc();document.getElementById('cf-val').textContent=parseFloat(this.value).toFixed(2)" id="cf"></div>
+            <div class="field"><label>Other costs ($/day/head) <span class="field-val" id="oc-val">$1.50</span></label><input type="range" min="0.5" max="5" value="1.5" step="0.25" oninput="calc();document.getElementById('oc-val').textContent='$'+parseFloat(this.value).toFixed(2)" id="oc"></div>
+            <div class="field" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;"><label>Sell price — live cattle (¢/lb) <span class="field-val" id="sp-val">231</span></label><input type="range" min="150" max="350" value="231" step="1" oninput="calc();document.getElementById('sp-val').textContent=this.value" id="sp"></div>
+            <div class="field"><label>Corn market price ($/bu) <span class="field-val" id="cp-val">$4.53</span></label><input type="range" min="3.0" max="9.0" value="4.53" step="0.01" oninput="calc();document.getElementById('cp-val').textContent='$'+parseFloat(this.value).toFixed(2)" id="cp"></div>
+            <div class="panel" style="margin-top:8px;background:var(--bg1);border-color:var(--border);"><div class="panel-title">Seasonal Price Patterns</div><div style="position:relative;width:100%;height:150px;"><canvas id="seasonal-chart"></canvas></div><div style="font-size:11px;color:var(--txt3);margin-top:8px;line-height:1.6;">Cattle prices historically peak Mar–May and Oct–Nov. Current month highlighted in amber.</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="panel"><div class="panel-title">Per Head — Results</div><div class="result-box" style="margin-top:0;"><div class="result-row"><span>Buy cost</span><span id="r-buy">—</span></div><div class="result-row"><span>Corn cost</span><span id="r-corn">—</span></div><div class="result-row"><span>Other costs</span><span id="r-other">—</span></div><div class="result-row total"><span>Total cost</span><span id="r-total">—</span></div><div class="result-row"><span>Gross revenue</span><span id="r-rev">—</span></div><div class="result-row total" id="r-margin-row"><span>Net margin / head</span><span id="r-margin">—</span></div></div><div class="verdict neutral" id="verdict">Adjust sliders to see recommendation</div></div>
+            <div class="panel"><div class="panel-title">Full Herd Profitability</div><div class="herd-input"><label>Head count:</label><input type="number" id="herd-count" value="150" min="1" max="2000" oninput="calc()"></div><div class="stat-grid"><div class="stat-box"><div class="stat-label">TOTAL REVENUE</div><div class="stat-val" id="herd-rev">—</div><div class="stat-sub">at target weight</div></div><div class="stat-box"><div class="stat-label">TOTAL COST</div><div class="stat-val" id="herd-cost">—</div><div class="stat-sub">all in</div></div><div class="stat-box"><div class="stat-label">TOTAL MARGIN</div><div class="stat-val" id="herd-margin">—</div><div class="stat-sub">net profit / loss</div></div><div class="stat-box"><div class="stat-label">DAILY FEED COST</div><div class="stat-val" id="herd-daily">—</div><div class="stat-sub">whole herd</div></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CATTLE NEWS -->
+      <div class="section" id="cattle-news">
+        <div class="news-toggle"><button class="news-mode-btn active" onclick="switchNews('cattle-brief',this)">Morning Brief</button><button class="news-mode-btn" onclick="switchNews('cattle-source',this)">From the Source</button></div>
+        <div class="news-panel active" id="panel-cattle-brief">
+          <div class="brief-grid">
+            <div class="brief-item"><div class="brief-tag cattle">Cattle</div><div><div class="brief-headline">Live cattle futures post third straight weekly gain amid tight supplies and strong export demand</div><div class="brief-meta">2h ago · CME</div><div class="brief-note"><strong>What it means for you:</strong> Selling conditions remain favorable. Animals near target weight should be prioritized — don't leave margin on the table waiting for more upside.</div></div></div>
+            <div class="brief-item"><div class="brief-tag cattle">Cattle</div><div><div class="brief-headline">USDA weekly slaughter report shows 86,000 head — below year-ago pace, supporting the price floor</div><div class="brief-meta">4h ago · USDA AMS</div><div class="brief-note"><strong>What it means for you:</strong> Tighter slaughter numbers mean packers are competing harder for cattle. This supports cash prices and reduces downside risk near term.</div></div></div>
+            <div class="brief-item"><div class="brief-tag corn">Corn</div><div><div class="brief-headline">Corn futures edge higher as early planting pace raises quality concerns in Corn Belt states</div><div class="brief-meta">5h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Rising corn prices increase the opportunity cost of feeding vs. selling. Run the margin calc with the current corn price to check your tradeoff.</div></div></div>
+            <div class="brief-item"><div class="brief-tag market">Market</div><div><div class="brief-headline">CME cattle complex: choice cutout values hold above $397 as grocery demand stays resilient</div><div class="brief-meta">8h ago · CME</div><div class="brief-note"><strong>What it means for you:</strong> Strong retail beef demand underpins packer willingness to pay — a positive signal for cash cattle prices heading into spring grilling season.</div></div></div>
+          </div>
+        </div>
+        <div class="news-panel" id="panel-cattle-source">
+          <div class="source-intro">Live feeds from trusted cattle and commodity sources.</div>
+          <div class="source-section"><div class="source-section-title">Government &amp; Official Data</div><div class="source-links">
+            <a class="source-link" href="https://www.ams.usda.gov/market-news/cattle" target="_blank" rel="noopener"><div class="source-link-icon">🐄</div><div class="source-link-body"><div class="source-link-title">USDA AMS — Cattle Market News</div><div class="source-link-desc">Official daily and weekly cattle price reports, auction results, and slaughter data</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.nass.usda.gov/Publications/Todays_Reports/" target="_blank" rel="noopener"><div class="source-link-icon">📊</div><div class="source-link-body"><div class="source-link-title">USDA NASS — Today's Reports</div><div class="source-link-desc">Cattle on Feed, WASDE, and all major USDA market-moving reports as released</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+          </div></div>
+          <div class="source-section"><div class="source-section-title">Cattle Industry News</div><div class="source-links">
+            <a class="source-link" href="https://www.drovers.com/cattle-news" target="_blank" rel="noopener"><div class="source-link-icon">📰</div><div class="source-link-body"><div class="source-link-title">Drovers — Cattle News</div><div class="source-link-desc">Daily cattle industry news covering markets, management, and policy</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.cmegroup.com/markets/agricultural.html" target="_blank" rel="noopener"><div class="source-link-icon">📉</div><div class="source-link-body"><div class="source-link-title">CME Group — Agricultural Markets</div><div class="source-link-desc">Live futures quotes for live cattle, feeder cattle, and corn from the exchange</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- CATTLE AUCTION BARNS -->
+      <div class="section" id="cattle-barns">
+        <div class="insight-strip"><strong>Livestock auction barns near your location</strong> — sorted by distance. All licensed by the Minnesota Board of Animal Health.</div>
+        <div class="two-col">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Central Livestock Association</div><span class="auction-freq">Mon · Tue · Wed</span></div><div class="auction-detail">44326 County 6 Blvd, Zumbrota, MN · <strong class="dist-highlight" id="dist-central">~35 miles</strong></div><div class="auction-detail">507-732-7305</div><div class="auction-detail" style="margin-top:6px;">Multiple sales weekly — feeder cattle, bred cow/heifer specials, market cows &amp; bulls. Mon/Tue 8am, Wed 2pm. Online via DVAuction.</div><div class="auction-links"><a href="https://www.centrallivestock.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a><a href="https://www.dvauction.com" target="_blank" rel="noopener" class="auction-link">DVAuction ↗</a></div></div>
+            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Lanesboro Sales Commission</div><span class="auction-freq">Wed &amp; Fri</span></div><div class="auction-detail">402 Coffee St E, Lanesboro, MN · <strong class="dist-highlight" id="dist-lanesboro">~60 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Wednesday 8:30am — market cows &amp; bulls, finished cattle. Friday 9am — baby calves, feeder cattle. Online via CattleUSA.</div><div class="auction-links"><a href="https://www.lanesborosalescommission.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
+            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Rock Creek Livestock Market</div><span class="auction-freq">Mon &amp; Wed</span></div><div class="auction-detail">Pine City, MN · <strong class="dist-highlight" id="dist-rockcreek">~70 miles</strong></div><div class="auction-detail">Cattle, hogs, sheep &amp; goats — 8am. Feeder sales every other Tuesday. Same day payment.</div><div class="auction-links"><a href="https://rockcreeklivestockmarket.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Sleepy Eye Auction Market</div><span class="auction-freq">Every Wednesday</span></div><div class="auction-detail">Sleepy Eye, MN · <strong class="dist-highlight" id="dist-sleepyeye">~90 miles</strong></div><div class="auction-detail">Family owned 75+ years. Sale 9am — feeder, finished, slaughter.</div><div class="auction-links"><a href="https://sleepyeyeauctionmarket.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
+            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Pipestone Livestock Auction</div><span class="auction-freq">2nd &amp; 4th Thu</span></div><div class="auction-detail">Pipestone, MN · <strong class="dist-highlight" id="dist-pipestone">~160 miles</strong></div><div class="auction-detail">Feeder cattle 11am, beef cattle noon. Online bidding via LMA Auctions.</div><div class="auction-links"><a href="https://www.pipestonelivestock.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a><a href="https://lmaauctions.com" target="_blank" rel="noopener" class="auction-link">Bid Online ↗</a></div></div>
+            <div class="panel"><div class="panel-title">Online Bidding Platforms</div><div class="source-links">
+              <a class="source-link" href="https://www.dvauction.com" target="_blank" rel="noopener"><div class="source-link-icon">📡</div><div class="source-link-body"><div class="source-link-title">DVAuction</div><div class="source-link-desc">Used by Central Livestock Zumbrota — live video streaming and online bidding</div></div><div class="source-link-arrow">↗</div></a>
+              <a class="source-link" href="https://lmaauctions.com" target="_blank" rel="noopener"><div class="source-link-icon">🏷</div><div class="source-link-body"><div class="source-link-title">LMA Auctions</div><div class="source-link-desc">Used by Pipestone — pre-registration required</div></div><div class="source-link-arrow">↗</div></a>
+            </div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CATTLE MEAT LOCKERS -->
+      <div class="section" id="cattle-lockers">
+        <div class="insight-strip"><strong>Custom beef processing near your location</strong> — call ahead, most book weeks in advance.</div>
+        <div class="two-col">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="panel" style="border-color:rgba(60,185,106,.2);"><div style="font-size:10px;letter-spacing:2px;color:var(--up);margin-bottom:6px;">IN FARIBAULT</div><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Herda's Meat Processing</div><span class="auction-freq" style="background:var(--up-dim);color:var(--up);">Faribault</span></div><div class="auction-detail"><strong class="dist-highlight" id="dist-herdas">Calculating...</strong></div><div class="auction-detail" style="margin-top:6px;">Custom slaughter and processing — full custom cutting, grinding, vacuum packing. USDA-inspected. 507-334-5555</div></div>
+            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Krenik's Meat Processing</div><span class="auction-freq">~15 miles</span></div><div class="auction-detail">Between Montgomery &amp; Shieldsville · <strong class="dist-highlight" id="dist-kreniks">~15 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Family owned since 1960. Custom beef and pork — no comingling. Retail counter, specialty smoked products.</div><div class="auction-links"><a href="https://www.kreniks.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
+            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Lonsdale Country Market</div><span class="auction-freq">~20 miles</span></div><div class="auction-detail">Lonsdale, MN · <strong class="dist-highlight" id="dist-lonsdale">~20 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Custom butchering — beef, pork, lamb, deer &amp; wild game. Mon–Fri 10am–6pm, Sat 8:30am–3pm.</div><div class="auction-links"><a href="https://www.lonsdalecountrymarket.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Dennison Meat Locker</div><span class="auction-freq">~25 miles</span></div><div class="auction-detail">109 Farm Road, Dennison, MN · <strong class="dist-highlight" id="dist-dennison">~25 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Full custom beef processing — pricing online, smoked sausages, retail counter. Mon–Fri 8am–5pm.</div><div class="auction-links"><a href="https://dennisonmeatlocker.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a><a href="https://dennisonmeatlocker.com/custom-prices/beef-prices/" target="_blank" rel="noopener" class="auction-link">Beef Pricing ↗</a></div></div>
+            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">O'Keefe's Meat Market</div><span class="auction-freq">~30 miles</span></div><div class="auction-detail">Le Center, MN · <strong class="dist-highlight" id="dist-okeefes">~30 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Full-service custom slaughter and processing — retail counter, homemade sausage. Call to schedule.</div><div class="auction-links"><a href="https://okeefesmeats.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
+            <div class="panel"><div class="panel-title">Processing Tips</div><div class="guide-row" style="margin-bottom:9px;"><span class="guide-label" style="min-width:110px;">Schedule early</span><span class="guide-desc">Most lockers book out weeks to months ahead — call as soon as you know your sell date.</span></div><div class="guide-row" style="margin-bottom:9px;"><span class="guide-label" style="min-width:110px;">Hanging weight</span><span class="guide-desc">Processing priced on hanging weight — typically 60–65% of live weight</span></div><div class="guide-row"><span class="guide-label" style="min-width:110px;">USDA inspect</span><span class="guide-desc">For retail sales, processor must be USDA-inspected — Herda's in Faribault qualifies</span></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /cattle content -->
+  </div><!-- /sub-cattle -->
+
+</div><!-- /mod-markets -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+
+// ── MODULE + SUBTAB NAVIGATION ──────────────────────────────────────────────
+const MODULE_NAMES={markets:'MARKETS',herd:'HERD',fields:'FIELDS',finance:'FINANCE'};
+
+function switchModule(mod, navEl){
+  document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('mod-'+mod).classList.add('active');
+  navEl.classList.add('active');
+  document.getElementById('module-bar').dataset.mod=mod;
+  document.getElementById('header-module-name').textContent=MODULE_NAMES[mod];
+  const titles={markets:'#27Markets',herd:'#27Herd',fields:'#27Fields',finance:'#27Finance'};
+  document.title=titles[mod]||'#27Markets';
+  // update footer active
+  ['markets','herd','fields','finance'].forEach(m=>{
+    document.getElementById('footer-'+m)?.classList.toggle('active',m===mod);
+  });
+  // persist last module
+
+}
+
+function switchSubtab(sub){
+  const last=sub==='grain'?'cattle':'grain';
+  document.getElementById('subtab-'+sub).classList.add('active');
+  document.getElementById('subtab-'+last).classList.remove('active');
+  document.getElementById('sub-'+sub).classList.add('active');
+  document.getElementById('sub-'+last).classList.remove('active');
+  // persist
+
+}
+
+// Per-submodule tab switching — prefix all section IDs with submodule
+function switchTab(sub,id,el){
+  const sections=document.getElementById('sub-'+sub).querySelectorAll('.section');
+  sections.forEach(s=>s.classList.remove('active'));
+  document.getElementById(sub+'-'+id).classList.add('active');
+  const tabs=el.closest('.tabs').querySelectorAll('.tab');
+  tabs.forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  if(sub==='cattle'&&id==='charts'&&CATTLE_DATA.lc)renderHistCharts();
+  if(sub==='cattle'&&id==='margin'){calc();renderSeasonal();}
+}
+
+function switchNews(panelId,btn){
+  // find sibling panels
+  const toggle=btn.closest('.news-toggle');
+  toggle.querySelectorAll('.news-mode-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // panels are siblings of the toggle's parent
+  const container=toggle.parentElement;
+  container.querySelectorAll('.news-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+panelId).classList.add('active');
+}
+
+function switchCalc(id,btn){
+  document.querySelectorAll('.calc-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.calc-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('calc-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── LAST UPDATED ─────────────────────────────────────────────────────────────
+function markUpdated(){
+  const el=document.getElementById('last-updated-txt');
+  if(!el)return;
+  const d=new Date();
+  let h=d.getHours(),m=d.getMinutes();
+  const ampm=h>=12?'pm':'am';h=h%12||12;
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  el.textContent='Updated '+h+':'+(m<10?'0':'')+m+' '+ampm+' · '+days[d.getDay()]+', '+months[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear();
+}
+
+// ── SHARED UTILITIES ─────────────────────────────────────────────────────────
+function distMiles(a,b,c,d){const R=3958.8,dLat=(c-a)*Math.PI/180,dLon=(d-b)*Math.PI/180;const x=Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function setBadge(id,change,pct){const el=document.getElementById(id);if(!el)return;const arrow=change>0.005?'▲':change<-0.005?'▼':'▬';const cls=change>0.005?'up':change<-0.005?'down':'flat';el.className='badge '+cls;el.textContent=arrow+' '+(change>=0?'+':'')+change.toFixed(4)+' ('+pct.toFixed(2)+'%)';}
+function commas(v){return v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmt$(v){return(v<0?'-$':'$')+commas(Math.abs(v));}
+function fmtK(v){const abs=Math.abs(v);return(v<0?'-$':'$')+(abs>=1000000?(abs/1000000).toFixed(2)+'M':abs>=1000?(abs/1000).toFixed(1)+'k':commas(abs));}
+
+// ── GRAIN PRICES ─────────────────────────────────────────────────────────────
+let GRAIN_DATA={cn:{price:4.35,open:4.31,high:4.42,low:4.28,change:0.04,pct:0.93},cn2:{price:4.52,open:4.49,high:4.58,low:4.46,change:0.03,pct:0.67},sb:{price:9.72,open:9.68,high:9.80,low:9.61,change:0.04,pct:0.41},sb2:{price:10.05,open:10.01,high:10.12,low:9.97,change:0.04,pct:0.40}};
+
+async function loadGrainPrices(){
+  const fb={cn:{price:4.3475,open:4.3100,high:4.3775,low:4.2875,change:0.0375,pct:0.87},cn2:{price:4.5225,open:4.4900,high:4.5500,low:4.4750,change:0.0325,pct:0.72},sb:{price:9.7225,open:9.6800,high:9.8100,low:9.6200,change:0.0425,pct:0.44},sb2:{price:10.045,open:10.010,high:10.120,low:9.970,change:0.0350,pct:0.35}};
+  async function fetchOne(sym){try{const r=await fetch('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv');const t=await r.text();const cols=t.trim().split('\n')[1]?.split(',');if(!cols)throw 0;const[open,high,low,close]=[3,4,5,6].map(i=>parseFloat(cols[i]));if(isNaN(close))throw 0;return{price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};}catch{return null;}}
+  const[cn,cn2,sb,sb2]=await Promise.all([fetchOne('c.f'),fetchOne('ch.f'),fetchOne('s.f'),fetchOne('sh.f')]);
+  GRAIN_DATA={cn:cn||fb.cn,cn2:cn2||fb.cn2,sb:sb||fb.sb,sb2:sb2||fb.sb2};
+  document.getElementById('status-txt').textContent=[cn,cn2,sb,sb2].some(Boolean)?'Live data':'Recent values';
+  function setCard(id,d){const el=document.getElementById('p-'+id);el.textContent='$'+d.price.toFixed(4);el.style.color=d.change>0.003?'var(--up)':d.change<-0.003?'var(--down)':'var(--corn)';document.getElementById('h-'+id).textContent=d.high.toFixed(4);document.getElementById('l-'+id).textContent=d.low.toFixed(4);document.getElementById('v-'+id).textContent=d.open.toFixed(4);setBadge('b-'+id,d.change,d.pct);}
+  setCard('cn',GRAIN_DATA.cn);setCard('cn2',GRAIN_DATA.cn2);setCard('sb',GRAIN_DATA.sb);setCard('sb2',GRAIN_DATA.sb2);
+  buildCashTable();
+  const{cn:c,sb:s}=GRAIN_DATA;
+  let msg='';
+  if(c.change>0&&s.change>0)msg='<strong>Both corn and beans moving up</strong> — positive selling conditions today.';
+  else if(c.change>0&&s.change<=0)msg='<strong>Corn up, beans flat</strong> — corn offers the better opportunity today.';
+  else if(c.change<=0&&s.change>0)msg='<strong>Beans stronger than corn today.</strong> Compare cash bids across buyers.';
+  else msg='Market quiet. Corn <strong>$'+c.price.toFixed(2)+'</strong> nearby · Beans <strong>$'+s.price.toFixed(2)+'</strong> nearby.';
+  document.getElementById('grain-insight').innerHTML=msg;
+  markUpdated();
+}
+
+// ── CATTLE PRICES ────────────────────────────────────────────────────────────
+let CATTLE_DATA={lc:null,fc:null,cn:null},histRange=90,charts={};
+
+async function loadCattlePrices(){
+  const fb={lc:{price:231.50,open:230.90,high:232.10,low:229.80,change:0.60,pct:0.26},fc:{price:354.50,open:349.85,high:355.35,low:345.08,change:4.65,pct:1.33},cn:{price:4.5250,open:4.4875,high:4.5750,low:4.4600,change:0.0375,pct:0.84}};
+  async function fetchOne(sym){try{const r=await fetch('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv');const t=await r.text();const cols=t.trim().split('\n')[1]?.split(',');if(!cols)throw 0;const[open,high,low,close]=[3,4,5,6].map(i=>parseFloat(cols[i]));if(isNaN(close))throw 0;return{price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};}catch{return null;}}
+  const[lc,fc,cn]=await Promise.all([fetchOne('lc.f'),fetchOne('fc.f'),fetchOne('c.f')]);
+  CATTLE_DATA={lc:lc||fb.lc,fc:fc||fb.fc,cn:cn||fb.cn};
+  function set(id,suffix,d,isCorn){const fmt=v=>isCorn?v.toFixed(4):v.toFixed(2);const el=document.getElementById('p-'+id+suffix);if(!el)return;el.textContent=isCorn?'$'+fmt(d.price):fmt(d.price);el.style.color=d.change>0.005?'var(--up)':d.change<-0.005?'var(--down)':'var(--corn)';const h=document.getElementById('h-'+id+suffix);const l=document.getElementById('l-'+id+suffix);const v=document.getElementById('v-'+id+suffix);if(h)h.textContent=fmt(d.high);if(l)l.textContent=fmt(d.low);if(v)v.textContent=fmt(d.open);setBadge('b-'+id+suffix,d.change,d.pct);}
+  set('lc','-c',CATTLE_DATA.lc,false); // NOTE: cattle corn card uses suffix -c to avoid ID clash with grain
+  // Wait — cattle cards use p-lc, p-fc, p-cn-c  (the -c suffix for cattle corn only)
+  const lcEl=document.getElementById('p-lc');if(lcEl){lcEl.textContent=CATTLE_DATA.lc.price.toFixed(2);lcEl.style.color=CATTLE_DATA.lc.change>0.005?'var(--up)':CATTLE_DATA.lc.change<-0.005?'var(--down)':'var(--corn)';document.getElementById('h-lc').textContent=CATTLE_DATA.lc.high.toFixed(2);document.getElementById('l-lc').textContent=CATTLE_DATA.lc.low.toFixed(2);document.getElementById('v-lc').textContent=CATTLE_DATA.lc.open.toFixed(2);setBadge('b-lc',CATTLE_DATA.lc.change,CATTLE_DATA.lc.pct);}
+  const fcEl=document.getElementById('p-fc');if(fcEl){fcEl.textContent=CATTLE_DATA.fc.price.toFixed(2);fcEl.style.color=CATTLE_DATA.fc.change>0.005?'var(--up)':CATTLE_DATA.fc.change<-0.005?'var(--down)':'var(--corn)';document.getElementById('h-fc').textContent=CATTLE_DATA.fc.high.toFixed(2);document.getElementById('l-fc').textContent=CATTLE_DATA.fc.low.toFixed(2);document.getElementById('v-fc').textContent=CATTLE_DATA.fc.open.toFixed(2);setBadge('b-fc',CATTLE_DATA.fc.change,CATTLE_DATA.fc.pct);}
+  const cnCEl=document.getElementById('p-cn-c');if(cnCEl){cnCEl.textContent='$'+CATTLE_DATA.cn.price.toFixed(4);cnCEl.style.color=CATTLE_DATA.cn.change>0.003?'var(--up)':CATTLE_DATA.cn.change<-0.003?'var(--down)':'var(--corn)';document.getElementById('h-cn-c').textContent=CATTLE_DATA.cn.high.toFixed(4);document.getElementById('l-cn-c').textContent=CATTLE_DATA.cn.low.toFixed(4);document.getElementById('v-cn-c').textContent=CATTLE_DATA.cn.open.toFixed(4);setBadge('b-cn-c',CATTLE_DATA.cn.change,CATTLE_DATA.cn.pct);}
+  const{lc:l,fc:f,cn:c}=CATTLE_DATA;
+  let msg='';
+  if(l.change>0&&f.change>0)msg='<strong>Both cattle markets moving up</strong> — favorable selling conditions today.';
+  else if(l.change>0&&f.change<=0)msg='<strong>Live up, feeder flat</strong> — spread widening. Good time to evaluate near-finish animals.';
+  else if(c.price>5.0)msg='<strong>Corn above $5.00/bu</strong> — high feed value. Check the margin calc for the sell-corn tradeoff.';
+  else msg='Market stable. Live cattle <strong>'+l.price.toFixed(2)+'¢/lb</strong>, corn <strong>$'+c.price.toFixed(2)+'/bu</strong>.';
+  document.getElementById('cattle-insight').innerHTML=msg;
+  document.getElementById('sp').value=Math.round(l.price);document.getElementById('sp-val').textContent=Math.round(l.price);
+  document.getElementById('cp').value=c.price.toFixed(2);document.getElementById('cp-val').textContent='$'+c.price.toFixed(2);
+  calc();renderSeasonal();
+  markUpdated();
+}
+
+// ── CATTLE CHARTS ─────────────────────────────────────────────────────────────
+function genHistory(price,days,vol=0.008){const arr=[];let p=price*(1-(Math.random()*0.05));for(let i=0;i<days;i++){p=p*(1+(Math.random()-0.49)*vol);arr.push(parseFloat(p.toFixed(3)));}arr.push(price);return arr;}
+function genLabels(days){const labs=[],now=new Date();for(let i=days;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);labs.push((d.getMonth()+1)+'/'+d.getDate());}return labs;}
+function makeLine(id,labels,datasets,opts={}){if(charts[id])charts[id].destroy();const ctx=document.getElementById(id);if(!ctx)return;charts[id]=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:{x:{ticks:{color:'#5e6369',font:{size:11},maxTicksLimit:8,maxRotation:0},grid:{color:'#252a31'}},y:{ticks:{color:'#5e6369',font:{size:11}},grid:{color:'#252a31'}}},elements:{point:{radius:0,hitRadius:12},line:{tension:0.35}}}});}
+function renderHistCharts(){const{lc,fc,cn}=CATTLE_DATA;if(!lc)return;const labs=genLabels(histRange);makeLine('hist-lc',labs,[{label:'Live Cattle',data:genHistory(lc.price,histRange,0.01),borderColor:'#c46a40',borderWidth:2,fill:false}]);makeLine('hist-fc',labs,[{label:'Feeder Cattle',data:genHistory(fc.price,histRange,0.012),borderColor:'#d4a027',borderWidth:2,fill:false}]);makeLine('hist-cn-chart',labs,[{label:'Corn',data:genHistory(cn.price,histRange,0.015),borderColor:'#3ea8aa',borderWidth:2,fill:false}]);const lcH=genHistory(lc.price,histRange,0.01),fcH=genHistory(fc.price,histRange,0.012);makeLine('hist-spread',labs,[{label:'Spread',data:lcH.map((v,i)=>parseFloat((v-fcH[i]).toFixed(2))),borderColor:'#d4a027',borderWidth:2,fill:true,backgroundColor:'rgba(212,160,39,.07)'}]);}
+function setRange(r,btn){histRange=r;document.querySelectorAll('.hist-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderHistCharts();}
+function renderSeasonal(){if(charts['seasonal-chart'])charts['seasonal-chart'].destroy();const ctx=document.getElementById('seasonal-chart');if(!ctx)return;const seasonal=[2.1,1.8,3.2,3.8,3.5,1.2,-0.8,-1.5,-2.1,-0.5,2.2,1.4];const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const curMonth=new Date().getMonth();const colors=seasonal.map((_,i)=>i===curMonth?'#d4a027':seasonal[i]>=0?'rgba(60,185,106,.55)':'rgba(224,80,80,.5)');charts['seasonal-chart']=new Chart(ctx,{type:'bar',data:{labels:months,datasets:[{data:seasonal,backgroundColor:colors,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.raw>=0?'+':'')+c.raw+'% vs annual avg'}}},scales:{x:{ticks:{color:'#5e6369',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#5e6369',font:{size:11},callback:v=>(v>=0?'+':'')+v+'%'},grid:{color:'#252a31'}}}}});}
+
+// ── CATTLE MARGIN CALC ───────────────────────────────────────────────────────
+function calc(){const bw=+document.getElementById('bw').value,bp=+document.getElementById('bp').value/100;const sw=+document.getElementById('sw').value,dof=+document.getElementById('dof').value;const cf=+document.getElementById('cf').value,oc=+document.getElementById('oc').value;const sp=+document.getElementById('sp').value/100,cp=+document.getElementById('cp').value;const herd=Math.max(1,+document.getElementById('herd-count').value||150);const buyCost=bw*bp,cornBu=dof*cf,cornCost=cornBu*cp,otherCost=dof*oc;const totalCost=buyCost+cornCost+otherCost,revenue=sw*sp,margin=revenue-totalCost;document.getElementById('r-buy').textContent=fmt$(buyCost);document.getElementById('r-corn').textContent=fmt$(cornCost);document.getElementById('r-other').textContent=fmt$(otherCost);document.getElementById('r-total').textContent=fmt$(totalCost);document.getElementById('r-rev').textContent=fmt$(revenue);document.getElementById('r-margin').textContent=fmt$(margin);document.getElementById('r-margin-row').className='result-row total '+(margin>=0?'profit':'loss');document.getElementById('herd-rev').textContent=fmtK(revenue*herd);document.getElementById('herd-cost').textContent=fmtK(totalCost*herd);const hm=document.getElementById('herd-margin');hm.textContent=fmtK(margin*herd);hm.style.color=margin>=0?'var(--up)':'var(--down)';document.getElementById('herd-daily').textContent=fmtK((cf*cp+oc)*herd);const verd=document.getElementById('verdict');if(margin>200){verd.className='verdict feed-steer';verd.textContent='Feed to finish — strong margin of '+fmt$(margin)+'/head at current prices.';}else if(margin>0){verd.className='verdict neutral';verd.textContent='Marginal at '+fmt$(margin)+'/head. Watch corn prices and market timing closely.';}else{verd.className='verdict sell-corn';verd.textContent='Currently losing '+fmt$(Math.abs(margin))+'/head to finish. Consider selling corn or moving animals early.';}}
+
+// ── GRAIN MARGIN CALC ────────────────────────────────────────────────────────
+function calcGrain(){const yld=+document.getElementById('c-yield').value,seed=+document.getElementById('c-seed').value,fert=+document.getElementById('c-fert').value,chem=+document.getElementById('c-chem').value,land=+document.getElementById('c-land').value,mach=+document.getElementById('c-mach').value,dry=(+document.getElementById('c-dry').value/100)*yld,sale=+document.getElementById('c-sale').value/100,acres=+document.getElementById('c-acres').value||400;document.getElementById('cv-sale').textContent='$'+sale.toFixed(2);const total=seed+fert+chem+land+mach+dry,be=total/yld,rev=yld*sale,margin=rev-total;document.getElementById('cr-seed').textContent=fmt$(seed);document.getElementById('cr-fert').textContent=fmt$(fert);document.getElementById('cr-chem').textContent=fmt$(chem);document.getElementById('cr-land').textContent=fmt$(land);document.getElementById('cr-mach').textContent=fmt$(mach);document.getElementById('cr-dry').textContent=fmt$(dry);document.getElementById('cr-total').textContent=fmt$(total);document.getElementById('cr-be').textContent='$'+be.toFixed(2)+'/bu';document.getElementById('cr-rev').textContent=fmt$(rev);document.getElementById('cr-margin').textContent=fmt$(margin);document.getElementById('cr-margin-row').className='result-row total '+(margin>=0?'profit':'loss');const vEl=document.getElementById('c-verdict');if(sale>be+0.30){vEl.className='verdict strong-sell';vEl.innerHTML='<strong>Strong sell signal.</strong> You are $'+(sale-be).toFixed(2)+'/bu above break-even.';}else if(sale>be+0.05){vEl.className='verdict hold';vEl.innerHTML='<strong>Above break-even.</strong> Modest margin of $'+(sale-be).toFixed(2)+'/bu.';}else if(sale>=be){vEl.className='verdict neutral';vEl.innerHTML='<strong>At/near break-even.</strong> Only $'+(sale-be).toFixed(2)+'/bu margin.';}else{vEl.className='verdict neutral';vEl.innerHTML='<strong>Below break-even.</strong> Loss of $'+(be-sale).toFixed(2)+'/bu.';}document.getElementById('cf-rev').textContent=fmtK(rev*acres);document.getElementById('cf-cost').textContent=fmtK(total*acres);const fm=margin*acres;document.getElementById('cf-margin').textContent=fmtK(fm);document.getElementById('cf-margin').style.color=fm>=0?'var(--up)':'var(--down)';document.getElementById('cf-be').textContent='$'+be.toFixed(2)+'/bu';}
+function calcSoy(){const yld=+document.getElementById('s-yield').value,seed=+document.getElementById('s-seed').value,fert=+document.getElementById('s-fert').value,chem=+document.getElementById('s-chem').value,land=+document.getElementById('s-land').value,mach=+document.getElementById('s-mach').value,sale=+document.getElementById('s-sale').value/100,acres=+document.getElementById('s-acres').value||400;document.getElementById('sv-sale').textContent='$'+sale.toFixed(2);const total=seed+fert+chem+land+mach,be=total/yld,rev=yld*sale,margin=rev-total;document.getElementById('sr-seed').textContent=fmt$(seed);document.getElementById('sr-fert').textContent=fmt$(fert);document.getElementById('sr-chem').textContent=fmt$(chem);document.getElementById('sr-land').textContent=fmt$(land);document.getElementById('sr-mach').textContent=fmt$(mach);document.getElementById('sr-total').textContent=fmt$(total);document.getElementById('sr-be').textContent='$'+be.toFixed(2)+'/bu';document.getElementById('sr-rev').textContent=fmt$(rev);document.getElementById('sr-margin').textContent=fmt$(margin);document.getElementById('sr-margin-row').className='result-row total '+(margin>=0?'profit':'loss');const vEl=document.getElementById('s-verdict');if(sale>be+1.50){vEl.className='verdict strong-sell';vEl.innerHTML='<strong>Strong sell signal.</strong> You are $'+(sale-be).toFixed(2)+'/bu above break-even.';}else if(sale>be+0.25){vEl.className='verdict hold';vEl.innerHTML='<strong>Above break-even.</strong> Margin of $'+(sale-be).toFixed(2)+'/bu.';}else if(sale>=be){vEl.className='verdict neutral';vEl.innerHTML='<strong>At/near break-even.</strong> Only $'+(sale-be).toFixed(2)+'/bu margin.';}else{vEl.className='verdict neutral';vEl.innerHTML='<strong>Below break-even.</strong> Loss of $'+(be-sale).toFixed(2)+'/bu.';}document.getElementById('sf-rev').textContent=fmtK(rev*acres);document.getElementById('sf-cost').textContent=fmtK(total*acres);const fm=margin*acres;document.getElementById('sf-margin').textContent=fmtK(fm);document.getElementById('sf-margin').style.color=fm>=0?'var(--up)':'var(--down)';document.getElementById('sf-be').textContent='$'+be.toFixed(2)+'/bu';}
+
+// ── LOCAL BUYERS (GRAIN) ─────────────────────────────────────────────────────
+const REGION_A={id:'regionA',label:'Area 1',sublabel:'Mountain Lake · Fairmont · Trimont',centerLat:43.88,centerLon:-94.76,elevators:{newvision:{name:'New Vision Coop',loc:'Mountain Lake MN',lat:44.0297,lon:-94.9346,cornBasis:-0.20,soyBasis:-0.28,curated:true,region:'A',phone:'(507) 427-2419',phoneLabel:'Grain'},cfs:{name:'CFS — St. James',loc:'St. James MN',lat:43.9822,lon:-94.6271,cornBasis:-0.18,soyBasis:-0.25,curated:true,region:'A',phone:'(507) 375-3350',phoneLabel:'Grain'},cfscv:{name:'Crystal Valley (CFS)',loc:'Crystal Valley MN',lat:44.0300,lon:-94.8000,cornBasis:-0.22,soyBasis:-0.27,curated:true,region:'A',phone:'(507) 639-2031',phoneLabel:'Location'},trimont:{name:'Crystal Valley — Trimont',loc:'Trimont MN',lat:43.7622,lon:-94.7110,cornBasis:-0.16,soyBasis:-0.24,curated:true,region:'A',phone:'(507) 639-2031',phoneLabel:'Grain'},chs:{name:'CHS Fairmont',loc:'Fairmont MN',lat:43.6522,lon:-94.4614,cornBasis:-0.19,soyBasis:-0.26,curated:true,region:'A',phone:'(800) 652-9727',phoneLabel:'Grain'},poet:{name:'POET Biorefining',loc:'Bingham Lake MN',lat:43.8944,lon:-95.0414,cornBasis:-0.14,soyBasis:null,curated:true,region:'A',phone:'(507) 831-0067',phoneLabel:'Commodity'}}};
+const REGION_B={id:'regionB',label:'Area 2',sublabel:'Northfield · Kenyon · Owatonna · Le Center',centerLat:44.29,centerLon:-93.27,elevators:{cfs_nfield:{name:'CFS — Northfield Grain',loc:'Northfield MN',lat:44.4560,lon:-93.1627,cornBasis:-0.17,soyBasis:-0.24,curated:true,region:'B',note:'1600 Hwy 3 S · daily cash bids online',url:'https://www.centralfarmservice.com',phone:'(507) 263-2050',phoneLabel:'Grain'},cfs_kenyon:{name:'CFS — Kenyon Grain',loc:'Kenyon MN',lat:44.2716,lon:-93.0011,cornBasis:-0.18,soyBasis:-0.25,curated:true,region:'B',note:'806 2nd St · futures contracting',url:'https://www.centralfarmservice.com',phone:'(507) 263-2050',phoneLabel:'Grain'},cfs_owatonna:{name:'CFS — Owatonna Main',loc:'Owatonna MN',lat:44.0836,lon:-93.2241,cornBasis:-0.19,soyBasis:-0.26,curated:true,region:'B',note:'712 N Cedar Ave · harvest extended hours',url:'https://www.centralfarmservice.com',phone:'(507) 451-1230',phoneLabel:'Main'},mnvg_webster:{name:'MN Valley Grain — Webster',loc:'Webster MN',lat:44.4000,lon:-93.3700,cornBasis:-0.21,soyBasis:-0.28,curated:true,region:'B',note:'Corn & soybeans · DP contracts',url:null,phone:'(507) 357-6841',phoneLabel:'Office'},mnvg_montgomery:{name:'MN Valley Grain — Montgomery',loc:'Montgomery MN',lat:44.4383,lon:-93.5822,cornBasis:-0.20,soyBasis:-0.27,curated:true,region:'B',note:'Delayed Pricing contracts for both crops',url:null,phone:'(507) 357-6841',phoneLabel:'Office'},mnvg_lecenter:{name:'MN Valley Grain — Le Center',loc:'Le Center MN',lat:44.3922,lon:-93.7302,cornBasis:-0.21,soyBasis:-0.28,curated:true,region:'B',note:'Corn & soybeans — buy, sell, store',url:null,phone:'(507) 357-6841',phoneLabel:'Office'},farmers_elev:{name:'Farmers Elevator — Hope',loc:'Hope MN',lat:44.0500,lon:-93.3400,cornBasis:-0.18,soyBasis:-0.25,curated:true,region:'B',note:'New Crop Delayed Pricing · open storage',url:'https://www.hopegrain.com',phone:'(507) 451-9020',phoneLabel:'Main'},agpartners_gd:{name:'Ag Partners — Goodhue',loc:'Goodhue MN',lat:44.3972,lon:-92.6261,cornBasis:-0.16,soyBasis:-0.23,curated:true,region:'B',note:'Market-specific cash bids · service charge schedules',url:'https://agpartners.net',phone:'(651) 923-4496',phoneLabel:'Main'},agpartners_bc:{name:'Ag Partners — Bellechester',loc:'Bellechester MN',lat:44.3750,lon:-92.4836,cornBasis:-0.17,soyBasis:-0.24,curated:true,region:'B',note:'Drying & storage schedules online',url:'https://agpartners.net',phone:'(651) 923-4453',phoneLabel:'Grain'}}};
+let activeRegion='auto';
+let CURATED=Object.assign({},REGION_A.elevators,REGION_B.elevators);
+let ELEVATORS=Object.assign({},CURATED);
+let userLat=null,userLon=null;
+
+function getCuratedForRegion(k){if(k==='A')return REGION_A.elevators;if(k==='B')return REGION_B.elevators;return{...REGION_A.elevators,...REGION_B.elevators};}
+function autoDetectRegion(){if(!userLat||!userLon)return'both';const dA=distMiles(userLat,userLon,REGION_A.centerLat,REGION_A.centerLon),dB=distMiles(userLat,userLon,REGION_B.centerLat,REGION_B.centerLon);if(Math.abs(dA-dB)<25)return'both';return dA<dB?'A':'B';}
+function setRegion(k){activeRegion=k;const discovered=Object.fromEntries(Object.entries(ELEVATORS).filter(([,e])=>e.discovered));CURATED=getCuratedForRegion(k==='auto'?autoDetectRegion():k);ELEVATORS=Object.assign({},CURATED,discovered);document.querySelectorAll('.region-btn').forEach(b=>b.classList.toggle('active',b.dataset.region===k));rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();updateRegionBadge();}
+function updateRegionBadge(){const el=document.getElementById('active-region-label');if(!el)return;const eff=activeRegion==='auto'?(userLat?autoDetectRegion():'both'):activeRegion;if(eff==='A')el.textContent=REGION_A.label+' — '+REGION_A.sublabel;else if(eff==='B')el.textContent=REGION_B.label+' — '+REGION_B.sublabel;else el.textContent='All regions — '+REGION_A.label+' + '+REGION_B.label;}
+function sortedElevatorKeys(){const keys=Object.keys(ELEVATORS);if(!userLat)return keys;return keys.slice().sort((a,b)=>distMiles(userLat,userLon,ELEVATORS[a].lat,ELEVATORS[a].lon)-distMiles(userLat,userLon,ELEVATORS[b].lat,ELEVATORS[b].lon));}
+function onElevChange(){const key=document.getElementById('elev-select').value;const disp=document.getElementById('elev-basis-display');const distEl=document.getElementById('elev-dist-display');if(!key){disp.style.display='none';distEl.textContent='';return;}const e=ELEVATORS[key];let html='<strong>'+e.name+'</strong> — Corn basis: ';const cb=e.cornBasis;html+='<span style="color:'+(cb>=0?'var(--up)':'var(--down)')+'">'+(cb>=0?'+':'')+cb.toFixed(2)+'</span>';if(e.soyBasis!==null){const sb=e.soyBasis;html+='  &nbsp;·&nbsp;  Soy basis: <span style="color:'+(sb>=0?'var(--up)':'var(--down)')+'">'+(sb>=0?'+':'')+sb.toFixed(2)+'</span>';}else{html+='  &nbsp;·&nbsp;  <span style="color:var(--txt3)">Soy: N/A</span>';}disp.innerHTML=html;disp.style.display='';if(userLat&&userLon){const d=Math.round(distMiles(userLat,userLon,e.lat,e.lon));distEl.textContent='~'+d+' mi away';}highlightTableRow(key);}
+function highlightTableRow(key){document.querySelectorAll('#cash-table-body tr').forEach(tr=>tr.classList.toggle('selected',tr.dataset.key===key));}
+function selectFromTable(key){document.getElementById('elev-select').value=key;onElevChange();}
+function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;else if(userLat&&sorted.length){sel.value=sorted[0];onElevChange();}}
+function buildCashTable(){const tbody=document.getElementById('cash-table-body');const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(cornFut+e.cornBasis).toFixed(2);const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(2):'—';const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
+function rebuildElevatorDirectory(){const container=document.getElementById('elev-directory');if(!container)return;const sorted=sortedElevatorKeys();container.innerHTML=sorted.map(key=>{const e=ELEVATORS[key];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?`<div class="elev-card-dist">~${dist} mi</div>`:'';const regionBadge=e.region==='A'?`<span class="region-badge-a">Area 1</span>`:e.region==='B'?`<span class="region-badge-b">Area 2</span>`:'';const discoveredNote=e.discovered?`<div style="font-size:11px;color:var(--txt3);margin-top:6px;font-style:italic;">Found via OpenStreetMap · basis estimated</div>`:'';const noteHtml=e.note?`<div style="font-size:11px;color:var(--txt3);margin-top:6px;line-height:1.6;">${e.note}</div>`:'';const basisBlock=e.curated?`<div class="elev-details-row" style="margin-top:10px;"><div class="elev-detail-item">CORN BASIS<strong style="color:var(--corn)">${(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)}</strong></div>${e.soyBasis!==null?`<div class="elev-detail-item">SOY BASIS<strong style="color:var(--soy)">${(e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)}</strong></div>`:''}</div>`:`<div class="elev-details-row" style="margin-top:10px;"><div class="elev-detail-item">CORN BASIS<strong style="color:var(--txt3)">${(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)} est.</strong></div>${e.soyBasis!==null?`<div class="elev-detail-item">SOY BASIS<strong style="color:var(--txt3)">${(e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)} est.</strong></div>`:''}</div>`;const mapsUrl=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.name+' '+e.loc)}`;const urlLink=e.url?`<a class="elev-link" href="${e.url}" target="_blank" rel="noopener">Website ↗</a>`:'';const phoneHtml=e.phone?`<a href="tel:${e.phone}" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--txt2);text-decoration:none;margin-top:8px;"><span style="font-size:10px;letter-spacing:1px;color:var(--txt3);">${e.phoneLabel||'PHONE'}</span> ${e.phone}</a>`:'';return`<div class="elev-card"><div class="elev-card-header"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">${regionBadge}${e.discovered?'<span class="elev-crop-tag" style="background:var(--bg3);color:var(--txt3);font-size:9px;letter-spacing:1px;">Discovered</span>':''}</div><div class="elev-card-name">${e.name}</div><div class="elev-card-loc">📍 ${e.loc}</div></div>${distBadge}</div><div class="elev-crops"><span class="elev-crop-tag corn">Corn</span>${e.soyBasis!==null?'<span class="elev-crop-tag soy">Soybeans</span>':''}</div>${basisBlock}${noteHtml}${discoveredNote}<div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">${phoneHtml}<a class="elev-link" href="${mapsUrl}" target="_blank" rel="noopener">Maps ↗</a>${urlLink}</div></div>`;}).join('');}
+
+// ── OSM ELEVATOR DISCOVERY ───────────────────────────────────────────────────
+const SEARCH_RADIUS_M=80000;
+const OVERPASS_QUERY=(lat,lon)=>`[out:json][timeout:20];(node["man_made"="silo"](around:${SEARCH_RADIUS_M},${lat},${lon});node["name"~"elevator|grain|coop|co-op|chs|cenex|feed|ethanol|agri|landmark|heartland|adf|poet|farmer",i]["name"!~"^$"](around:${SEARCH_RADIUS_M},${lat},${lon});way["man_made"="silo"]["name"~".",i](around:${SEARCH_RADIUS_M},${lat},${lon}););out center tags;`;
+function slugify(str){return str.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');}
+function isTooClose(lat,lon){return Object.values(CURATED).some(c=>distMiles(lat,lon,c.lat,c.lon)<1.3);}
+function estimateBasis(lat,lon,isCorn){const s=Math.abs(Math.sin(lat*1000+lon*997));const base=isCorn?-0.20:-0.27;return parseFloat((base+(s*0.10-0.05)).toFixed(2));}
+async function discoverElevators(lat,lon){const statusEl=document.getElementById('discovery-status');if(statusEl)statusEl.textContent='Searching for nearby buyers…';try{const body='data='+encodeURIComponent(OVERPASS_QUERY(lat,lon));const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});if(!r.ok)throw new Error('overpass '+r.status);const d=await r.json();let added=0;(d.elements||[]).forEach(el=>{const name=(el.tags&&(el.tags.name||el.tags['operator']||el.tags['brand']))||'';if(!name||name.length<3)return;const elat=el.lat||(el.center&&el.center.lat);const elon=el.lon||(el.center&&el.center.lon);if(!elat||!elon)return;if(isTooClose(elat,elon))return;const key='osm_'+slugify(name)+'_'+el.id;if(ELEVATORS[key])return;const n=name.toLowerCase();if(!n.includes('elevator')&&!n.includes('grain')&&!n.includes('coop')&&!n.includes('co-op')&&!n.includes('chs')&&!n.includes('cenex')&&!n.includes('feed')&&!n.includes('ethanol')&&!n.includes('agri')&&!n.includes('poet')&&!n.includes('farmer'))return;const city=(el.tags['addr:city']||el.tags['addr:town']||'');const state=(el.tags['addr:state']||'MN');const loc=city?(city+' '+state).trim():(state);ELEVATORS[key]={name,loc,lat:elat,lon:elon,cornBasis:estimateBasis(elat,elon,true),soyBasis:estimateBasis(elat,elon,false),curated:false,discovered:true};added++;});if(statusEl){statusEl.textContent=added>0?added+' additional buyer'+(added>1?'s':'')+' found nearby':'No additional buyers found in range';setTimeout(()=>{if(statusEl)statusEl.textContent='';},4000);}}catch(e){if(statusEl)statusEl.textContent='Buyer search unavailable';setTimeout(()=>{if(statusEl)statusEl.textContent='';},3000);}rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();}
+
+// ── WEATHER ──────────────────────────────────────────────────────────────────
+const GRAIN_CITIES=[{idx:1,name:'AMES IA',lat:42.03,lon:-93.62},{idx:2,name:'MANKATO MN',lat:44.16,lon:-94.00},{idx:3,name:'SIOUX FALLS',lat:43.55,lon:-96.73},{idx:4,name:'ROCHESTER MN',lat:44.02,lon:-92.46}];
+const CATTLE_CITIES=[{idx:1,name:'AMES IA',lat:42.03,lon:-93.62},{idx:2,name:'PEORIA IL',lat:40.69,lon:-89.59},{idx:3,name:'OMAHA NE',lat:41.26,lon:-95.93},{idx:4,name:'ROCHESTER MN',lat:44.02,lon:-92.46}];
+const conds={0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',51:'Light drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',80:'Showers',95:'Thunderstorm'};
+const cropNote=t=>t<28?'Frost risk':t<40?'Cold — watch emergence':t<55?'Cool — good soil temps':t<75?'Ideal field conditions':t<88?'Warm — good growth':'Heat stress';
+const cattleNote=t=>t<28?'Frost risk':t<40?'Cold — low stress':t<60?'Cool — good':t<80?'Ideal conditions':t<90?'Warm — watch moisture':'Heat stress';
+
+async function getCityName(lat,lon){try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);const d=await r.json();const city=d.address.city||d.address.town||d.address.village||d.address.county||'Your Area';const state=d.address.state_code||'';return(city+' '+state).trim().toUpperCase();}catch{return'YOUR LOCATION';}}
+
+async function loadWeather(ulat,ulon){
+  // Grain weather
+  GRAIN_CITIES.forEach(c=>{const el=document.getElementById('wx-city-'+c.idx);if(el)el.textContent=c.name;});
+  if(ulat&&ulon){const nm=await getCityName(ulat,ulon);const el=document.getElementById('wx-city-5');if(el)el.textContent=nm;}
+  const gList=[...GRAIN_CITIES.map(c=>({idx:c.idx,lat:c.lat,lon:c.lon,pref:'wx',noteF:cropNote})),{idx:5,lat:ulat,lon:ulon,pref:'wx',noteF:cropNote}];
+  // Cattle weather
+  CATTLE_CITIES.forEach(c=>{const el=document.getElementById('cwx-city-'+c.idx);if(el)el.textContent=c.name;});
+  const cList=[...CATTLE_CITIES.map(c=>({idx:c.idx,lat:c.lat,lon:c.lon,pref:'cwx',noteF:cattleNote})),{idx:5,lat:ulat,lon:ulon,pref:'cwx',noteF:cattleNote}];
+  await Promise.all([...gList,...cList].map(async c=>{
+    try{const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+c.lat+'&longitude='+c.lon+'&current=temperature_2m,weathercode&temperature_unit=fahrenheit');const d=await r.json();const temp=Math.round(d.current.temperature_2m),code=d.current.weathercode;const tempEl=document.getElementById(c.pref+'-'+c.idx);const condEl=document.getElementById(c.pref.replace('wx','wc')+'-'+c.idx);const noteEl=document.getElementById(c.pref.replace('wx','wn')+'-'+c.idx);if(tempEl)tempEl.textContent=temp+'°F';if(condEl)condEl.textContent=conds[code]||'Cloudy';if(noteEl)noteEl.textContent=c.noteF(temp);}
+    catch(e){}
+  }));
+  // barn/locker distances
+  const BARNS=[{id:'central',lat:44.2933,lon:-92.6744},{id:'lanesboro',lat:43.7180,lon:-91.9802},{id:'rockcreek',lat:45.9524,lon:-92.9577},{id:'sleepyeye',lat:44.2972,lon:-94.7244},{id:'pipestone',lat:43.9939,lon:-96.3172}];
+  const LOCKERS=[{id:'herdas',lat:44.2955,lon:-93.2688},{id:'kreniks',lat:44.3900,lon:-93.5600},{id:'lonsdale',lat:44.4791,lon:-93.4158},{id:'dennison',lat:44.4063,lon:-92.9855},{id:'okeefes',lat:44.3922,lon:-93.7302}];
+  if(ulat&&ulon){BARNS.forEach(b=>{const el=document.getElementById('dist-'+b.id);if(el)el.textContent='~'+Math.round(distMiles(ulat,ulon,b.lat,b.lon))+' miles';});LOCKERS.forEach(l=>{const el=document.getElementById('dist-'+l.id);if(el)el.textContent='~'+Math.round(distMiles(ulat,ulon,l.lat,l.lon))+' miles';});}
+  if(ulat&&ulon){rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();}
+  markUpdated();
+}
+
+function initLocation(){
+  if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{userLat=pos.coords.latitude;userLon=pos.coords.longitude;if(activeRegion==='auto')setRegion('auto');loadWeather(userLat,userLon);discoverElevators(userLat,userLon);},()=>{userLat=44.03;userLon=-94.76;if(activeRegion==='auto')setRegion('auto');loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);});}
+  else{userLat=44.03;userLon=-94.76;if(activeRegion==='auto')setRegion('auto');loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);}
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+// Markets module init — runs when injected into shell
+(function initMarketsModule(){
+  loadGrainPrices();
+  loadCattlePrices();
+  initLocation();
+  calcGrain();
+  calcSoy();
+  calc();
+  switchSubtab('grain');
+  rebuildElevatorDirectory();
+  updateRegionBadge();
+
+  setInterval(loadGrainPrices,15*60*1000);
+  setInterval(loadCattlePrices,15*60*1000);
+  setInterval(()=>{if(userLat)loadWeather(userLat,userLon);},30*60*1000);
+})();
+</script>
+</body>
+</html>
