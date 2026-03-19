@@ -25,7 +25,7 @@
     --up:#3cb96a; --up-dim:rgba(60,185,106,.18);
     --down:#e05050; --down-dim:rgba(224,80,80,.16);
     --flat:#7a8898; --flat-dim:rgba(122,136,152,.14);
-    --markets:#d4a027; --herd:#3cb96a; --fields:#3ea8aa; --finance:#7b68c8;
+    --markets:#d4a027; --herd:#3cb96a; --fields:#3ea8aa; --finance:#7b68c8; --about:#8a9099;
     --nav-h:64px;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -50,6 +50,7 @@
   .nav-item[data-mod="herd"].active    .nav-label{color:var(--herd);}
   .nav-item[data-mod="fields"].active  .nav-label{color:var(--fields);}
   .nav-item[data-mod="finance"].active .nav-label{color:var(--finance);}
+  .nav-item[data-mod="about"].active   .nav-label{color:var(--txt2);}
   .nav-item.stub{opacity:0.4;}
 
   /* ── MODULE ACCENT BAR ── */
@@ -58,6 +59,7 @@
   .module-bar[data-mod="herd"]   {background:var(--herd);}
   .module-bar[data-mod="fields"] {background:var(--fields);}
   .module-bar[data-mod="finance"]{background:var(--finance);}
+  .module-bar[data-mod="about"]   {background:var(--border2);}
 
   /* ── MODULE CONTAINERS ── */
   .module{display:none;}
@@ -634,6 +636,57 @@
   </div>
 </div>
 
+
+<!-- ══════════════════════════════════════════════════
+     MODULE: ABOUT
+══════════════════════════════════════════════════ -->
+<div class="module" id="mod-about">
+  <div class="content" style="max-width:680px;margin:0 auto;padding:40px 28px;">
+
+    <div style="margin-bottom:32px;">
+      <div style="font-size:28px;font-weight:700;color:var(--corn);letter-spacing:-1px;margin-bottom:6px;">grow27</div>
+      <div style="font-size:14px;color:var(--txt3);letter-spacing:2px;font-style:italic;">watching so you don't have to</div>
+    </div>
+
+    <div style="font-size:15px;color:var(--txt2);line-height:1.9;margin-bottom:32px;">
+      grow27 started with a simple idea — the same intelligence and automation tools available to large agricultural operations should be accessible to every farm, regardless of size.
+    </div>
+
+    <div style="font-size:15px;color:var(--txt2);line-height:1.9;margin-bottom:32px;">
+      Originally built for southern Minnesota operations, thank you #27 and MFarms. grow27 was always meant to be bigger than one farm — the goal is to put the same tools, data, and intelligence in the hands of every operation, regardless of size, location, or budget.
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
+      <div style="font-size:11px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">The Platform</div>
+      <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
+        grow27 is the platform. #27Markets is the first piece of it — live grain and cattle market data, local buyer prices, and margin calculators built for working farmers. #27Herd, #27Fields, and #27Finance are coming, each adding another layer of intelligence to the operation.
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
+      <div style="font-size:11px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Why It's Free</div>
+      <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
+        grow27 doesn't store any personal information. There are no accounts, no tracking, and no data leaving your device. Because we don't hold your data, we don't charge for access. Everything runs directly in your browser.
+      </div>
+      <div style="font-size:14px;color:var(--txt3);line-height:1.9;margin-top:12px;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--border2);border-radius:0 4px 4px 0;">
+        Future versions may offer optional data storage — contract tracking, herd records, field history — but that will always be your choice.
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
+      <div style="font-size:11px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Built with AI</div>
+      <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
+        grow27 was designed and built using AI-assisted development, proving that powerful, professional tools don't require a large team or budget to build. That's the point.
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:24px;font-size:12px;color:var(--txt3);letter-spacing:1px;">
+      grow27 · southern Minnesota · v0.1 · © 2026
+    </div>
+
+  </div>
+</div>
+
 <!-- ── FOOTER ── -->
 <footer class="g27-footer">
   <div class="g27-footer-wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="24" style="display:inline-block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg></div>
@@ -658,6 +711,10 @@
   <div class="nav-item stub" data-mod="finance" onclick="switchModule('finance',this)">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
     <span class="nav-label">Finance</span>
+  </div>
+  <div class="nav-item" data-mod="about" onclick="switchModule('about',this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span class="nav-label">About</span>
   </div>
 </nav>
 
