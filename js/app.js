@@ -15,7 +15,7 @@ function switchModule(mod, navEl){
   const subs={markets:'watching the boards...'};
   const subEl=document.getElementById('header-module-sub');
   if(subEl){subEl.textContent=subs[mod]||'';subEl.style.display=subs[mod]?'':'none';}
-  const titles={markets:'#27Markets',herd:'#27Herd',fields:'#27Fields',finance:'#27Finance'};
+  const titles={markets:'#27Markets',herd:'#27Herd',fields:'#27Fields',finance:'#27Finance',about:'#27About'};
   document.title=titles[mod]||'#27Markets';
   // update footer active
   ['markets','herd','fields','finance'].forEach(m=>{
