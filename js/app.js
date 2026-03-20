@@ -85,8 +85,8 @@ function fmt$(v){return(v<0?'-$':'$')+commas(Math.abs(v));}
 function fmtK(v){const abs=Math.abs(v);return(v<0?'-$':'$')+(abs>=1000000?(abs/1000000).toFixed(2)+'M':abs>=1000?(abs/1000).toFixed(1)+'k':commas(abs));}
 
 // ── WEATHER ──────────────────────────────────────────────────────────────────
-const GRAIN_CITIES=[{idx:1,name:'AMES IA',lat:42.03,lon:-93.62},{idx:2,name:'MANKATO MN',lat:44.16,lon:-94.00},{idx:3,name:'SIOUX FALLS',lat:43.55,lon:-96.73},{idx:4,name:'ROCHESTER MN',lat:44.02,lon:-92.46}];
-const CATTLE_CITIES=[{idx:1,name:'AMES IA',lat:42.03,lon:-93.62},{idx:2,name:'PEORIA IL',lat:40.69,lon:-89.59},{idx:3,name:'OMAHA NE',lat:41.26,lon:-95.93},{idx:4,name:'ROCHESTER MN',lat:44.02,lon:-92.46}];
+const GRAIN_CITIES=[{idx:1,name:'AMES IA',lat:42.03,lon:-93.62},{idx:2,name:'MANKATO MN',lat:44.16,lon:-94.00},{idx:3,name:'SIOUX FALLS',lat:43.55,lon:-96.73},{idx:4,name:'FARGO ND',lat:46.88,lon:-96.79}];
+const CATTLE_CITIES=[{idx:1,name:'AMES IA',lat:42.03,lon:-93.62},{idx:2,name:'WORTHINGTON MN',lat:43.62,lon:-95.60},{idx:3,name:'OMAHA NE',lat:41.26,lon:-95.93},{idx:4,name:'PIPESTONE MN',lat:43.99,lon:-96.32}];
 const conds={0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',51:'Light drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',80:'Showers',95:'Thunderstorm'};
 const cropNote=t=>t<28?'Frost risk':t<40?'Cold — watch emergence':t<55?'Cool — good soil temps':t<75?'Ideal field conditions':t<88?'Warm — good growth':'Heat stress';
 const cattleNote=t=>t<28?'Frost risk':t<40?'Cold — low stress':t<60?'Cool — good':t<80?'Ideal conditions':t<90?'Warm — watch moisture':'Heat stress';
@@ -109,7 +109,7 @@ async function loadWeather(ulat,ulon){
   const BARNS=[{id:'central',lat:44.2933,lon:-92.6744},{id:'lanesboro',lat:43.7180,lon:-91.9802},{id:'rockcreek',lat:45.9524,lon:-92.9577},{id:'sleepyeye',lat:44.2972,lon:-94.7244},{id:'pipestone',lat:43.9939,lon:-96.3172}];
   const LOCKERS=[{id:'herdas',lat:44.2955,lon:-93.2688},{id:'kreniks',lat:44.3900,lon:-93.5600},{id:'lonsdale',lat:44.4791,lon:-93.4158},{id:'dennison',lat:44.4063,lon:-92.9855},{id:'okeefes',lat:44.3922,lon:-93.7302}];
   if(ulat&&ulon){BARNS.forEach(b=>{const el=document.getElementById('dist-'+b.id);if(el)el.textContent='~'+Math.round(distMiles(ulat,ulon,b.lat,b.lon))+' miles';});LOCKERS.forEach(l=>{const el=document.getElementById('dist-'+l.id);if(el)el.textContent='~'+Math.round(distMiles(ulat,ulon,l.lat,l.lon))+' miles';});}
-  if(ulat&&ulon){rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();}
+  if(ulat&&ulon){rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();buildBarnDirectory();buildLockerDirectory();updateCornCardCattle();}
   markUpdated();
 }
 
@@ -129,12 +129,19 @@ try{
 loadGrainPrices();
 loadCattlePrices();
 loadBarnPrices();
+loadFeedInputPrices();
+loadFeederWeightPrices();
+updateSlaughterWeightTable();
+updateCornCardCattle();
+// Retry corn card after data fully loads
+setTimeout(updateCornCardCattle, 3000);
 initLocation();
 calcGrain();
 calcSoy();
 calc();
-rebuildElevatorDirectory();
 updateRegionBadge();
+// Build directories — slight delay to ensure DOM is ready
+setTimeout(()=>{ rebuildElevatorDirectory(); buildBarnDirectory(); buildLockerDirectory(); }, 100);
 
 setInterval(loadGrainPrices,15*60*1000);
 setInterval(loadCattlePrices,15*60*1000);

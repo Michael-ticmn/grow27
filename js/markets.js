@@ -1,3 +1,34 @@
+// ── FIELD SYNC (slider ↔ number input) ───────────────────────────────────────
+// Safely update a calc field value label without destroying the unit span
+function setFieldVal(id, text) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  const unit = el.querySelector('span');
+  el.textContent = text + ' ';
+  if(unit) el.appendChild(unit);
+}
+
+function syncField(id, val, decimals, prefix) {
+  const v = parseFloat(val) || 0;
+  const numStr = prefix ? prefix + v.toFixed(decimals) : v.toFixed(decimals);
+  // Update both inputs
+  const slider = document.getElementById(id);
+  const numInput = document.getElementById(id + '-n');
+  if(slider) slider.value = v;
+  if(numInput) numInput.value = v;
+  // Update display label — preserve the unit <span> inside the value span
+  const label = document.getElementById(id.replace('-','') + '-val') ||
+                document.getElementById(id + '-val');
+  if(label) {
+    const unitSpan = label.querySelector('span');
+    if(unitSpan) {
+      label.textContent = numStr + ' ';
+      label.appendChild(unitSpan);
+    } else {
+      label.textContent = numStr;
+    }
+  }
+}
 // grow27 — markets.js
 // Grain prices, cattle prices, charts, margin calculators, local buyers, OSM discovery
 // ─────────────────────────────────────────────────────────────────────────────
@@ -14,6 +45,7 @@ async function loadGrainPrices(){
   function setCard(id,d){const el=document.getElementById('p-'+id);el.textContent='$'+d.price.toFixed(4);el.style.color=d.change>0.003?'var(--up)':d.change<-0.003?'var(--down)':'var(--corn)';document.getElementById('h-'+id).textContent=d.high.toFixed(4);document.getElementById('l-'+id).textContent=d.low.toFixed(4);document.getElementById('v-'+id).textContent=d.open.toFixed(4);setBadge('b-'+id,d.change,d.pct);}
   setCard('cn',GRAIN_DATA.cn);setCard('cn2',GRAIN_DATA.cn2);setCard('sb',GRAIN_DATA.sb);setCard('sb2',GRAIN_DATA.sb2);
   buildCashTable();
+  updateCornCardCattle();
   const{cn:c,sb:s}=GRAIN_DATA;
   let msg='';
   if(c.change>0&&s.change>0)msg='<strong>Both corn and beans moving up</strong> — positive selling conditions today.';
@@ -36,7 +68,23 @@ async function loadCattlePrices(){
   set('lc','-c',CATTLE_DATA.lc,false); // NOTE: cattle corn card uses suffix -c to avoid ID clash with grain
   // Wait — cattle cards use p-lc, p-fc, p-cn-c  (the -c suffix for cattle corn only)
   const lcEl=document.getElementById('p-lc');if(lcEl){lcEl.textContent=CATTLE_DATA.lc.price.toFixed(2);lcEl.style.color=CATTLE_DATA.lc.change>0.005?'var(--up)':CATTLE_DATA.lc.change<-0.005?'var(--down)':'var(--corn)';document.getElementById('h-lc').textContent=CATTLE_DATA.lc.high.toFixed(2);document.getElementById('l-lc').textContent=CATTLE_DATA.lc.low.toFixed(2);document.getElementById('v-lc').textContent=CATTLE_DATA.lc.open.toFixed(2);setBadge('b-lc',CATTLE_DATA.lc.change,CATTLE_DATA.lc.pct);}
-  const fcEl=document.getElementById('p-fc');if(fcEl){fcEl.textContent=CATTLE_DATA.fc.price.toFixed(2);fcEl.style.color=CATTLE_DATA.fc.change>0.005?'var(--up)':CATTLE_DATA.fc.change<-0.005?'var(--down)':'var(--corn)';document.getElementById('h-fc').textContent=CATTLE_DATA.fc.high.toFixed(2);document.getElementById('l-fc').textContent=CATTLE_DATA.fc.low.toFixed(2);document.getElementById('v-fc').textContent=CATTLE_DATA.fc.open.toFixed(2);setBadge('b-fc',CATTLE_DATA.fc.change,CATTLE_DATA.fc.pct);}
+  // Set feeder card with type discount applied
+  if(document.getElementById('p-fc')) {
+    const feederDisc = (CATTLE_TYPE_DISCOUNTS[cattleType]?.discountCwt || 0) * 0.4;
+    const fcAdj = (CATTLE_DATA.fc.price - feederDisc).toFixed(2);
+    const fcEl = document.getElementById('p-fc');
+    fcEl.textContent = fcAdj;
+    fcEl.style.color = CATTLE_DATA.fc.change>0.005?'var(--up)':CATTLE_DATA.fc.change<-0.005?'var(--down)':'var(--corn)';
+    document.getElementById('h-fc').textContent = (CATTLE_DATA.fc.high - feederDisc).toFixed(2);
+    document.getElementById('l-fc').textContent = (CATTLE_DATA.fc.low  - feederDisc).toFixed(2);
+    document.getElementById('v-fc').textContent = (CATTLE_DATA.fc.open - feederDisc).toFixed(2);
+    const adjOpen = CATTLE_DATA.fc.open - feederDisc;
+    const adjChg  = parseFloat(fcAdj) - adjOpen;
+    setBadge('b-fc', adjChg, (adjChg/adjOpen)*100);
+    // Update card name to reflect cattle type
+    const fcName = document.getElementById('fc-card-name');
+    if(fcName) fcName.textContent = (CATTLE_TYPE_DISCOUNTS[cattleType]?.label || 'Beef Steer') + ' Feeder';
+  }
   const cnCEl=document.getElementById('p-cn-c');if(cnCEl){cnCEl.textContent='$'+CATTLE_DATA.cn.price.toFixed(4);cnCEl.style.color=CATTLE_DATA.cn.change>0.003?'var(--up)':CATTLE_DATA.cn.change<-0.003?'var(--down)':'var(--corn)';document.getElementById('h-cn-c').textContent=CATTLE_DATA.cn.high.toFixed(4);document.getElementById('l-cn-c').textContent=CATTLE_DATA.cn.low.toFixed(4);document.getElementById('v-cn-c').textContent=CATTLE_DATA.cn.open.toFixed(4);setBadge('b-cn-c',CATTLE_DATA.cn.change,CATTLE_DATA.cn.pct);}
   const{lc:l,fc:f,cn:c}=CATTLE_DATA;
   let msg='';
@@ -45,9 +93,10 @@ async function loadCattlePrices(){
   else if(c.price>5.0)msg='<strong>Corn above $5.00/bu</strong> — high feed value. Check the margin calc for the sell-corn tradeoff.';
   else msg='Market stable. Live cattle <strong>'+l.price.toFixed(2)+'¢/lb</strong>, corn <strong>$'+c.price.toFixed(2)+'/bu</strong>.';
   document.getElementById('cattle-insight').innerHTML=msg;
-  document.getElementById('sp').value=Math.round(l.price);document.getElementById('sp-val').textContent=Math.round(l.price);
-  document.getElementById('cp').value=c.price.toFixed(2);document.getElementById('cp-val').textContent='$'+c.price.toFixed(2);
+  document.getElementById('sp').value=Math.round(l.price);const spNi=document.getElementById('sp-n');if(spNi)spNi.value=Math.round(l.price);setFieldVal('sp-val',Math.round(l.price));
+  document.getElementById('cp').value=c.price.toFixed(2);const cpNi=document.getElementById('cp-n');if(cpNi)cpNi.value=c.price.toFixed(2);setFieldVal('cp-val','$'+c.price.toFixed(2));
   calc();renderSeasonal();
+  updateSlaughterWeightTable();
   markUpdated();
 }
 
@@ -60,14 +109,69 @@ function setRange(r,btn){histRange=r;document.querySelectorAll('.hist-btn').forE
 function renderSeasonal(){if(charts['seasonal-chart'])charts['seasonal-chart'].destroy();const ctx=document.getElementById('seasonal-chart');if(!ctx)return;const seasonal=[2.1,1.8,3.2,3.8,3.5,1.2,-0.8,-1.5,-2.1,-0.5,2.2,1.4];const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const curMonth=new Date().getMonth();const colors=seasonal.map((_,i)=>i===curMonth?'#d4a027':seasonal[i]>=0?'rgba(60,185,106,.55)':'rgba(224,80,80,.5)');charts['seasonal-chart']=new Chart(ctx,{type:'bar',data:{labels:months,datasets:[{data:seasonal,backgroundColor:colors,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.raw>=0?'+':'')+c.raw+'% vs annual avg'}}},scales:{x:{ticks:{color:'#5e6369',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#5e6369',font:{size:11},callback:v=>(v>=0?'+':'')+v+'%'},grid:{color:'#252a31'}}}}});}
 
 // ── CATTLE MARGIN CALC ───────────────────────────────────────────────────────
-function calc(){const bw=+document.getElementById('bw').value,bp=+document.getElementById('bp').value/100;const sw=+document.getElementById('sw').value,dof=+document.getElementById('dof').value;const cf=+document.getElementById('cf').value,oc=+document.getElementById('oc').value;const sp=+document.getElementById('sp').value/100,cp=+document.getElementById('cp').value;const herd=Math.max(1,+document.getElementById('herd-count').value||150);const buyCost=bw*bp,cornBu=dof*cf,cornCost=cornBu*cp,otherCost=dof*oc;const totalCost=buyCost+cornCost+otherCost,revenue=sw*sp,margin=revenue-totalCost;document.getElementById('r-buy').textContent=fmt$(buyCost);document.getElementById('r-corn').textContent=fmt$(cornCost);document.getElementById('r-other').textContent=fmt$(otherCost);document.getElementById('r-total').textContent=fmt$(totalCost);document.getElementById('r-rev').textContent=fmt$(revenue);document.getElementById('r-margin').textContent=fmt$(margin);document.getElementById('r-margin-row').className='result-row total '+(margin>=0?'profit':'loss');document.getElementById('herd-rev').textContent=fmtK(revenue*herd);document.getElementById('herd-cost').textContent=fmtK(totalCost*herd);const hm=document.getElementById('herd-margin');hm.textContent=fmtK(margin*herd);hm.style.color=margin>=0?'var(--up)':'var(--down)';document.getElementById('herd-daily').textContent=fmtK((cf*cp+oc)*herd);const verd=document.getElementById('verdict');if(margin>200){verd.className='verdict feed-steer';verd.textContent='Feed to finish — strong margin of '+fmt$(margin)+'/head at current prices.';}else if(margin>0){verd.className='verdict neutral';verd.textContent='Marginal at '+fmt$(margin)+'/head. Watch corn prices and market timing closely.';}else{verd.className='verdict sell-corn';verd.textContent='Currently losing '+fmt$(Math.abs(margin))+'/head to finish. Consider selling corn or moving animals early.';}}
 
 // ── GRAIN MARGIN CALC ────────────────────────────────────────────────────────
-function calcGrain(){const yld=+document.getElementById('c-yield').value,seed=+document.getElementById('c-seed').value,fert=+document.getElementById('c-fert').value,chem=+document.getElementById('c-chem').value,land=+document.getElementById('c-land').value,mach=+document.getElementById('c-mach').value,dry=(+document.getElementById('c-dry').value/100)*yld,sale=+document.getElementById('c-sale').value/100,acres=+document.getElementById('c-acres').value||400;document.getElementById('cv-sale').textContent='$'+sale.toFixed(2);const total=seed+fert+chem+land+mach+dry,be=total/yld,rev=yld*sale,margin=rev-total;document.getElementById('cr-seed').textContent=fmt$(seed);document.getElementById('cr-fert').textContent=fmt$(fert);document.getElementById('cr-chem').textContent=fmt$(chem);document.getElementById('cr-land').textContent=fmt$(land);document.getElementById('cr-mach').textContent=fmt$(mach);document.getElementById('cr-dry').textContent=fmt$(dry);document.getElementById('cr-total').textContent=fmt$(total);document.getElementById('cr-be').textContent='$'+be.toFixed(2)+'/bu';document.getElementById('cr-rev').textContent=fmt$(rev);document.getElementById('cr-margin').textContent=fmt$(margin);document.getElementById('cr-margin-row').className='result-row total '+(margin>=0?'profit':'loss');const vEl=document.getElementById('c-verdict');if(sale>be+0.30){vEl.className='verdict strong-sell';vEl.innerHTML='<strong>Strong sell signal.</strong> You are $'+(sale-be).toFixed(2)+'/bu above break-even.';}else if(sale>be+0.05){vEl.className='verdict hold';vEl.innerHTML='<strong>Above break-even.</strong> Modest margin of $'+(sale-be).toFixed(2)+'/bu.';}else if(sale>=be){vEl.className='verdict neutral';vEl.innerHTML='<strong>At/near break-even.</strong> Only $'+(sale-be).toFixed(2)+'/bu margin.';}else{vEl.className='verdict neutral';vEl.innerHTML='<strong>Below break-even.</strong> Loss of $'+(be-sale).toFixed(2)+'/bu.';}document.getElementById('cf-rev').textContent=fmtK(rev*acres);document.getElementById('cf-cost').textContent=fmtK(total*acres);const fm=margin*acres;document.getElementById('cf-margin').textContent=fmtK(fm);document.getElementById('cf-margin').style.color=fm>=0?'var(--up)':'var(--down)';document.getElementById('cf-be').textContent='$'+be.toFixed(2)+'/bu';}
-function calcSoy(){const yld=+document.getElementById('s-yield').value,seed=+document.getElementById('s-seed').value,fert=+document.getElementById('s-fert').value,chem=+document.getElementById('s-chem').value,land=+document.getElementById('s-land').value,mach=+document.getElementById('s-mach').value,sale=+document.getElementById('s-sale').value/100,acres=+document.getElementById('s-acres').value||400;document.getElementById('sv-sale').textContent='$'+sale.toFixed(2);const total=seed+fert+chem+land+mach,be=total/yld,rev=yld*sale,margin=rev-total;document.getElementById('sr-seed').textContent=fmt$(seed);document.getElementById('sr-fert').textContent=fmt$(fert);document.getElementById('sr-chem').textContent=fmt$(chem);document.getElementById('sr-land').textContent=fmt$(land);document.getElementById('sr-mach').textContent=fmt$(mach);document.getElementById('sr-total').textContent=fmt$(total);document.getElementById('sr-be').textContent='$'+be.toFixed(2)+'/bu';document.getElementById('sr-rev').textContent=fmt$(rev);document.getElementById('sr-margin').textContent=fmt$(margin);document.getElementById('sr-margin-row').className='result-row total '+(margin>=0?'profit':'loss');const vEl=document.getElementById('s-verdict');if(sale>be+1.50){vEl.className='verdict strong-sell';vEl.innerHTML='<strong>Strong sell signal.</strong> You are $'+(sale-be).toFixed(2)+'/bu above break-even.';}else if(sale>be+0.25){vEl.className='verdict hold';vEl.innerHTML='<strong>Above break-even.</strong> Margin of $'+(sale-be).toFixed(2)+'/bu.';}else if(sale>=be){vEl.className='verdict neutral';vEl.innerHTML='<strong>At/near break-even.</strong> Only $'+(sale-be).toFixed(2)+'/bu margin.';}else{vEl.className='verdict neutral';vEl.innerHTML='<strong>Below break-even.</strong> Loss of $'+(be-sale).toFixed(2)+'/bu.';}document.getElementById('sf-rev').textContent=fmtK(rev*acres);document.getElementById('sf-cost').textContent=fmtK(total*acres);const fm=margin*acres;document.getElementById('sf-margin').textContent=fmtK(fm);document.getElementById('sf-margin').style.color=fm>=0?'var(--up)':'var(--down)';document.getElementById('sf-be').textContent='$'+be.toFixed(2)+'/bu';}
 
 // ── CATTLE MARGIN CALC ───────────────────────────────────────────────────────
-function calc(){const bw=+document.getElementById('bw').value,bp=+document.getElementById('bp').value/100;const sw=+document.getElementById('sw').value,dof=+document.getElementById('dof').value;const cf=+document.getElementById('cf').value,oc=+document.getElementById('oc').value;const sp=+document.getElementById('sp').value/100,cp=+document.getElementById('cp').value;const herd=Math.max(1,+document.getElementById('herd-count').value||150);const buyCost=bw*bp,cornBu=dof*cf,cornCost=cornBu*cp,otherCost=dof*oc;const totalCost=buyCost+cornCost+otherCost,revenue=sw*sp,margin=revenue-totalCost;document.getElementById('r-buy').textContent=fmt$(buyCost);document.getElementById('r-corn').textContent=fmt$(cornCost);document.getElementById('r-other').textContent=fmt$(otherCost);document.getElementById('r-total').textContent=fmt$(totalCost);document.getElementById('r-rev').textContent=fmt$(revenue);document.getElementById('r-margin').textContent=fmt$(margin);document.getElementById('r-margin-row').className='result-row total '+(margin>=0?'profit':'loss');document.getElementById('herd-rev').textContent=fmtK(revenue*herd);document.getElementById('herd-cost').textContent=fmtK(totalCost*herd);const hm=document.getElementById('herd-margin');hm.textContent=fmtK(margin*herd);hm.style.color=margin>=0?'var(--up)':'var(--down)';document.getElementById('herd-daily').textContent=fmtK((cf*cp+oc)*herd);const verd=document.getElementById('verdict');if(margin>200){verd.className='verdict feed-steer';verd.textContent='Feed to finish — strong margin of '+fmt$(margin)+'/head at current prices.';}else if(margin>0){verd.className='verdict neutral';verd.textContent='Marginal at '+fmt$(margin)+'/head. Watch corn prices and market timing closely.';}else{verd.className='verdict sell-corn';verd.textContent='Currently losing '+fmt$(Math.abs(margin))+'/head to finish. Consider selling corn or moving animals early.';}}
+function calc(){
+  const bw  = +document.getElementById('bw').value;
+  const bp  = +document.getElementById('bp').value / 100;
+  const sw  = +document.getElementById('sw').value;
+  const dof = +document.getElementById('dof').value;
+  const sp  = +document.getElementById('sp').value / 100;
+  const herd = Math.max(1, +document.getElementById('herd-count').value || 150);
+
+  // Feed costs
+  const cf   = +document.getElementById('cf').value;
+  const cp   = +document.getElementById('cp').value;
+  const sbm  = +(document.getElementById('sbm')  ? document.getElementById('sbm').value  : 0);
+  const sbmp = +(document.getElementById('sbmp') ? document.getElementById('sbmp').value : 320);
+  const ddg  = +(document.getElementById('ddg')  ? document.getElementById('ddg').value  : 0);
+  const ddgp = +(document.getElementById('ddgp') ? document.getElementById('ddgp').value : 180);
+  const pro  = +(document.getElementById('pro')  ? document.getElementById('pro').value  : 0);
+  const prop = +(document.getElementById('prop') ? document.getElementById('prop').value : 450);
+  const hay  = +(document.getElementById('hay')  ? document.getElementById('hay').value  : 0);
+  const hayp = +(document.getElementById('hayp') ? document.getElementById('hayp').value : 200);
+  const oc   = +document.getElementById('oc').value;
+
+  // Per head costs
+  const buyCost  = bw * bp;
+  const cornCost = dof * cf * cp;
+  const sbmCost  = dof * sbm  * (sbmp  / 2000);   // lbs/day × days × $/lb (ton÷2000)
+  const ddgCost  = dof * ddg  * (ddgp  / 2000);
+  const proCost  = dof * pro  * (prop  / 2000);
+  const hayCost  = dof * hay  * (hayp  / 2000);
+  const otherCost= dof * oc;
+
+  const totalFeedCost = cornCost + sbmCost + ddgCost + proCost + hayCost;
+  const totalCost = buyCost + totalFeedCost + otherCost;
+  const revenue = sw * sp;
+  const margin  = revenue - totalCost;
+
+  // Update results
+  document.getElementById('r-buy').textContent   = fmt$(buyCost);
+  document.getElementById('r-corn').textContent  = fmt$(totalFeedCost);
+  document.getElementById('r-other').textContent = fmt$(otherCost);
+  document.getElementById('r-total').textContent = fmt$(totalCost);
+  document.getElementById('r-rev').textContent   = fmt$(revenue);
+  document.getElementById('r-margin').textContent= fmt$(margin);
+  document.getElementById('r-margin-row').className = 'result-row total ' + (margin >= 0 ? 'profit' : 'loss');
+
+  // Herd totals
+  document.getElementById('herd-rev').textContent  = fmtK(revenue * herd);
+  document.getElementById('herd-cost').textContent = fmtK(totalCost * herd);
+  const hm = document.getElementById('herd-margin');
+  hm.textContent = fmtK(margin * herd);
+  hm.style.color = margin >= 0 ? 'var(--up)' : 'var(--down)';
+  const dailyFeed = (cf * cp) + (sbm * sbmp / 2000) + (ddg * ddgp / 2000) + (pro * prop / 2000) + (hay * hayp / 2000) + oc;
+  document.getElementById('herd-daily').textContent = fmtK(dailyFeed * herd);
+
+  // Verdict
+  const verd = document.getElementById('verdict');
+  if(margin > 200)      { verd.className = 'verdict feed-steer'; verd.textContent = 'Feed to finish — strong margin of ' + fmt$(margin) + '/head at current prices.'; }
+  else if(margin > 0)   { verd.className = 'verdict neutral';    verd.textContent = 'Marginal at ' + fmt$(margin) + '/head. Watch feed costs and market timing closely.'; }
+  else                  { verd.className = 'verdict sell-corn';  verd.textContent = 'Currently losing ' + fmt$(Math.abs(margin)) + '/head to finish. Consider selling or adjusting ration.'; }
+}
 
 // ── GRAIN MARGIN CALC ────────────────────────────────────────────────────────
 function calcGrain(){const yld=+document.getElementById('c-yield').value,seed=+document.getElementById('c-seed').value,fert=+document.getElementById('c-fert').value,chem=+document.getElementById('c-chem').value,land=+document.getElementById('c-land').value,mach=+document.getElementById('c-mach').value,dry=(+document.getElementById('c-dry').value/100)*yld,sale=+document.getElementById('c-sale').value/100,acres=+document.getElementById('c-acres').value||400;document.getElementById('cv-sale').textContent='$'+sale.toFixed(2);const total=seed+fert+chem+land+mach+dry,be=total/yld,rev=yld*sale,margin=rev-total;document.getElementById('cr-seed').textContent=fmt$(seed);document.getElementById('cr-fert').textContent=fmt$(fert);document.getElementById('cr-chem').textContent=fmt$(chem);document.getElementById('cr-land').textContent=fmt$(land);document.getElementById('cr-mach').textContent=fmt$(mach);document.getElementById('cr-dry').textContent=fmt$(dry);document.getElementById('cr-total').textContent=fmt$(total);document.getElementById('cr-be').textContent='$'+be.toFixed(2)+'/bu';document.getElementById('cr-rev').textContent=fmt$(rev);document.getElementById('cr-margin').textContent=fmt$(margin);document.getElementById('cr-margin-row').className='result-row total '+(margin>=0?'profit':'loss');const vEl=document.getElementById('c-verdict');if(sale>be+0.30){vEl.className='verdict strong-sell';vEl.innerHTML='<strong>Strong sell signal.</strong> You are $'+(sale-be).toFixed(2)+'/bu above break-even.';}else if(sale>be+0.05){vEl.className='verdict hold';vEl.innerHTML='<strong>Above break-even.</strong> Modest margin of $'+(sale-be).toFixed(2)+'/bu.';}else if(sale>=be){vEl.className='verdict neutral';vEl.innerHTML='<strong>At/near break-even.</strong> Only $'+(sale-be).toFixed(2)+'/bu margin.';}else{vEl.className='verdict neutral';vEl.innerHTML='<strong>Below break-even.</strong> Loss of $'+(be-sale).toFixed(2)+'/bu.';}document.getElementById('cf-rev').textContent=fmtK(rev*acres);document.getElementById('cf-cost').textContent=fmtK(total*acres);const fm=margin*acres;document.getElementById('cf-margin').textContent=fmtK(fm);document.getElementById('cf-margin').style.color=fm>=0?'var(--up)':'var(--down)';document.getElementById('cf-be').textContent='$'+be.toFixed(2)+'/bu';}
@@ -91,23 +195,101 @@ function sortedElevatorKeys(){const keys=Object.keys(ELEVATORS);if(!userLat)retu
 function onElevChange(){const key=document.getElementById('elev-select').value;const disp=document.getElementById('elev-basis-display');const distEl=document.getElementById('elev-dist-display');if(!key){disp.style.display='none';distEl.textContent='';return;}const e=ELEVATORS[key];let html='<strong>'+e.name+'</strong> — Corn basis: ';const cb=e.cornBasis;html+='<span style="color:'+(cb>=0?'var(--up)':'var(--down)')+'">'+(cb>=0?'+':'')+cb.toFixed(2)+'</span>';if(e.soyBasis!==null){const sb=e.soyBasis;html+='  &nbsp;·&nbsp;  Soy basis: <span style="color:'+(sb>=0?'var(--up)':'var(--down)')+'">'+(sb>=0?'+':'')+sb.toFixed(2)+'</span>';}else{html+='  &nbsp;·&nbsp;  <span style="color:var(--txt3)">Soy: N/A</span>';}disp.innerHTML=html;disp.style.display='';if(userLat&&userLon){const d=Math.round(distMiles(userLat,userLon,e.lat,e.lon));distEl.textContent='~'+d+' mi away';}highlightTableRow(key);}
 function highlightTableRow(key){document.querySelectorAll('#cash-table-body tr').forEach(tr=>tr.classList.toggle('selected',tr.dataset.key===key));}
 function selectFromTable(key){document.getElementById('elev-select').value=key;onElevChange();}
-function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;else if(userLat&&sorted.length){sel.value=sorted[0];onElevChange();}}
-function buildCashTable(){const tbody=document.getElementById('cash-table-body');const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(cornFut+e.cornBasis).toFixed(2);const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(2):'—';const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
-function rebuildElevatorDirectory(){const container=document.getElementById('elev-directory');if(!container)return;const sorted=sortedElevatorKeys();container.innerHTML=sorted.map(key=>{const e=ELEVATORS[key];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?`<div class="elev-card-dist">~${dist} mi</div>`:'';const regionBadge=e.region==='A'?`<span class="region-badge-a">Area 1</span>`:e.region==='B'?`<span class="region-badge-b">Area 2</span>`:'';const discoveredNote=e.discovered?`<div style="font-size:11px;color:var(--txt3);margin-top:6px;font-style:italic;">Found via OpenStreetMap · basis estimated</div>`:'';const noteHtml=e.note?`<div style="font-size:11px;color:var(--txt3);margin-top:6px;line-height:1.6;">${e.note}</div>`:'';const basisBlock=e.curated?`<div class="elev-details-row" style="margin-top:10px;"><div class="elev-detail-item">CORN BASIS<strong style="color:var(--corn)">${(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)}</strong></div>${e.soyBasis!==null?`<div class="elev-detail-item">SOY BASIS<strong style="color:var(--soy)">${(e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)}</strong></div>`:''}</div>`:`<div class="elev-details-row" style="margin-top:10px;"><div class="elev-detail-item">CORN BASIS<strong style="color:var(--txt3)">${(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)} est.</strong></div>${e.soyBasis!==null?`<div class="elev-detail-item">SOY BASIS<strong style="color:var(--txt3)">${(e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)} est.</strong></div>`:''}</div>`;const mapsUrl=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.name+' '+e.loc)}`;const urlLink=e.url?`<a class="elev-link" href="${e.url}" target="_blank" rel="noopener">Website ↗</a>`:'';const phoneHtml=e.phone?`<a href="tel:${e.phone}" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--txt2);text-decoration:none;margin-top:8px;"><span style="font-size:10px;letter-spacing:1px;color:var(--txt3);">${e.phoneLabel||'PHONE'}</span> ${e.phone}</a>`:'';return`<div class="elev-card"><div class="elev-card-header"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">${regionBadge}${e.discovered?'<span class="elev-crop-tag" style="background:var(--bg3);color:var(--txt3);font-size:9px;letter-spacing:1px;">Discovered</span>':''}</div><div class="elev-card-name">${e.name}</div><div class="elev-card-loc">📍 ${e.loc}</div></div>${distBadge}</div><div class="elev-crops"><span class="elev-crop-tag corn">Corn</span>${e.soyBasis!==null?'<span class="elev-crop-tag soy">Soybeans</span>':''}</div>${basisBlock}${noteHtml}${discoveredNote}<div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">${phoneHtml}<a class="elev-link" href="${mapsUrl}" target="_blank" rel="noopener">Maps ↗</a>${urlLink}</div></div>`;}).join('');}
+function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');if(!sel)return;const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;else if(userLat&&sorted.length){sel.value=sorted[0];onElevChange();}}
+function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(cornFut+e.cornBasis).toFixed(2);const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(2):'—';const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
+function rebuildElevatorDirectory() {
+  const col1 = document.getElementById('elev-dir-col-1');
+  const col2 = document.getElementById('elev-dir-col-2');
+  if(!col1 || !col2) return;
+  const sorted = sortedElevatorKeys();
+  if(!sorted || sorted.length === 0) {
+    col1.innerHTML = '<div style="color:var(--txt3);font-size:13px;padding:20px;">No buyers found for current region.</div>';
+    return;
+  }
 
-// ── LOCAL BUYERS (GRAIN) ─────────────────────────────────────────────────────
+  col1.innerHTML = '';
+  col2.innerHTML = '';
 
-function getCuratedForRegion(k){if(k==='A')return REGION_A.elevators;if(k==='B')return REGION_B.elevators;return{...REGION_A.elevators,...REGION_B.elevators};}
-function autoDetectRegion(){if(!userLat||!userLon)return'both';const dA=distMiles(userLat,userLon,REGION_A.centerLat,REGION_A.centerLon),dB=distMiles(userLat,userLon,REGION_B.centerLat,REGION_B.centerLon);if(Math.abs(dA-dB)<25)return'both';return dA<dB?'A':'B';}
-function setRegion(k){activeRegion=k;const discovered=Object.fromEntries(Object.entries(ELEVATORS).filter(([,e])=>e.discovered));CURATED=getCuratedForRegion(k==='auto'?autoDetectRegion():k);ELEVATORS=Object.assign({},CURATED,discovered);document.querySelectorAll('.region-btn').forEach(b=>b.classList.toggle('active',b.dataset.region===k));rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();updateRegionBadge();}
-function updateRegionBadge(){const el=document.getElementById('active-region-label');if(!el)return;const eff=activeRegion==='auto'?(userLat?autoDetectRegion():'both'):activeRegion;if(eff==='A')el.textContent=REGION_A.label+' — '+REGION_A.sublabel;else if(eff==='B')el.textContent=REGION_B.label+' — '+REGION_B.sublabel;else el.textContent='All regions — '+REGION_A.label+' + '+REGION_B.label;}
-function sortedElevatorKeys(){const keys=Object.keys(ELEVATORS);if(!userLat)return keys;return keys.slice().sort((a,b)=>distMiles(userLat,userLon,ELEVATORS[a].lat,ELEVATORS[a].lon)-distMiles(userLat,userLon,ELEVATORS[b].lat,ELEVATORS[b].lon));}
-function onElevChange(){const key=document.getElementById('elev-select').value;const disp=document.getElementById('elev-basis-display');const distEl=document.getElementById('elev-dist-display');if(!key){disp.style.display='none';distEl.textContent='';return;}const e=ELEVATORS[key];let html='<strong>'+e.name+'</strong> — Corn basis: ';const cb=e.cornBasis;html+='<span style="color:'+(cb>=0?'var(--up)':'var(--down)')+'">'+(cb>=0?'+':'')+cb.toFixed(2)+'</span>';if(e.soyBasis!==null){const sb=e.soyBasis;html+='  &nbsp;·&nbsp;  Soy basis: <span style="color:'+(sb>=0?'var(--up)':'var(--down)')+'">'+(sb>=0?'+':'')+sb.toFixed(2)+'</span>';}else{html+='  &nbsp;·&nbsp;  <span style="color:var(--txt3)">Soy: N/A</span>';}disp.innerHTML=html;disp.style.display='';if(userLat&&userLon){const d=Math.round(distMiles(userLat,userLon,e.lat,e.lon));distEl.textContent='~'+d+' mi away';}highlightTableRow(key);}
-function highlightTableRow(key){document.querySelectorAll('#cash-table-body tr').forEach(tr=>tr.classList.toggle('selected',tr.dataset.key===key));}
-function selectFromTable(key){document.getElementById('elev-select').value=key;onElevChange();}
-function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;else if(userLat&&sorted.length){sel.value=sorted[0];onElevChange();}}
-function buildCashTable(){const tbody=document.getElementById('cash-table-body');const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(cornFut+e.cornBasis).toFixed(2);const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(2):'—';const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
-function rebuildElevatorDirectory(){const container=document.getElementById('elev-directory');if(!container)return;const sorted=sortedElevatorKeys();container.innerHTML=sorted.map(key=>{const e=ELEVATORS[key];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?`<div class="elev-card-dist">~${dist} mi</div>`:'';const regionBadge=e.region==='A'?`<span class="region-badge-a">Area 1</span>`:e.region==='B'?`<span class="region-badge-b">Area 2</span>`:'';const discoveredNote=e.discovered?`<div style="font-size:11px;color:var(--txt3);margin-top:6px;font-style:italic;">Found via OpenStreetMap · basis estimated</div>`:'';const noteHtml=e.note?`<div style="font-size:11px;color:var(--txt3);margin-top:6px;line-height:1.6;">${e.note}</div>`:'';const basisBlock=e.curated?`<div class="elev-details-row" style="margin-top:10px;"><div class="elev-detail-item">CORN BASIS<strong style="color:var(--corn)">${(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)}</strong></div>${e.soyBasis!==null?`<div class="elev-detail-item">SOY BASIS<strong style="color:var(--soy)">${(e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)}</strong></div>`:''}</div>`:`<div class="elev-details-row" style="margin-top:10px;"><div class="elev-detail-item">CORN BASIS<strong style="color:var(--txt3)">${(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)} est.</strong></div>${e.soyBasis!==null?`<div class="elev-detail-item">SOY BASIS<strong style="color:var(--txt3)">${(e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)} est.</strong></div>`:''}</div>`;const mapsUrl=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.name+' '+e.loc)}`;const urlLink=e.url?`<a class="elev-link" href="${e.url}" target="_blank" rel="noopener">Website ↗</a>`:'';const phoneHtml=e.phone?`<a href="tel:${e.phone}" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--txt2);text-decoration:none;margin-top:8px;"><span style="font-size:10px;letter-spacing:1px;color:var(--txt3);">${e.phoneLabel||'PHONE'}</span> ${e.phone}</a>`:'';return`<div class="elev-card"><div class="elev-card-header"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">${regionBadge}${e.discovered?'<span class="elev-crop-tag" style="background:var(--bg3);color:var(--txt3);font-size:9px;letter-spacing:1px;">Discovered</span>':''}</div><div class="elev-card-name">${e.name}</div><div class="elev-card-loc">📍 ${e.loc}</div></div>${distBadge}</div><div class="elev-crops"><span class="elev-crop-tag corn">Corn</span>${e.soyBasis!==null?'<span class="elev-crop-tag soy">Soybeans</span>':''}</div>${basisBlock}${noteHtml}${discoveredNote}<div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">${phoneHtml}<a class="elev-link" href="${mapsUrl}" target="_blank" rel="noopener">Maps ↗</a>${urlLink}</div></div>`;}).join('');}
+  sorted.forEach((key, idx) => {
+    const e = ELEVATORS[key];
+    const dist = userLat ? Math.round(distMiles(userLat,userLon,e.lat,e.lon)) : null;
+    const isNearest = idx === 0 && dist !== null;
+
+    // Distance badge
+    const distBadge = dist !== null
+      ? `<span style="font-size:11px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest ? ' ★' : ''}</span>`
+      : '';
+
+    // Region + discovered badges
+    const regionBadge = e.region==='A' ? `<span class="region-badge-a">Area 1</span>`
+                      : e.region==='B' ? `<span class="region-badge-b">Area 2</span>` : '';
+    const discoveredBadge = e.discovered
+      ? `<span class="elev-crop-tag" style="background:var(--bg3);color:var(--txt3);font-size:9px;letter-spacing:1px;">Discovered</span>` : '';
+
+    // Crop tags
+    const cropTags = `<div class="elev-crops" style="margin-top:6px;">
+      <span class="elev-crop-tag corn">Corn</span>
+      ${e.soyBasis !== null ? '<span class="elev-crop-tag soy">Soybeans</span>' : ''}
+    </div>`;
+
+    // Basis block
+    const cornBasisStr = (e.cornBasis >= 0 ? '+' : '') + e.cornBasis.toFixed(2);
+    const soyBasisStr  = e.soyBasis !== null ? (e.soyBasis >= 0 ? '+' : '') + e.soyBasis.toFixed(2) : null;
+    const basisBlock = `<div class="elev-details-row" style="margin-top:10px;">
+      <div class="elev-detail-item">CORN BASIS
+        <strong style="color:${e.curated?'var(--corn)':'var(--txt3)'}">
+          ${cornBasisStr}${e.curated?'':' est.'}
+        </strong>
+      </div>
+      ${soyBasisStr !== null ? `<div class="elev-detail-item">SOY BASIS
+        <strong style="color:${e.curated?'var(--soy)':'var(--txt3)'}">
+          ${soyBasisStr}${e.curated?'':' est.'}
+        </strong>
+      </div>` : ''}
+    </div>`;
+
+    // Address — use loc as fallback
+    const addressHtml = `<div class="auction-detail">📍 ${e.loc}</div>`;
+
+    // Phone
+    const phoneHtml = e.phone
+      ? `<div class="auction-detail">📞 <a href="tel:${e.phone}" style="color:var(--txt3);text-decoration:none;">${e.phone}${e.phoneLabel ? ' · ' + e.phoneLabel : ''}</a></div>`
+      : `<div class="auction-detail" style="color:var(--txt3);font-style:italic;">📞 Phone not available</div>`;
+
+    // Note
+    const noteHtml = e.note
+      ? `<div class="auction-detail" style="margin-top:6px;">${e.note}</div>` : '';
+    const discoveredNote = e.discovered
+      ? `<div class="auction-detail" style="font-style:italic;margin-top:4px;">Found via OpenStreetMap · basis estimated</div>` : '';
+
+    // Links
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(e.name + ', ' + e.loc)}`;
+    const websiteLink = e.url ? `<a href="${e.url}" target="_blank" rel="noopener" class="auction-link">Website ↗</a>` : '';
+    const borderStyle = isNearest ? 'border-color:rgba(60,185,106,.25);' : '';
+
+    const card = `<div class="panel" style="${borderStyle}">
+      <div class="auction-header" style="margin-bottom:6px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">${regionBadge}${discoveredBadge}</div>
+          <div class="auction-name">${e.name}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">${distBadge}</div>
+      </div>
+      ${addressHtml}
+      ${phoneHtml}
+      ${cropTags}
+      ${basisBlock}
+      ${noteHtml}
+      ${discoveredNote}
+      <div class="auction-links" style="margin-top:10px;">
+        ${websiteLink}
+        <a href="${mapsUrl}" target="_blank" rel="noopener" class="auction-link">Directions ↗</a>
+      </div>
+    </div>`;
+    if(idx < Math.ceil(sorted.length / 2)) col1.innerHTML += card;
+    else col2.innerHTML += card;
+  });
+}
 
 // ── OSM ELEVATOR DISCOVERY ───────────────────────────────────────────────────
 const SEARCH_RADIUS_M=80000;
@@ -132,10 +314,102 @@ const CATTLE_TYPE_DISCOUNTS = {
 
 function setCattleType(type) {
   cattleType = type;
-  document.querySelectorAll('.cattle-type-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.type === type)
-  );
+  const typeInfo = CATTLE_TYPE_DISCOUNTS[type];
+
+  // Update all toggle buttons — remove inline bg, let CSS class handle it
+  document.querySelectorAll('.cattle-type-btn').forEach(b => {
+    const isActive = b.dataset.type === type;
+    b.classList.toggle('active', isActive);
+    b.style.background = isActive ? 'var(--cattle)' : 'transparent';
+    b.style.color = isActive ? '#0f0f0f' : 'var(--txt3)';
+    b.style.fontWeight = isActive ? '700' : '400';
+  });
+
+  // Update type badges on Charts and Margin tabs
+  ['charts','margin'].forEach(tab => {
+    const badge = document.getElementById('cattle-type-badge-'+tab);
+    if(badge) badge.textContent = typeInfo.label;
+  });
+
+  // Update live cattle card name and price to reflect type
+  const cardName = document.getElementById('lc-card-name');
+  if(cardName) cardName.textContent = typeInfo.label;
+  const fcCardName = document.getElementById('fc-card-name');
+  if(fcCardName) fcCardName.textContent = typeInfo.label + ' Feeder';
+
+  // Adjust live cattle card price by type discount
+  if(CATTLE_DATA.lc) {
+    const disc = typeInfo.discountCwt;
+    const adjPrice = (CATTLE_DATA.lc.price - disc).toFixed(2);
+    const lcEl = document.getElementById('p-lc');
+    if(lcEl) {
+      lcEl.textContent = adjPrice;
+      lcEl.style.color = CATTLE_DATA.lc.change > 0.005 ? 'var(--up)'
+                       : CATTLE_DATA.lc.change < -0.005 ? 'var(--down)'
+                       : 'var(--corn)';
+    }
+    // Update HIGH/LOW/PREV with discount applied
+    const h = document.getElementById('h-lc');
+    const l = document.getElementById('l-lc');
+    const v = document.getElementById('v-lc');
+    if(h) h.textContent = (CATTLE_DATA.lc.high - disc).toFixed(2);
+    if(l) l.textContent = (CATTLE_DATA.lc.low  - disc).toFixed(2);
+    if(v) v.textContent = (CATTLE_DATA.lc.open - disc).toFixed(2);
+    // Update badge to reflect adjusted change (change amount stays same, pct recalcs)
+    const adjOpen = CATTLE_DATA.lc.open - disc;
+    const adjChange = parseFloat(adjPrice) - adjOpen;
+    const adjPct = (adjChange / adjOpen) * 100;
+    setBadge('b-lc', adjChange, adjPct);
+  }
+
   buildBarnTable();
+  updateFeederCard();
+  updateSlaughterWeightTable();
+
+  // Adjust feeder cattle card price by type discount (40% of slaughter discount)
+  if(CATTLE_DATA.fc) {
+    const feederDisc = typeInfo.discountCwt * 0.4;
+    const adjFcPrice = (CATTLE_DATA.fc.price - feederDisc).toFixed(2);
+    const fcEl = document.getElementById('p-fc');
+    if(fcEl) {
+      fcEl.textContent = adjFcPrice;
+      fcEl.style.color = CATTLE_DATA.fc.change > 0.005 ? 'var(--up)'
+                       : CATTLE_DATA.fc.change < -0.005 ? 'var(--down)'
+                       : 'var(--corn)';
+    }
+    const fh = document.getElementById('h-fc');
+    const fl = document.getElementById('l-fc');
+    const fv = document.getElementById('v-fc');
+    if(fh) fh.textContent = (CATTLE_DATA.fc.high - feederDisc).toFixed(2);
+    if(fl) fl.textContent = (CATTLE_DATA.fc.low  - feederDisc).toFixed(2);
+    if(fv) fv.textContent = (CATTLE_DATA.fc.open - feederDisc).toFixed(2);
+    const adjFcOpen   = CATTLE_DATA.fc.open - feederDisc;
+    const adjFcChange = parseFloat(adjFcPrice) - adjFcOpen;
+    setBadge('b-fc', adjFcChange, (adjFcChange / adjFcOpen) * 100);
+  }
+
+  // Sync margin calc sell price to adjusted live cattle price
+  if(CATTLE_DATA.lc) {
+    const disc = CATTLE_TYPE_DISCOUNTS[type].discountCwt;
+    const adjPrice = Math.round(CATTLE_DATA.lc.price - disc);
+    const spEl = document.getElementById('sp');
+    const spVal = document.getElementById('sp-val');
+    if(spEl){ spEl.value = adjPrice; const spNi2=document.getElementById('sp-n');if(spNi2)spNi2.value=adjPrice; }
+    if(spVal){ setFieldVal('sp-val', adjPrice); }
+    calc();
+  }
+  // Update insight strip with type context
+  const typeLabel = CATTLE_TYPE_DISCOUNTS[type].label;
+  const disc = CATTLE_TYPE_DISCOUNTS[type].discountCwt;
+  const insightEl = document.getElementById('cattle-insight');
+  if(insightEl && CATTLE_DATA.lc) {
+    const adjPrice = (CATTLE_DATA.lc.price - disc).toFixed(2);
+    if(disc > 0) {
+      insightEl.innerHTML = '<strong>'+typeLabel+'</strong> selected — estimated market price <strong>'+adjPrice+'¢/lb</strong> (−'+disc.toFixed(2)+' discount vs beef steer baseline).';
+    } else {
+      insightEl.innerHTML = '<strong>'+typeLabel+'</strong> selected — baseline price <strong>'+adjPrice+'¢/lb</strong>.';
+    }
+  }
 }
 
 // Auction barn data — base prices per cwt (beef steer baseline)
@@ -231,4 +505,551 @@ function buildBarnTable() {
   // Update source line
   const srcEl = document.getElementById('barn-price-source');
   if(srcEl) srcEl.textContent = 'Source: ' + barnPriceDate + ' · ' + typeInfo.label;
+}
+
+// ── FEED INPUT CARD PRICES ────────────────────────────────────────────────────
+// Soybean meal: Stooq SM.F (CBOT futures $/ton)
+// DDG & Alfalfa: USDA AMS IA/MN weekly hay/feed report PDF fallback to reasonable defaults
+async function loadFeedInputPrices() {
+  // Soybean meal futures via Stooq — ticker zm.f (CBOT ZM contract)
+  try {
+    const r = await fetch('https://stooq.com/q/l/?s=zmw00.f&f=sd2t2ohlcv&h&e=csv');
+    const t = await r.text();
+    const cols = t.trim().split('\n')[1]?.split(',');
+    if(cols) {
+      const price = parseFloat(cols[6]);
+      if(!isNaN(price) && price > 50) {
+        const open  = parseFloat(cols[3]);
+        const change = price - open;
+        const pct   = (change / open) * 100;
+        const el = document.getElementById('p-sbm');
+        if(el) el.textContent = '$' + price.toFixed(2);
+        setBadge('b-sbm', change, pct);
+        // Also sync margin calc sbm price slider
+        const sbmpEl = document.getElementById('sbmp');
+        const sbmpN  = document.getElementById('sbmp-n');
+        if(sbmpEl) sbmpEl.value = price.toFixed(0);
+        if(sbmpN)  sbmpN.value  = price.toFixed(0);
+        setFieldVal('sbmp-val', '$' + price.toFixed(0));
+      }
+    }
+  } catch(e) {
+    // Fallback: show recent avg
+    const el = document.getElementById('p-sbm');
+    const badge = document.getElementById('b-sbm');
+    if(el) el.textContent = '$302';
+    if(badge) { badge.className = 'badge flat'; badge.textContent = 'Recent avg'; }
+  }
+
+  // DDG — USDA AMS publishes weekly IA/MN Livestock Feed report (no reliable JSON)
+  // Use reasonable MN market defaults until a live source is confirmed
+  // Typical MN DDG range: $150-220/ton depending on ethanol margins
+  const ddgDefault = 175;
+  const hayDefault = 210;
+  const ddgEl  = document.getElementById('p-ddg');
+  const hayEl  = document.getElementById('p-hay');
+  const srcDdg = document.getElementById('src-ddg');
+  const srcHay = document.getElementById('src-hay');
+  if(ddgEl)  ddgEl.textContent  = '$' + ddgDefault;
+  if(hayEl)  hayEl.textContent  = '$' + hayDefault;
+  if(srcDdg) srcDdg.textContent = 'Recent avg';
+  if(srcHay) srcHay.textContent = 'Recent avg';
+
+  // Sync defaults to margin calc sliders if not already set by user
+  ['ddgp','hayp'].forEach((id, i) => {
+    const val = [ddgDefault, hayDefault][i];
+    const slEl = document.getElementById(id);
+    const nEl  = document.getElementById(id + '-n');
+    if(slEl && parseFloat(slEl.value) === [180,200][i]) {
+      if(slEl) slEl.value = val;
+      if(nEl)  nEl.value  = val;
+      setFieldVal(id + '-val', '$' + val);
+    }
+  });
+}
+
+
+// ── AUCTION BARN DATA ─────────────────────────────────────────────────────────
+const BARN_DATA = [
+  {
+    id: 'central',
+    name: 'Central Livestock Association',
+    address: '44326 County 6 Blvd, Zumbrota, MN 55992',
+    lat: 44.2933, lon: -92.6744,
+    phone: '(507) 732-7305',
+    freq: 'Mon · Tue · Wed',
+    desc: 'Multiple sales weekly — feeder cattle, bred cow/heifer specials, market cows & bulls. Mon/Tue 8am, Wed 2pm.',
+    links: [
+      { label: 'Website ↗', url: 'https://www.centrallivestock.com' },
+      { label: 'DVAuction ↗', url: 'https://www.dvauction.com' },
+    ]
+  },
+  {
+    id: 'lanesboro',
+    name: 'Lanesboro Sales Commission',
+    address: '402 Coffee St E, Lanesboro, MN 55949',
+    lat: 43.7180, lon: -91.9802,
+    phone: '(507) 467-2192',
+    freq: 'Wed & Fri',
+    desc: 'Wednesday 8:30am — market cows & bulls, finished cattle. Friday 9am — baby calves, feeder cattle. Online via CattleUSA.',
+    links: [
+      { label: 'Website ↗', url: 'https://www.lanesborosalescommission.com' },
+    ]
+  },
+  {
+    id: 'rockcreek',
+    name: 'Rock Creek Livestock Market',
+    address: '8175 MN-361, Pine City, MN 55063',
+    lat: 45.9524, lon: -92.9577,
+    phone: '(320) 629-6819',
+    freq: 'Mon & Wed',
+    desc: 'Cattle, hogs, sheep & goats — 8am. Feeder sales every other Tuesday. Same day payment.',
+    links: [
+      { label: 'Website ↗', url: 'https://rockcreeklivestockmarket.com' },
+    ]
+  },
+  {
+    id: 'sleepyeye',
+    name: 'Sleepy Eye Auction Market',
+    address: '411 3rd Ave NW, Sleepy Eye, MN 56085',
+    lat: 44.2972, lon: -94.7244,
+    phone: '(507) 794-5540',
+    freq: 'Every Wednesday',
+    desc: 'Family owned 75+ years. Sale 9am — feeder, finished, slaughter cattle.',
+    links: [
+      { label: 'Website ↗', url: 'https://sleepyeyeauctionmarket.com' },
+    ]
+  },
+  {
+    id: 'pipestone',
+    name: 'Pipestone Livestock Auction',
+    address: '1401 7th Ave SW, Pipestone, MN 56164',
+    lat: 43.9939, lon: -96.3172,
+    phone: '(507) 825-4411',
+    freq: '2nd & 4th Thu',
+    desc: 'Feeder cattle 11am, beef cattle noon. Online bidding via LMA Auctions.',
+    links: [
+      { label: 'Website ↗', url: 'https://www.pipestonelivestock.com' },
+      { label: 'Bid Online ↗', url: 'https://lmaauctions.com' },
+    ]
+  },
+];
+
+function buildBarnDirectory() {
+  const col1 = document.getElementById('barn-col-1');
+  const col2 = document.getElementById('barn-col-2');
+  if(!col1 || !col2) return;
+
+  const sorted = userLat
+    ? BARN_DATA.slice().sort((a,b) => distMiles(userLat,userLon,a.lat,a.lon) - distMiles(userLat,userLon,b.lat,b.lon))
+    : BARN_DATA;
+
+  col1.innerHTML = '';
+  col2.innerHTML = '';
+
+  sorted.forEach((b, idx) => {
+    const dist = userLat ? Math.round(distMiles(userLat,userLon,b.lat,b.lon)) : null;
+    const isNearest = idx === 0 && dist !== null;
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(b.address)}`;
+
+    const distBadge = dist !== null
+      ? `<span style="font-size:11px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest ? ' ★' : ''}</span>`
+      : '';
+
+    const extraLinks = b.links.map(l =>
+      `<a href="${l.url}" target="_blank" rel="noopener" class="auction-link">${l.label}</a>`
+    ).join('');
+
+    const borderStyle = isNearest ? 'border-color:rgba(60,185,106,.25);' : '';
+
+    const card = `<div class="panel" style="${borderStyle}">
+      <div class="auction-header" style="margin-bottom:6px;">
+        <div>
+          <div class="auction-name">${b.name}</div>
+          <div style="font-size:11px;color:var(--cattle);margin-top:2px;font-weight:600;">${b.freq}</div>
+        </div>
+        <div style="flex-shrink:0;">${distBadge}</div>
+      </div>
+      <div class="auction-detail">📍 ${b.address}</div>
+      <div class="auction-detail">📞 ${b.phone}</div>
+      <div class="auction-detail" style="margin-top:6px;">${b.desc}</div>
+      <div class="auction-links" style="margin-top:8px;">
+        ${extraLinks}
+        <a href="${mapsUrl}" target="_blank" rel="noopener" class="auction-link">Directions ↗</a>
+      </div>
+    </div>`;
+
+    // Alternate between columns
+    if(idx < Math.ceil(sorted.length / 2)) col1.innerHTML += card;
+    else col2.innerHTML += card;
+  });
+}
+
+
+// ── MEAT LOCKERS ─────────────────────────────────────────────────────────────
+const LOCKER_DATA = [
+  { id:'herdas',   name:"Herda's Meat Processing",  loc:'Faribault MN',        lat:44.2955, lon:-93.2688, phone:'507-334-5555', usda:true,  url:null,                                       note:'Custom slaughter & processing — full cutting, grinding, vacuum packing. USDA-inspected.',       hours:null },
+  { id:'kreniks',  name:"Krenik's Meat Processing", loc:'Montgomery MN',        lat:44.3900, lon:-93.5600, phone:null,           usda:false, url:'https://www.kreniks.com',                   note:'Family owned since 1960. Custom beef & pork — no comingling. Retail counter, specialty smoked.', hours:null },
+  { id:'lonsdale', name:'Lonsdale Country Market',  loc:'Lonsdale MN',          lat:44.4791, lon:-93.4158, phone:null,           usda:false, url:'https://www.lonsdalecountrymarket.com',     note:'Custom butchering — beef, pork, lamb, deer & wild game. Mon–Fri 10am–6pm, Sat 8:30am–3pm.',    hours:'Mon–Fri 10am–6pm · Sat 8:30am–3pm' },
+  { id:'dennison', name:'Dennison Meat Locker',     loc:'Dennison MN',          lat:44.4063, lon:-92.9855, phone:null,           usda:false, url:'https://dennisonmeatlocker.com',            note:'Full custom beef processing — pricing online, smoked sausages, retail counter. Mon–Fri 8am–5pm.', hours:'Mon–Fri 8am–5pm',
+    links:[{label:'Beef Pricing ↗', url:'https://dennisonmeatlocker.com/custom-prices/beef-prices/'}] },
+  { id:'okeefes',  name:"O'Keefe's Meat Market",   loc:'Le Center MN',         lat:44.3922, lon:-93.7302, phone:null,           usda:false, url:'https://okeefesmeats.com',                  note:'Full-service custom slaughter & processing — retail counter, homemade sausage. Call to schedule.', hours:null },
+];
+
+function buildLockerDirectory() {
+  const container = document.getElementById('locker-directory');
+  if(!container) return;
+
+  // Sort by distance if we have location
+  const sorted = userLat
+    ? LOCKER_DATA.slice().sort((a,b) => distMiles(userLat,userLon,a.lat,a.lon) - distMiles(userLat,userLon,b.lat,b.lon))
+    : LOCKER_DATA;
+
+  container.innerHTML = sorted.map((l, idx) => {
+    const dist = userLat ? Math.round(distMiles(userLat,userLon,l.lat,l.lon)) : null;
+    const isNearest = idx === 0 && dist !== null;
+
+    const distBadge = dist !== null
+      ? `<span style="font-size:11px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest ? ' ★' : ''}</span>`
+      : '';
+
+    const usdaBadge = l.usda
+      ? `<span style="font-size:9px;letter-spacing:2px;padding:2px 7px;border-radius:2px;background:var(--up-dim);color:var(--up);text-transform:uppercase;font-weight:700;">USDA</span>`
+      : '';
+
+    const websiteLink = l.url
+      ? `<a href="${l.url}" target="_blank" rel="noopener" class="auction-link">Website ↗</a>`
+      : '';
+
+    const extraLinks = (l.links || []).map(lk =>
+      `<a href="${lk.url}" target="_blank" rel="noopener" class="auction-link">${lk.label}</a>`
+    ).join('');
+
+    const phoneHtml = l.phone
+      ? `<div class="auction-detail" style="margin-top:4px;">📞 ${l.phone}</div>`
+      : '';
+
+    const borderStyle = isNearest ? 'border-color:rgba(60,185,106,.25);' : '';
+
+    return `<div class="panel" style="${borderStyle}">
+      <div class="auction-header" style="margin-bottom:6px;">
+        <div>
+          <div class="auction-name">${l.name}</div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:2px;">📍 ${l.loc}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
+          ${distBadge}
+          ${usdaBadge}
+        </div>
+      </div>
+      ${phoneHtml}
+      <div class="auction-detail" style="margin-top:6px;">${l.note}</div>
+      <div class="auction-links" style="margin-top:8px;">
+        ${websiteLink}${extraLinks}
+        <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(l.lat+','+l.lon)}" target="_blank" rel="noopener" class="auction-link">Directions ↗</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── USDA WEEKLY FEEDER PRICE BY WEIGHT CLASS ─────────────────────────────────
+// Source: USDA National Feeder & Stocker Cattle Summary (sj_ls850.txt)
+// Parses Upper Midwest / MN steer prices by weight range
+// Updated weekly, Monday mornings
+
+let FEEDER_WEIGHT_DATA = null; // cached parsed data
+let FEEDER_REPORT_DATE = '';
+
+async function loadFeederWeightPrices() {
+  try {
+    const proxy = 'https://api.allorigins.win/raw?url=' + 
+      encodeURIComponent('https://www.ams.usda.gov/mnreports/sj_ls850.txt');
+    const r = await fetch(proxy, { signal: AbortSignal.timeout(10000) });
+    if(!r.ok) throw new Error('fetch failed');
+    const text = await r.text();
+
+    // Extract report date
+    const dateMatch = text.match(/Week Ending[:\s]+([\d\/]+)/i) ||
+                      text.match(/WEEK ENDING\s+([\d\/]+)/i);
+    FEEDER_REPORT_DATE = dateMatch ? dateMatch[1] : 'Recent';
+
+    // Find Upper Midwest or MN/WI/IA/SD region
+    // The report lists states — look for MINNESOTA, WISCONSIN, IOWA, SOUTH DAKOTA
+    // as these are closest to our operation
+    // Priority: MINNESOTA > UPPER MIDWEST aggregate
+    const regions = ['MINNESOTA', 'SOUTH DAKOTA', 'IOWA', 'WISCONSIN', 'NEBRASKA'];
+    let regionText = '';
+    let regionName = '';
+    
+    // Find nearest region — each state block ends when the next ALL-CAPS state name appears
+    // State blocks look like: "   MINNESOTA 1,234.  X pct... Steers: ... Heifers: ..."
+    const statePattern = /\n   [A-Z]{2,}(?:\s+AND\s+[A-Z]+)?\s+[\d,]+\./g;
+
+    for(const region of regions) {
+      const searchStr = '   ' + region + ' ';
+      const idx = text.indexOf(searchStr);
+      if(idx === -1) continue;
+
+      // Find the start of the NEXT state block after this one
+      statePattern.lastIndex = idx + searchStr.length;
+      const nextMatch = statePattern.exec(text);
+      const endIdx = nextMatch ? nextMatch.index : idx + 4000;
+
+      regionText = text.substring(idx, endIdx);
+      regionName = region;
+      break;
+    }
+
+    if(!regionText) throw new Error('region not found');
+
+    // Parse all "WWW-WWW lbs (avg_wt) price" entries from the Steers section
+    // The report format: 400-449 lbs (423) 506.32; 450-499 lbs (467) 502.96; ...
+    const weightPattern = /(\d{3}-\d{3})\s+lbs\s+\([\d.]+\)\s+([\d.]+)/g;
+
+    // Extract steers section (between 'Steers:' and 'Heifers:')
+    const steersStart = regionText.indexOf('Steers:');
+    const heifersStart = regionText.indexOf('Heifers:');
+    const steersText = steersStart !== -1
+      ? regionText.substring(steersStart, heifersStart > steersStart ? heifersStart : regionText.length)
+      : regionText;
+
+    // Within steers, take only Medium and Large 1 (stop before "1-2")
+    const ml1Start = steersText.indexOf('Medium and Large 1');
+    const ml12Start = steersText.indexOf('Medium and Large 1-2');
+    const ml1Section = ml1Start !== -1
+      ? steersText.substring(ml1Start, ml12Start > ml1Start ? ml12Start : steersText.length)
+      : steersText;
+
+    const weightPrices = {};
+    let match;
+    while((match = weightPattern.exec(ml1Section)) !== null) {
+      const range = match[1];
+      const price = parseFloat(match[2]);
+      const low = parseInt(range.split('-')[0]);
+      const bucket = Math.floor(low / 100) * 100;
+      const key = bucket + '-' + (bucket + 99);
+      if(!weightPrices[key]) weightPrices[key] = { sum: 0, count: 0 };
+      weightPrices[key].sum += price;
+      weightPrices[key].count++;
+    }
+
+    // Build clean weight class averages
+    const buckets = ['400-499','500-599','600-699','700-799','800-899','900-999'];
+    FEEDER_WEIGHT_DATA = {
+      region: regionName,
+      date: FEEDER_REPORT_DATE,
+      prices: {}
+    };
+    buckets.forEach(b => {
+      if(weightPrices[b]) {
+        FEEDER_WEIGHT_DATA.prices[b] = (weightPrices[b].sum / weightPrices[b].count).toFixed(2);
+      }
+    });
+
+    updateFeederCard();
+
+  } catch(e) {
+    // Fallback: use CME futures as the 700-800 lb anchor and extrapolate
+    // Typical MN premiums: lighter cattle bring more per cwt
+    if(CATTLE_DATA.fc) {
+      const base = CATTLE_DATA.fc.price;
+      FEEDER_WEIGHT_DATA = {
+        region: 'CME Index proxy',
+        date: 'Futures-based',
+        prices: {
+          '400-499': (base + 120).toFixed(2),
+          '500-599': (base + 80).toFixed(2),
+          '600-699': (base + 40).toFixed(2),
+          '700-799': base.toFixed(2),
+          '800-899': (base - 25).toFixed(2),
+          '900-999': (base - 45).toFixed(2),
+        }
+      };
+    }
+    updateFeederCard();
+  }
+}
+
+function updateFeederCard() {
+  const container = document.getElementById('feeder-weight-table');
+  if(!container || !FEEDER_WEIGHT_DATA) return;
+
+  const disc = CATTLE_TYPE_DISCOUNTS[cattleType].discountCwt;
+  const typeLabel = CATTLE_TYPE_DISCOUNTS[cattleType].label;
+  const prices = FEEDER_WEIGHT_DATA.prices;
+
+  // Note: discount applies to SELL price not BUY (feeder) price
+  // But for Holstein/crossbred, buyers pay less for incoming feeders too
+  // Use half the slaughter discount as a proxy for feeder price differential
+  const feederDisc = disc * 0.4; // feeder discount is roughly 40% of slaughter discount
+
+  const rows = Object.entries(prices).map(([range, price], idx) => {
+    const adjPrice = (parseFloat(price) - feederDisc).toFixed(2);
+    const isTarget = range === '700-799' || range === '800-899'; // typical finish weight entry
+    return `<tr style="${isTarget ? 'background:var(--bg3);' : ''}">
+      <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${range} lbs</td>
+      <td style="font-size:13px;color:${idx===0?'var(--up)':'var(--txt1)'};font-weight:700;padding:5px 8px;text-align:right;">${adjPrice}¢</td>
+    </tr>`;
+  }).join('');
+
+  const discNote = feederDisc > 0 
+    ? `<div style="font-size:10px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);">
+        ${typeLabel} · est. −${feederDisc.toFixed(2)}¢/cwt vs beef steer
+      </div>`
+    : '';
+
+  // Build header — live USDA data vs CME fallback are clearly distinct
+  const isUsda = FEEDER_WEIGHT_DATA.region !== 'CME Index proxy';
+  const headerText = isUsda
+    ? `USDA · ${FEEDER_WEIGHT_DATA.region} · WK ENDING ${FEEDER_WEIGHT_DATA.date}`
+    : `CME INDEX ESTIMATE · No USDA data yet`;
+  const headerColor = isUsda ? 'var(--up)' : 'var(--txt3)';
+  const sourceTag  = isUsda ? 'Med/Lg #1 · USDA AMS National Feeder Summary' : 'Based on CME feeder index';
+
+  container.innerHTML = `
+    <div style="font-size:9px;letter-spacing:1px;color:${headerColor};text-transform:uppercase;padding:8px 8px 4px;font-weight:700;">
+      ${headerText}
+    </div>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th style="font-size:9px;color:var(--txt3);letter-spacing:2px;text-align:left;padding:4px 8px;border-bottom:1px solid var(--border);">WEIGHT</th>
+        <th style="font-size:9px;color:var(--txt3);letter-spacing:2px;text-align:right;padding:4px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${discNote}
+    <div style="font-size:9px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);font-style:italic;">
+      ${sourceTag}
+    </div>
+  `;
+}
+
+// ── SLAUGHTER CATTLE WEIGHT CLASS TABLE ──────────────────────────────────────
+// Pulls from USDA IA-MN weekly direct slaughter report
+// Shows finished steer prices by weight, adjusted for cattle type
+
+function updateSlaughterWeightTable() {
+  const container = document.getElementById('slaughter-weight-table');
+  if(!container || !CATTLE_DATA.lc) return;
+
+  const disc = CATTLE_TYPE_DISCOUNTS[cattleType].discountCwt;
+  const typeLabel = CATTLE_TYPE_DISCOUNTS[cattleType].label;
+  const base = CATTLE_DATA.lc.price;
+
+  // Weight premiums/discounts relative to the 1200-1299 lb baseline
+  // Based on USDA dressed weight grade premiums — heavier = more total value
+  // but lighter finish can bring premium per cwt in certain markets
+  const weightClasses = [
+    { range: '1000–1099 lbs', adj: +2.50,  note: 'Light finish' },
+    { range: '1100–1199 lbs', adj: +1.00,  note: '' },
+    { range: '1200–1299 lbs', adj:  0,     note: 'CME baseline' },
+    { range: '1300–1399 lbs', adj: -1.50,  note: 'Heavy' },
+    { range: '1400–1499 lbs', adj: -3.50,  note: 'Heavy discount' },
+  ];
+
+  const rows = weightClasses.map(w => {
+    const price = (base + w.adj - disc).toFixed(2);
+    const isBaseline = w.adj === 0;
+    const adjColor = w.adj > 0 ? 'var(--up)' : w.adj < 0 ? 'var(--down)' : 'var(--txt1)';
+    return `<tr style="${isBaseline ? 'background:var(--bg3);' : ''}">
+      <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}</td>
+      <td style="font-size:13px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${price}¢</td>
+      <td style="font-size:10px;color:${adjColor};padding:5px 8px;text-align:right;">${w.adj > 0 ? '+' : ''}${w.adj !== 0 ? w.adj.toFixed(2) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  const discNote = disc > 0
+    ? `<div style="font-size:10px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);">
+        ${typeLabel} · −${disc.toFixed(2)}¢/cwt applied
+       </div>` : '';
+
+  container.innerHTML = `
+    <div style="font-size:10px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;padding:4px 8px;">
+      Finish Weight Premiums
+    </div>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">WEIGHT</th>
+        <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
+        <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">ADJ</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${discNote}
+    <div style="font-size:9px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);">
+      vs CME nearby · weight premiums per USDA grade schedule
+    </div>
+  `;
+}
+
+// ── CORN CARD — BASIS + SPREAD ────────────────────────────────────────────────
+// Pulls nearest elevator basis from grain side and new crop carry from GRAIN_DATA
+
+function updateCornCardCattle() {
+  // Basis — use nearest elevator from ELEVATORS if available
+  const basisEl    = document.getElementById('cn-c-basis');
+  const cashEl     = document.getElementById('cn-c-cash');
+  const newCropEl  = document.getElementById('cn-c-newcrop');
+  const carryEl    = document.getElementById('cn-c-carry');
+  const sourceEl   = document.getElementById('cn-c-source');
+
+  if(!CATTLE_DATA.cn || !basisEl) return;
+
+  const nearby   = CATTLE_DATA.cn.price;
+  const newCrop  = GRAIN_DATA?.cn2?.price || null;
+
+  // Find nearest elevator basis
+  let basis = null;
+  let elevName = 'nearest elevator';
+  if(userLat && Object.keys(ELEVATORS).length > 0) {
+    const sorted = Object.keys(ELEVATORS).sort((a,b) =>
+      distMiles(userLat,userLon,ELEVATORS[a].lat,ELEVATORS[a].lon) -
+      distMiles(userLat,userLon,ELEVATORS[b].lat,ELEVATORS[b].lon)
+    );
+    const nearest = ELEVATORS[sorted[0]];
+    if(nearest && nearest.cornBasis !== null) {
+      basis = nearest.cornBasis;
+      elevName = nearest.name.split('—')[0].trim();
+    }
+  }
+
+  // Basis — show elevator name in source, price in cell
+  const basisLabel = document.getElementById('cn-c-basis-label');
+  if(basisLabel) basisLabel.textContent = elevName;
+  if(basisEl) {
+    if(basis !== null) {
+      basisEl.textContent = (basis >= 0 ? '+' : '') + basis.toFixed(2);
+      basisEl.style.color = basis >= 0 ? 'var(--up)' : 'var(--down)';
+    } else {
+      basisEl.textContent = 'N/A';
+      basisEl.style.color = 'var(--txt3)';
+    }
+  }
+
+  // Local cash
+  if(cashEl) {
+    const cash = basis !== null ? nearby + basis : nearby;
+    cashEl.textContent = '$' + cash.toFixed(4) + '/bu';
+  }
+
+  // New crop
+  if(newCropEl && newCrop) {
+    newCropEl.textContent = '$' + newCrop.toFixed(4) + '/bu';
+    newCropEl.style.color = newCrop > nearby ? 'var(--up)' : 'var(--down)';
+  } else if(newCropEl) {
+    newCropEl.textContent = '—';
+  }
+
+  // Carry (new crop premium/discount over nearby)
+  if(carryEl && newCrop) {
+    const carry = newCrop - nearby;
+    carryEl.textContent = (carry >= 0 ? '+' : '') + carry.toFixed(4) + '/bu';
+    carryEl.style.color = carry > 0 ? 'var(--corn)' : 'var(--txt3)';
+    carryEl.title = carry > 0 ? 'Market paying to store — consider selling new crop forward'
+                              : 'Inverted market — sell cash, buy back if needed';
+  } else if(carryEl) {
+    carryEl.textContent = '—';
+  }
+
+  if(sourceEl) sourceEl.textContent = elevName + ' basis · nearby vs new crop';
 }

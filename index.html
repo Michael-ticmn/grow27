@@ -184,7 +184,7 @@
   .source-link-tag.free{background:var(--up-dim);color:var(--up);}
   .source-link-tag.gov{background:var(--soy-dim);color:var(--soy);}
   .source-link-arrow{font-size:16px;color:var(--txt3);margin-left:6px;}
-  .auction-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:10px;}
+  .auction-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px;gap:10px;}.auction-header>div:last-child{flex-shrink:0;}
   .auction-name{font-size:15px;color:var(--txt1);font-weight:700;}
   .auction-freq{font-size:10px;color:var(--corn);background:var(--corn-dim);padding:2px 9px;border-radius:3px;white-space:nowrap;flex-shrink:0;letter-spacing:1px;}
   .auction-detail{font-size:12px;color:var(--txt3);margin-bottom:3px;line-height:1.5;}
@@ -350,7 +350,7 @@
       <!-- GRAIN LOCAL BUYERS -->
       <div class="section" id="grain-buyers">
         <div class="insight-strip">Curated grain buyers plus any additional grain buyers found within ~50 miles of your location. Basis on discovered buyers is estimated — verify with the buyer directly. <span id="discovery-status-dir" style="color:var(--corn);"></span></div>
-        <div id="elev-directory"><div style="text-align:center;padding:40px;color:var(--txt3);font-size:13px;">Locating nearby grain buyers…</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><div id="elev-dir-col-1" style="display:flex;flex-direction:column;gap:14px;"><div style="text-align:center;padding:40px;color:var(--txt3);font-size:13px;">Locating nearby grain buyers…</div></div><div id="elev-dir-col-2" style="display:flex;flex-direction:column;gap:14px;"></div></div>
       </div>
 
       <!-- GRAIN MARGIN CALC -->
@@ -494,12 +494,117 @@
 
       <!-- CATTLE PRICES -->
       <div class="section active" id="cattle-prices">
-        <div class="insight-strip" id="cattle-insight">Fetching market data...</div>
-        <div class="cards" style="grid-template-columns:repeat(3,minmax(0,1fr));">
-          <div class="card lc"><div class="card-label">CME · Live Cattle</div><div class="card-name">Market Steer</div><div class="card-price" id="p-lc">—</div><div class="card-unit">cents / lb</div><div class="badge flat" id="b-lc">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-lc">—</strong></div><div class="meta-item">LOW<strong id="l-lc">—</strong></div><div class="meta-item">PREV<strong id="v-lc">—</strong></div></div></div>
-          <div class="card fc"><div class="card-label">CME · Feeder Cattle</div><div class="card-name">Incoming Calf</div><div class="card-price" id="p-fc">—</div><div class="card-unit">cents / lb</div><div class="badge flat" id="b-fc">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-fc">—</strong></div><div class="meta-item">LOW<strong id="l-fc">—</strong></div><div class="meta-item">PREV<strong id="v-fc">—</strong></div></div></div>
-          <div class="card cn"><div class="card-label">CBOT · Corn</div><div class="card-name">Home Grown Feed</div><div class="card-price" id="p-cn-c">—</div><div class="card-unit">$ / bushel</div><div class="badge flat" id="b-cn-c">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-cn-c">—</strong></div><div class="meta-item">LOW<strong id="l-cn-c">—</strong></div><div class="meta-item">PREV<strong id="v-cn-c">—</strong></div></div></div>
+
+        <!-- Cattle type selector -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;flex-wrap:wrap;">
+          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Cattle Type</div>
+          <div style="display:flex;border:1px solid var(--border2);border-radius:3px;overflow:hidden;">
+            <button class="cattle-type-btn active" data-type="beef"      onclick="setCattleType('beef')"      style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;">Beef Steer</button>
+            <button class="cattle-type-btn"        data-type="crossbred" onclick="setCattleType('crossbred')" style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Beef × Dairy</button>
+            <button class="cattle-type-btn"        data-type="holstein"  onclick="setCattleType('holstein')"  style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Holstein</button>
+          </div>
+          <div id="barn-price-status" style="font-size:11px;color:var(--txt3);font-style:italic;"></div>
         </div>
+
+        <div class="insight-strip" id="cattle-insight">Fetching market data...</div>
+        <div class="cards" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+          <div class="card lc">
+            <div class="card-label">CME · Live Cattle</div>
+            <div class="card-name" id="lc-card-name">Market Steer</div>
+            <div class="card-price" id="p-lc">—</div>
+            <div class="card-unit">cents / lb</div>
+            <div class="badge flat" id="b-lc">— —</div>
+            <div class="card-meta"><div class="meta-item">HIGH<strong id="h-lc">—</strong></div><div class="meta-item">LOW<strong id="l-lc">—</strong></div><div class="meta-item">PREV<strong id="v-lc">—</strong></div></div>
+            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+              <div id="slaughter-weight-table" style="font-size:11px;color:var(--txt3);">Loading weight class prices…</div>
+            </div>
+          </div>
+          <div class="card fc" style="grid-row:span 1;">
+            <div class="card-label">CME · Feeder Cattle Index</div>
+            <div class="card-name" id="fc-card-name">700–899 lb Beef Steer</div>
+            <div class="card-price" id="p-fc">—</div>
+            <div class="card-unit">cents / lb · futures index</div>
+            <div class="badge flat" id="b-fc">— —</div>
+            <div class="card-meta"><div class="meta-item">HIGH<strong id="h-fc">—</strong></div><div class="meta-item">LOW<strong id="l-fc">—</strong></div><div class="meta-item">PREV<strong id="v-fc">—</strong></div></div>
+            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+              <div id="feeder-weight-table" style="font-size:11px;color:var(--txt3);">Loading weight class prices…</div>
+            </div>
+          </div>
+          <div class="card cn">
+            <div class="card-label">CBOT · Corn</div>
+            <div class="card-name">Home Grown Feed</div>
+            <div class="card-price" id="p-cn-c">—</div>
+            <div class="card-unit">$ / bushel · nearby</div>
+            <div class="badge flat" id="b-cn-c">— —</div>
+            <div class="card-meta"><div class="meta-item">HIGH<strong id="h-cn-c">—</strong></div><div class="meta-item">LOW<strong id="l-cn-c">—</strong></div><div class="meta-item">PREV<strong id="v-cn-c">—</strong></div></div>
+            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
+                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">LOCAL BASIS <span id="cn-c-basis-label" style="color:var(--txt3);font-style:italic;"></span></div>
+                <div style="font-size:13px;font-weight:700;" id="cn-c-basis">—</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
+                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">LOCAL CASH</div>
+                <div style="font-size:13px;font-weight:700;color:var(--corn);" id="cn-c-cash">—</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
+                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">NEW CROP</div>
+                <div style="font-size:13px;font-weight:700;" id="cn-c-newcrop">—</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
+                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">CARRY</div>
+                <div style="font-size:13px;font-weight:700;" id="cn-c-carry">—</div>
+              </div>
+              <div style="font-size:9px;color:var(--txt3);margin-top:5px;" id="cn-c-source">Nearest elevator basis</div>
+            </div>
+          </div>
+          <div class="card" style="--card-accent:var(--soy);border-top:none;padding:0;overflow:hidden;">
+            <div style="height:2px;background:var(--soy);"></div>
+            <div style="padding:16px;">
+              <div class="card-label" style="margin-bottom:10px;">Feed Input Costs</div>
+              <div class="feed-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+                <div>
+                  <div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">SOYBEAN MEAL</div>
+                  <div style="font-size:10px;color:var(--txt3);">CBOT futures · $/ton</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="p-sbm">—</div>
+                  <div id="b-sbm" class="badge flat" style="font-size:10px;padding:2px 6px;">— —</div>
+                </div>
+              </div>
+              <div class="feed-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+                <div>
+                  <div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">DISTILLERS (DDG)</div>
+                  <div style="font-size:10px;color:var(--txt3);">USDA IA/MN spot · $/ton</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="p-ddg">—</div>
+                  <div style="font-size:10px;color:var(--txt3);" id="src-ddg">—</div>
+                </div>
+              </div>
+              <div class="feed-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;">
+                <div>
+                  <div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">ALFALFA HAY</div>
+                  <div style="font-size:10px;color:var(--txt3);">USDA IA/MN spot · $/ton</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="p-hay">—</div>
+                  <div style="font-size:10px;color:var(--txt3);" id="src-hay">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auction barn avg prices -->
+        <div class="section-divider">Auction Barn Avg Prices</div>
+        <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
+          <table class="cash-table">
+            <thead><tr><th>Auction Barn</th><th>Avg Price ¢/lb</th><th>Type Discount</th><th>Report Date</th><th>Distance</th></tr></thead>
+            <tbody id="barn-table-body"><tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody>
+          </table>
+          <div id="barn-price-source" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;"></div>
+        </div>
+
         <div class="two-col">
           <div style="display:flex;flex-direction:column;gap:16px;">
             <div class="panel" style="padding:14px 18px;"><div class="panel-title">Midwest Conditions — Corn Belt</div><div class="weather-row"><div class="wx-item"><div class="wx-city" id="cwx-city-1">—</div><div class="wx-temp" id="cwx-1">—</div><div class="wx-cond" id="cwc-1">—</div><div class="wx-note" id="cwn-1">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-2">—</div><div class="wx-temp" id="cwx-2">—</div><div class="wx-cond" id="cwc-2">—</div><div class="wx-note" id="cwn-2">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-3">—</div><div class="wx-temp" id="cwx-3">—</div><div class="wx-cond" id="cwc-3">—</div><div class="wx-note" id="cwn-3">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-4">—</div><div class="wx-temp" id="cwx-4">—</div><div class="wx-cond" id="cwc-4">—</div><div class="wx-note" id="cwn-4">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-5">YOUR AREA</div><div class="wx-temp" id="cwx-5">—</div><div class="wx-cond" id="cwc-5">—</div><div class="wx-note" id="cwn-5">—</div></div></div></div>
@@ -510,12 +615,17 @@
               <div class="cal-item"><div class="cal-date">Apr 18</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Cattle on Feed Report</div><div class="cal-sub">Monthly placement numbers</div></div></div>
             </div>
           </div>
-          <div class="panel"><div class="panel-title">How to Use This Dashboard</div><div class="guide-section"><div class="guide-heading">Price Colors</div><div class="guide-row"><span class="guide-badge up-ex">Green</span><span class="guide-desc">Up from yesterday — good selling signal</span></div><div class="guide-row"><span class="guide-badge down-ex">Red</span><span class="guide-desc">Down from yesterday — monitor closely</span></div><div class="guide-row"><span class="guide-badge flat-ex">Amber</span><span class="guide-desc">Flat — little change from yesterday</span></div></div><div class="guide-section"><div class="guide-heading">Key Numbers</div><div class="guide-row"><span class="guide-label">Live Cattle</span><span class="guide-desc">What the market pays for finished steers (¢/lb)</span></div><div class="guide-row"><span class="guide-label">Feeder Cattle</span><span class="guide-desc">What incoming calves cost at auction (¢/lb)</span></div><div class="guide-row"><span class="guide-label">Corn</span><span class="guide-desc">Market value of home-grown feed ($/bu)</span></div></div></div>
+          <div class="panel"><div class="panel-title">How to Use This Dashboard</div><div class="guide-section"><div class="guide-heading">Price Colors</div><div class="guide-row"><span class="guide-badge up-ex">Green</span><span class="guide-desc">Up from yesterday — good selling signal</span></div><div class="guide-row"><span class="guide-badge down-ex">Red</span><span class="guide-desc">Down from yesterday — monitor closely</span></div><div class="guide-row"><span class="guide-badge flat-ex">Amber</span><span class="guide-desc">Flat — little change from yesterday</span></div></div><div class="guide-section"><div class="guide-heading">Key Numbers</div><div class="guide-row"><span class="guide-label">Live Cattle</span><span class="guide-desc">What the market pays for finished animals (¢/lb) — adjusts by cattle type selection</span></div><div class="guide-row"><span class="guide-label">Feeder Cattle</span><span class="guide-desc">What incoming calves cost at auction (¢/lb) — does not change by type, you pay the same price to buy regardless of breed</span></div><div class="guide-row"><span class="guide-label">Corn</span><span class="guide-desc">Market value of home-grown feed ($/bu)</span></div></div><div class="guide-section"><div class="guide-heading">Cattle Type Discounts</div><div class="guide-row"><span class="guide-label" style="min-width:110px;">Beef Steer</span><span class="guide-desc">Baseline — full market price, no discount</span></div><div class="guide-row"><span class="guide-label" style="min-width:110px;">Beef × Dairy</span><span class="guide-desc">~$9.50/cwt below beef steer — crossbred discount per USDA AMS</span></div><div class="guide-row"><span class="guide-label" style="min-width:110px;">Holstein</span><span class="guide-desc">~$30.00/cwt below beef steer — dairy breed discount per USDA AMS</span></div></div></div>
         </div>
       </div>
 
       <!-- CATTLE CHARTS -->
       <div class="section" id="cattle-charts">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Type</div>
+          <div id="cattle-type-badge-charts" style="font-size:11px;letter-spacing:1px;padding:4px 12px;border-radius:3px;background:var(--cattle-dim);color:var(--cattle);text-transform:uppercase;font-weight:700;">Beef Steer</div>
+          <div style="font-size:11px;color:var(--txt3);">— change on Prices tab</div>
+        </div>
         <div class="hist-controls"><button class="hist-btn" onclick="setRange(7,this)">7D</button><button class="hist-btn" onclick="setRange(30,this)">30D</button><button class="hist-btn active" onclick="setRange(90,this)">90D</button><button class="hist-btn" onclick="setRange(180,this)">180D</button></div>
         <div class="panel full" style="margin-bottom:16px;"><div class="panel-title">Live Cattle — Historical (¢/lb)</div><div style="position:relative;width:100%;height:210px;"><canvas id="hist-lc"></canvas></div></div>
         <div class="two-col"><div class="panel"><div class="panel-title">Feeder Cattle — Historical (¢/lb)</div><div style="position:relative;width:100%;height:200px;"><canvas id="hist-fc"></canvas></div></div><div class="panel"><div class="panel-title">Corn — Historical ($/bu)</div><div style="position:relative;width:100%;height:200px;"><canvas id="hist-cn-chart"></canvas></div></div></div>
@@ -524,21 +634,136 @@
 
       <!-- CATTLE MARGIN CALC -->
       <div class="section" id="cattle-margin">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Type</div>
+          <div id="cattle-type-badge-margin" style="font-size:11px;letter-spacing:1px;padding:4px 12px;border-radius:3px;background:var(--cattle-dim);color:var(--cattle);text-transform:uppercase;font-weight:700;">Beef Steer</div>
+          <div style="font-size:11px;color:var(--txt3);">— change on Prices tab</div>
+        </div>
         <div class="two-col" style="align-items:start;">
           <div class="panel">
             <div class="panel-title">Steer — Feed to Finish</div>
-            <div class="field"><label>Buy weight (lbs) <span class="field-val" id="bw-val">500</span></label><input type="range" min="200" max="800" value="500" step="10" oninput="calc();document.getElementById('bw-val').textContent=this.value" id="bw"></div>
-            <div class="field"><label>Buy price (¢/lb) <span class="field-val" id="bp-val">350</span></label><input type="range" min="200" max="500" value="350" step="1" oninput="calc();document.getElementById('bp-val').textContent=this.value" id="bp"></div>
-            <div class="field"><label>Target sell weight (lbs) <span class="field-val" id="sw-val">1200</span></label><input type="range" min="800" max="1600" value="1200" step="10" oninput="calc();document.getElementById('sw-val').textContent=this.value" id="sw"></div>
-            <div class="field"><label>Days on feed <span class="field-val" id="dof-val">180</span></label><input type="range" min="60" max="400" value="180" step="5" oninput="calc();document.getElementById('dof-val').textContent=this.value" id="dof"></div>
-            <div class="field"><label>Corn fed (bu/day/head) <span class="field-val" id="cf-val">0.25</span></label><input type="range" min="0.1" max="1.0" value="0.25" step="0.05" oninput="calc();document.getElementById('cf-val').textContent=parseFloat(this.value).toFixed(2)" id="cf"></div>
-            <div class="field"><label>Other costs ($/day/head) <span class="field-val" id="oc-val">$1.50</span></label><input type="range" min="0.5" max="5" value="1.5" step="0.25" oninput="calc();document.getElementById('oc-val').textContent='$'+parseFloat(this.value).toFixed(2)" id="oc"></div>
-            <div class="field" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;"><label>Sell price — live cattle (¢/lb) <span class="field-val" id="sp-val">231</span></label><input type="range" min="150" max="350" value="231" step="1" oninput="calc();document.getElementById('sp-val').textContent=this.value" id="sp"></div>
-            <div class="field"><label>Corn market price ($/bu) <span class="field-val" id="cp-val">$4.53</span></label><input type="range" min="3.0" max="9.0" value="4.53" step="0.01" oninput="calc();document.getElementById('cp-val').textContent='$'+parseFloat(this.value).toFixed(2)" id="cp"></div>
-            <div class="panel" style="margin-top:8px;background:var(--bg1);border-color:var(--border);"><div class="panel-title">Seasonal Price Patterns</div><div style="position:relative;width:100%;height:150px;"><canvas id="seasonal-chart"></canvas></div><div style="font-size:11px;color:var(--txt3);margin-top:8px;line-height:1.6;">Cattle prices historically peak Mar–May and Oct–Nov. Current month highlighted in amber.</div></div>
+
+            <style>
+              .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;}
+              .calc-pair{display:contents;}
+              .calc-field{margin-bottom:14px;}
+              .calc-field label{font-size:11px;color:var(--txt2);display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;}
+              .calc-field label span.fv{color:var(--corn);font-size:12px;font-weight:700;white-space:nowrap;}
+              .calc-field input[type=range]{width:100%;accent-color:var(--corn);cursor:pointer;margin-top:2px;}
+              .calc-field input[type=number]{background:var(--bg0);border:1px solid var(--border2);border-radius:3px;color:var(--corn);font-family:inherit;font-size:13px;padding:4px 8px;width:100%;margin-top:4px;}
+              .calc-field input[type=number]:focus{outline:none;border-color:var(--corn);}
+              .calc-section-label{grid-column:1/-1;font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;padding:10px 0 6px;border-top:1px solid var(--border);margin-top:4px;}
+              .calc-section-label:first-child{border-top:none;padding-top:0;}
+            </style>
+
+            <div class="calc-grid">
+
+              <!-- BUY -->
+              <div class="calc-section-label">Animal In</div>
+
+              <div class="calc-field">
+                <label>Buy weight <span class="fv" id="bw-val">500 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs</span></span></label>
+                <input type="range" min="200" max="800" value="500" step="10" id="bw" oninput="syncField('bw',this.value,0);calc()">
+                <input type="number" min="200" max="800" value="500" step="10" id="bw-n" oninput="syncField('bw',this.value,0);calc()">
+              </div>
+              <div class="calc-field">
+                <label>Buy price <span class="fv" id="bp-val">350 <span style="font-size:10px;color:var(--txt3);font-weight:400;">¢/lb</span></span></label>
+                <input type="range" min="200" max="600" value="350" step="1" id="bp" oninput="syncField('bp',this.value,0);calc()">
+                <input type="number" min="200" max="600" value="350" step="1" id="bp-n" oninput="syncField('bp',this.value,0);calc()">
+              </div>
+
+              <!-- FEED -->
+              <div class="calc-section-label">Daily Feed (per head)</div>
+
+              <div class="calc-field">
+                <label>Corn <span class="fv" id="cf-val">0.25 <span style="font-size:10px;color:var(--txt3);font-weight:400;">bu/day</span></span></label>
+                <input type="range" min="0" max="1.5" value="0.25" step="0.05" id="cf" oninput="syncField('cf',this.value,2);calc()">
+                <input type="number" min="0" max="1.5" value="0.25" step="0.05" id="cf-n" oninput="syncField('cf',this.value,2);calc()">
+              </div>
+              <div class="calc-field">
+                <label>Corn price <span class="fv" id="cp-val">$4.53 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/bu</span></span></label>
+                <input type="range" min="0" max="9.0" value="4.53" step="0.01" id="cp" oninput="syncField('cp',this.value,2,'$');calc()">
+                <input type="number" min="0" max="9.0" value="4.53" step="0.01" id="cp-n" oninput="syncField('cp',this.value,2,'$');calc()">
+              </div>
+
+              <div class="calc-field">
+                <label>Soybean meal <span class="fv" id="sbm-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
+                <input type="range" min="0" max="10" value="0" step="0.25" id="sbm" oninput="syncField('sbm',this.value,2);calc()">
+                <input type="number" min="0" max="10" value="0" step="0.25" id="sbm-n" oninput="syncField('sbm',this.value,2);calc()">
+              </div>
+              <div class="calc-field">
+                <label>SBM price <span class="fv" id="sbmp-val">$320 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
+                <input type="range" min="0" max="600" value="320" step="5" id="sbmp" oninput="syncField('sbmp',this.value,0,'$');calc()">
+                <input type="number" min="0" max="600" value="320" step="5" id="sbmp-n" oninput="syncField('sbmp',this.value,0,'$');calc()">
+              </div>
+
+              <div class="calc-field">
+                <label>Distillers <span class="fv" id="ddg-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
+                <input type="range" min="0" max="15" value="0" step="0.25" id="ddg" oninput="syncField('ddg',this.value,2);calc()">
+                <input type="number" min="0" max="15" value="0" step="0.25" id="ddg-n" oninput="syncField('ddg',this.value,2);calc()">
+              </div>
+              <div class="calc-field">
+                <label>DDG price <span class="fv" id="ddgp-val">$180 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
+                <input type="range" min="0" max="400" value="180" step="5" id="ddgp" oninput="syncField('ddgp',this.value,0,'$');calc()">
+                <input type="number" min="0" max="400" value="180" step="5" id="ddgp-n" oninput="syncField('ddgp',this.value,0,'$');calc()">
+              </div>
+
+              <div class="calc-field">
+                <label>Protein supp <span class="fv" id="pro-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
+                <input type="range" min="0" max="5" value="0" step="0.1" id="pro" oninput="syncField('pro',this.value,2);calc()">
+                <input type="number" min="0" max="5" value="0" step="0.1" id="pro-n" oninput="syncField('pro',this.value,2);calc()">
+              </div>
+              <div class="calc-field">
+                <label>Protein price <span class="fv" id="prop-val">$450 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
+                <input type="range" min="0" max="900" value="450" step="10" id="prop" oninput="syncField('prop',this.value,0,'$');calc()">
+                <input type="number" min="0" max="900" value="450" step="10" id="prop-n" oninput="syncField('prop',this.value,0,'$');calc()">
+              </div>
+
+              <div class="calc-field">
+                <label>Alfalfa hay <span class="fv" id="hay-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
+                <input type="range" min="0" max="30" value="0" step="0.5" id="hay" oninput="syncField('hay',this.value,2);calc()">
+                <input type="number" min="0" max="30" value="0" step="0.5" id="hay-n" oninput="syncField('hay',this.value,2);calc()">
+              </div>
+              <div class="calc-field">
+                <label>Hay price <span class="fv" id="hayp-val">$200 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
+                <input type="range" min="0" max="500" value="200" step="5" id="hayp" oninput="syncField('hayp',this.value,0,'$');calc()">
+                <input type="number" min="0" max="500" value="200" step="5" id="hayp-n" oninput="syncField('hayp',this.value,0,'$');calc()">
+              </div>
+
+              <!-- OTHER COSTS -->
+              <div class="calc-section-label">Other Costs</div>
+
+              <div class="calc-field">
+                <label>Other costs <span class="fv" id="oc-val">$1.50 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/day</span></span></label>
+                <input type="range" min="0" max="10" value="1.5" step="0.25" id="oc" oninput="syncField('oc',this.value,2,'$');calc()">
+                <input type="number" min="0" max="10" value="1.5" step="0.25" id="oc-n" oninput="syncField('oc',this.value,2,'$');calc()">
+              </div>
+              <div class="calc-field">
+                <label>Days on feed <span class="fv" id="dof-val">180 <span style="font-size:10px;color:var(--txt3);font-weight:400;">days</span></span></label>
+                <input type="range" min="1" max="400" value="180" step="5" id="dof" oninput="syncField('dof',this.value,0);calc()">
+                <input type="number" min="1" max="400" value="180" step="5" id="dof-n" oninput="syncField('dof',this.value,0);calc()">
+              </div>
+
+              <!-- SELL -->
+              <div class="calc-section-label">Animal Out</div>
+
+              <div class="calc-field">
+                <label>Sell weight <span class="fv" id="sw-val">1200 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs</span></span></label>
+                <input type="range" min="800" max="1800" value="1200" step="10" id="sw" oninput="syncField('sw',this.value,0);calc()">
+                <input type="number" min="800" max="1800" value="1200" step="10" id="sw-n" oninput="syncField('sw',this.value,0);calc()">
+              </div>
+              <div class="calc-field">
+                <label>Sell price <span class="fv" id="sp-val">231 <span style="font-size:10px;color:var(--txt3);font-weight:400;">¢/lb</span></span></label>
+                <input type="range" min="150" max="400" value="231" step="1" id="sp" oninput="syncField('sp',this.value,0);calc()">
+                <input type="number" min="150" max="400" value="231" step="1" id="sp-n" oninput="syncField('sp',this.value,0);calc()">
+              </div>
+
+            </div><!-- /calc-grid -->
+
+            <div class="panel" style="margin-top:12px;background:var(--bg1);border-color:var(--border);"><div class="panel-title">Seasonal Price Patterns</div><div style="position:relative;width:100%;height:150px;"><canvas id="seasonal-chart"></canvas></div><div style="font-size:11px;color:var(--txt3);margin-top:8px;line-height:1.6;">Cattle prices historically peak Mar–May and Oct–Nov. Current month highlighted in amber.</div></div>
           </div>
           <div style="display:flex;flex-direction:column;gap:16px;">
-            <div class="panel"><div class="panel-title">Per Head — Results</div><div class="result-box" style="margin-top:0;"><div class="result-row"><span>Buy cost</span><span id="r-buy">—</span></div><div class="result-row"><span>Corn cost</span><span id="r-corn">—</span></div><div class="result-row"><span>Other costs</span><span id="r-other">—</span></div><div class="result-row total"><span>Total cost</span><span id="r-total">—</span></div><div class="result-row"><span>Gross revenue</span><span id="r-rev">—</span></div><div class="result-row total" id="r-margin-row"><span>Net margin / head</span><span id="r-margin">—</span></div></div><div class="verdict neutral" id="verdict">Adjust sliders to see recommendation</div></div>
+            <div class="panel"><div class="panel-title">Per Head — Results</div><div class="result-box" style="margin-top:0;"><div class="result-row"><span>Buy cost</span><span id="r-buy">—</span></div><div class="result-row"><span>Total feed cost</span><span id="r-corn">—</span></div><div class="result-row"><span>Other costs</span><span id="r-other">—</span></div><div class="result-row total"><span>Total cost</span><span id="r-total">—</span></div><div class="result-row"><span>Gross revenue</span><span id="r-rev">—</span></div><div class="result-row total" id="r-margin-row"><span>Net margin / head</span><span id="r-margin">—</span></div></div><div class="verdict neutral" id="verdict">Adjust sliders to see recommendation</div></div>
             <div class="panel"><div class="panel-title">Full Herd Profitability</div><div class="herd-input"><label>Head count:</label><input type="number" id="herd-count" value="150" min="1" max="2000" oninput="calc()"></div><div class="stat-grid"><div class="stat-box"><div class="stat-label">TOTAL REVENUE</div><div class="stat-val" id="herd-rev">—</div><div class="stat-sub">at target weight</div></div><div class="stat-box"><div class="stat-label">TOTAL COST</div><div class="stat-val" id="herd-cost">—</div><div class="stat-sub">all in</div></div><div class="stat-box"><div class="stat-label">TOTAL MARGIN</div><div class="stat-val" id="herd-margin">—</div><div class="stat-sub">net profit / loss</div></div><div class="stat-box"><div class="stat-label">DAILY FEED COST</div><div class="stat-val" id="herd-daily">—</div><div class="stat-sub">whole herd</div></div></div></div>
           </div>
         </div>
@@ -570,59 +795,31 @@
 
       <!-- CATTLE AUCTION BARNS -->
       <div class="section" id="cattle-barns">
-        <div class="insight-strip"><strong>Livestock auction barns near your location</strong> — sorted by distance. Prices shown as ¢/lb live weight, adjusted by cattle type. All licensed by the Minnesota Board of Animal Health.</div>
-
-        <!-- Cattle type toggle -->
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
-          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Cattle Type</div>
-          <div style="display:flex;border:1px solid var(--border2);border-radius:3px;overflow:hidden;">
-            <button class="cattle-type-btn active" data-type="beef"      onclick="setCattleType('beef')"     style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;background:var(--cattle);color:#0f0f0f;font-weight:700;border:none;cursor:pointer;text-transform:uppercase;">Beef Steer</button>
-            <button class="cattle-type-btn"        data-type="crossbred" onclick="setCattleType('crossbred')" style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;background:transparent;color:var(--txt3);border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Beef × Dairy</button>
-            <button class="cattle-type-btn"        data-type="holstein"  onclick="setCattleType('holstein')"  style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;background:transparent;color:var(--txt3);border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Holstein</button>
-          </div>
-          <div id="barn-price-status" style="font-size:11px;color:var(--txt3);font-style:italic;"></div>
+        <div class="insight-strip"><strong>Livestock auction barns near your location</strong> — sorted by distance. All licensed by the Minnesota Board of Animal Health.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+          <div id="barn-col-1" style="display:flex;flex-direction:column;gap:14px;"><div style="color:var(--txt3);font-size:13px;padding:20px;text-align:center;">Locating nearby barns…</div></div>
+          <div id="barn-col-2" style="display:flex;flex-direction:column;gap:14px;"></div>
         </div>
-
-        <!-- Price comparison table -->
-        <div class="panel full" style="margin-bottom:20px;padding:0 0 6px;">
-          <table class="cash-table">
-            <thead><tr><th>Auction Barn</th><th>Avg Price ¢/lb</th><th>Type Discount</th><th>Report Date</th><th>Distance</th></tr></thead>
-            <tbody id="barn-table-body"><tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody>
-          </table>
-          <div id="barn-price-source" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;"></div>
-        </div>
-
-        <div class="two-col">
-          <div style="display:flex;flex-direction:column;gap:14px;">
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Central Livestock Association</div><span class="auction-freq">Mon · Tue · Wed</span></div><div class="auction-detail">44326 County 6 Blvd, Zumbrota, MN · <strong class="dist-highlight" id="dist-central">~35 miles</strong></div><div class="auction-detail">507-732-7305</div><div class="auction-detail" style="margin-top:6px;">Multiple sales weekly — feeder cattle, bred cow/heifer specials, market cows &amp; bulls. Mon/Tue 8am, Wed 2pm. Online via DVAuction.</div><div class="auction-links"><a href="https://www.centrallivestock.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a><a href="https://www.dvauction.com" target="_blank" rel="noopener" class="auction-link">DVAuction ↗</a></div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Lanesboro Sales Commission</div><span class="auction-freq">Wed &amp; Fri</span></div><div class="auction-detail">402 Coffee St E, Lanesboro, MN · <strong class="dist-highlight" id="dist-lanesboro">~60 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Wednesday 8:30am — market cows &amp; bulls, finished cattle. Friday 9am — baby calves, feeder cattle. Online via CattleUSA.</div><div class="auction-links"><a href="https://www.lanesborosalescommission.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Rock Creek Livestock Market</div><span class="auction-freq">Mon &amp; Wed</span></div><div class="auction-detail">Pine City, MN · <strong class="dist-highlight" id="dist-rockcreek">~70 miles</strong></div><div class="auction-detail">Cattle, hogs, sheep &amp; goats — 8am. Feeder sales every other Tuesday. Same day payment.</div><div class="auction-links"><a href="https://rockcreeklivestockmarket.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:14px;">
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Sleepy Eye Auction Market</div><span class="auction-freq">Every Wednesday</span></div><div class="auction-detail">Sleepy Eye, MN · <strong class="dist-highlight" id="dist-sleepyeye">~90 miles</strong></div><div class="auction-detail">Family owned 75+ years. Sale 9am — feeder, finished, slaughter.</div><div class="auction-links"><a href="https://sleepyeyeauctionmarket.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Pipestone Livestock Auction</div><span class="auction-freq">2nd &amp; 4th Thu</span></div><div class="auction-detail">Pipestone, MN · <strong class="dist-highlight" id="dist-pipestone">~160 miles</strong></div><div class="auction-detail">Feeder cattle 11am, beef cattle noon. Online bidding via LMA Auctions.</div><div class="auction-links"><a href="https://www.pipestonelivestock.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a><a href="https://lmaauctions.com" target="_blank" rel="noopener" class="auction-link">Bid Online ↗</a></div></div>
-            <div class="panel"><div class="panel-title">Online Bidding Platforms</div><div class="source-links">
-              <a class="source-link" href="https://www.dvauction.com" target="_blank" rel="noopener"><div class="source-link-icon">📡</div><div class="source-link-body"><div class="source-link-title">DVAuction</div><div class="source-link-desc">Used by Central Livestock Zumbrota — live video streaming and online bidding</div></div><div class="source-link-arrow">↗</div></a>
-              <a class="source-link" href="https://lmaauctions.com" target="_blank" rel="noopener"><div class="source-link-icon">🏷</div><div class="source-link-body"><div class="source-link-title">LMA Auctions</div><div class="source-link-desc">Used by Pipestone — pre-registration required</div></div><div class="source-link-arrow">↗</div></a>
-            </div></div>
+        <div class="panel">
+          <div class="panel-title">Online Bidding Platforms</div>
+          <div class="source-links">
+            <a class="source-link" href="https://www.dvauction.com" target="_blank" rel="noopener"><div class="source-link-icon">📡</div><div class="source-link-body"><div class="source-link-title">DVAuction</div><div class="source-link-desc">Used by Central Livestock Zumbrota — live video streaming and online bidding</div></div><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://lmaauctions.com" target="_blank" rel="noopener"><div class="source-link-icon">🏷</div><div class="source-link-body"><div class="source-link-title">LMA Auctions</div><div class="source-link-desc">Used by Pipestone — pre-registration required</div></div><div class="source-link-arrow">↗</div></a>
           </div>
         </div>
       </div>
 
       <!-- CATTLE MEAT LOCKERS -->
       <div class="section" id="cattle-lockers">
-        <div class="insight-strip"><strong>Custom beef processing near your location</strong> — call ahead, most book weeks in advance.</div>
-        <div class="two-col">
-          <div style="display:flex;flex-direction:column;gap:14px;">
-            <div class="panel" style="border-color:rgba(60,185,106,.2);"><div style="font-size:10px;letter-spacing:2px;color:var(--up);margin-bottom:6px;">IN FARIBAULT</div><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Herda's Meat Processing</div><span class="auction-freq" style="background:var(--up-dim);color:var(--up);">Faribault</span></div><div class="auction-detail"><strong class="dist-highlight" id="dist-herdas">Calculating...</strong></div><div class="auction-detail" style="margin-top:6px;">Custom slaughter and processing — full custom cutting, grinding, vacuum packing. USDA-inspected. 507-334-5555</div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Krenik's Meat Processing</div><span class="auction-freq">~15 miles</span></div><div class="auction-detail">Between Montgomery &amp; Shieldsville · <strong class="dist-highlight" id="dist-kreniks">~15 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Family owned since 1960. Custom beef and pork — no comingling. Retail counter, specialty smoked products.</div><div class="auction-links"><a href="https://www.kreniks.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Lonsdale Country Market</div><span class="auction-freq">~20 miles</span></div><div class="auction-detail">Lonsdale, MN · <strong class="dist-highlight" id="dist-lonsdale">~20 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Custom butchering — beef, pork, lamb, deer &amp; wild game. Mon–Fri 10am–6pm, Sat 8:30am–3pm.</div><div class="auction-links"><a href="https://www.lonsdalecountrymarket.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:14px;">
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Dennison Meat Locker</div><span class="auction-freq">~25 miles</span></div><div class="auction-detail">109 Farm Road, Dennison, MN · <strong class="dist-highlight" id="dist-dennison">~25 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Full custom beef processing — pricing online, smoked sausages, retail counter. Mon–Fri 8am–5pm.</div><div class="auction-links"><a href="https://dennisonmeatlocker.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a><a href="https://dennisonmeatlocker.com/custom-prices/beef-prices/" target="_blank" rel="noopener" class="auction-link">Beef Pricing ↗</a></div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">O'Keefe's Meat Market</div><span class="auction-freq">~30 miles</span></div><div class="auction-detail">Le Center, MN · <strong class="dist-highlight" id="dist-okeefes">~30 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Full-service custom slaughter and processing — retail counter, homemade sausage. Call to schedule.</div><div class="auction-links"><a href="https://okeefesmeats.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-            <div class="panel"><div class="panel-title">Processing Tips</div><div class="guide-row" style="margin-bottom:9px;"><span class="guide-label" style="min-width:110px;">Schedule early</span><span class="guide-desc">Most lockers book out weeks to months ahead — call as soon as you know your sell date.</span></div><div class="guide-row" style="margin-bottom:9px;"><span class="guide-label" style="min-width:110px;">Hanging weight</span><span class="guide-desc">Processing priced on hanging weight — typically 60–65% of live weight</span></div><div class="guide-row"><span class="guide-label" style="min-width:110px;">USDA inspect</span><span class="guide-desc">For retail sales, processor must be USDA-inspected — Herda's in Faribault qualifies</span></div></div>
-          </div>
+        <div class="insight-strip"><strong>Custom beef processing near your location</strong> — sorted by distance. Call ahead, most book weeks in advance.</div>
+        <div id="locker-directory" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+          <div style="color:var(--txt3);font-size:13px;padding:20px;text-align:center;grid-column:1/-1;">Locating nearby processors…</div>
+        </div>
+        <div class="panel" style="margin-top:4px;">
+          <div class="panel-title">Processing Tips</div>
+          <div class="guide-row" style="margin-bottom:9px;"><span class="guide-label" style="min-width:110px;">Schedule early</span><span class="guide-desc">Most lockers book out weeks to months ahead — call as soon as you know your sell date.</span></div>
+          <div class="guide-row" style="margin-bottom:9px;"><span class="guide-label" style="min-width:110px;">Hanging weight</span><span class="guide-desc">Processing priced on hanging weight — typically 60–65% of live weight.</span></div>
+          <div class="guide-row"><span class="guide-label" style="min-width:110px;">USDA inspect</span><span class="guide-desc">For retail sales, processor must be USDA-inspected. Check each locker's certification before booking.</span></div>
         </div>
       </div>
 
