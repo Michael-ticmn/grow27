@@ -1,3 +1,4 @@
+
 // ── FIELD SYNC (slider ↔ number input) ───────────────────────────────────────
 // Safely update a calc field value label without destroying the unit span
 function setFieldVal(id, text) {
