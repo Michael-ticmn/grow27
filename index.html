@@ -257,6 +257,9 @@
   .g27-footer-tagline{flex:2;display:flex;justify-content:center;font-size:12px;color:var(--txt2);letter-spacing:1px;font-style:normal;}
   .g27-footer-copy{flex:1;font-size:11px;color:var(--txt3);letter-spacing:1px;text-align:right;}
 
+  .cattle-type-btn.active{background:var(--cattle)!important;color:#0f0f0f!important;font-weight:700!important;}
+  .cattle-type-btn:not(.active):hover{background:var(--bg3)!important;color:var(--txt2)!important;}
+
   @media(max-width:900px){.cards{grid-template-columns:1fr 1fr;}.two-col,.weather-row{grid-template-columns:1fr;}.panel.full{grid-column:1;}}
   @media(max-width:500px){.cards{grid-template-columns:1fr;}.content{padding:14px;}}
 </style>
@@ -567,7 +570,28 @@
 
       <!-- CATTLE AUCTION BARNS -->
       <div class="section" id="cattle-barns">
-        <div class="insight-strip"><strong>Livestock auction barns near your location</strong> — sorted by distance. All licensed by the Minnesota Board of Animal Health.</div>
+        <div class="insight-strip"><strong>Livestock auction barns near your location</strong> — sorted by distance. Prices shown as ¢/lb live weight, adjusted by cattle type. All licensed by the Minnesota Board of Animal Health.</div>
+
+        <!-- Cattle type toggle -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Cattle Type</div>
+          <div style="display:flex;border:1px solid var(--border2);border-radius:3px;overflow:hidden;">
+            <button class="cattle-type-btn active" data-type="beef"      onclick="setCattleType('beef')"     style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;background:var(--cattle);color:#0f0f0f;font-weight:700;border:none;cursor:pointer;text-transform:uppercase;">Beef Steer</button>
+            <button class="cattle-type-btn"        data-type="crossbred" onclick="setCattleType('crossbred')" style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;background:transparent;color:var(--txt3);border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Beef × Dairy</button>
+            <button class="cattle-type-btn"        data-type="holstein"  onclick="setCattleType('holstein')"  style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;background:transparent;color:var(--txt3);border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Holstein</button>
+          </div>
+          <div id="barn-price-status" style="font-size:11px;color:var(--txt3);font-style:italic;"></div>
+        </div>
+
+        <!-- Price comparison table -->
+        <div class="panel full" style="margin-bottom:20px;padding:0 0 6px;">
+          <table class="cash-table">
+            <thead><tr><th>Auction Barn</th><th>Avg Price ¢/lb</th><th>Type Discount</th><th>Report Date</th><th>Distance</th></tr></thead>
+            <tbody id="barn-table-body"><tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody>
+          </table>
+          <div id="barn-price-source" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;"></div>
+        </div>
+
         <div class="two-col">
           <div style="display:flex;flex-direction:column;gap:14px;">
             <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Central Livestock Association</div><span class="auction-freq">Mon · Tue · Wed</span></div><div class="auction-detail">44326 County 6 Blvd, Zumbrota, MN · <strong class="dist-highlight" id="dist-central">~35 miles</strong></div><div class="auction-detail">507-732-7305</div><div class="auction-detail" style="margin-top:6px;">Multiple sales weekly — feeder cattle, bred cow/heifer specials, market cows &amp; bulls. Mon/Tue 8am, Wed 2pm. Online via DVAuction.</div><div class="auction-links"><a href="https://www.centrallivestock.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a><a href="https://www.dvauction.com" target="_blank" rel="noopener" class="auction-link">DVAuction ↗</a></div></div>
@@ -613,7 +637,7 @@
 <div class="module" id="mod-herd">
   <div class="stub-screen">
     <div class="stub-mark" style="color:var(--herd);">#27HERD</div>
-    <div class="stub-sub">animal inventory · weights · health records · feeding logs</div>
+    <div class="stub-sub">Animal inventory · weights · health records · feeding logs</div>
     <div style="font-size:14px;color:var(--txt3);letter-spacing:2px;font-style:italic;">watching the gate so you don't have to</div>
     <div style="font-size:12px;color:var(--txt3);margin-top:8px;">Coming soon</div>
   </div>
@@ -625,7 +649,7 @@
 <div class="module" id="mod-fields">
   <div class="stub-screen">
     <div class="stub-mark" style="color:var(--fields);">#27FIELDS</div>
-    <div class="stub-sub">acres · inputs · yield tracking · crop planning</div>
+    <div class="stub-sub">Acres · inputs · yield tracking · crop planning</div>
     <div style="font-size:14px;color:var(--txt3);letter-spacing:2px;font-style:italic;">watching the dirt so you don't have to</div>
     <div style="font-size:12px;color:var(--txt3);margin-top:8px;">Coming soon</div>
   </div>
@@ -637,7 +661,7 @@
 <div class="module" id="mod-finance">
   <div class="stub-screen">
     <div class="stub-mark" style="color:var(--finance);">#27FINANCE</div>
-    <div class="stub-sub">p&amp;l · grain contracts · input costs · break-evens</div>
+    <div class="stub-sub">P&amp;L · grain contracts · input costs · break-evens</div>
     <div style="font-size:14px;color:var(--txt3);letter-spacing:2px;font-style:italic;">watching the bottom line so you don't have to</div>
     <div style="font-size:12px;color:var(--txt3);margin-top:8px;">Coming soon</div>
   </div>
@@ -660,13 +684,13 @@
     </div>
 
     <div style="font-size:15px;color:var(--txt2);line-height:1.9;margin-bottom:32px;">
-      Originally engineered for southern Minnesota operations —with a special thanks to #27, DFM, & MFM— grow27 was built to scale beyond a single farm. Our goal is to empower every operation with the same advanced tools, real-time data, and automated insights, bridging the gap between spend and capability.
+      Originally engineered for southern Minnesota operations —with a special thanks to #27, DFM, &amp; MFM— grow27 was built to scale beyond a single farm. Our goal is to empower every operation with the same advanced tools, real-time data, and automated insights, bridging the gap between spend and capability.
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
       <div style="font-size:11px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">The Platform</div>
       <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
-        grow27 is the platform. #27Markets is the first piece of it —watching the boards so you don't have to- with live grain and cattle market data, local buyer prices, and margin calculators built for working farmers. #27Herd, #27Fields, and #27Finance are coming, each adding another layer of intelligence to the operation.
+        grow27 is the platform. #27Markets is the first piece of it —watching the boards so you don't have to— with live grain and cattle market data, local buyer prices, and margin calculators built for working farmers. #27Herd, #27Fields, and #27Finance are coming, each adding another layer of intelligence to the operation.
       </div>
     </div>
 
@@ -685,7 +709,7 @@
       <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
         grow27 was designed and built using AI-assisted development, proving that powerful, professional tools don't require a large team or budget to build. That's the point.
       </div>
-       <div style="font-size:15px;color:var(--txt2);line-height:1.9;">watching the overhead so you don't have to</div>
+      <div style="font-size:15px;color:var(--txt2);line-height:1.9;">watching the overhead so you don't have to</div>
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:24px;font-size:12px;color:var(--txt3);letter-spacing:1px;">
