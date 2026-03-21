@@ -53,57 +53,36 @@ function extractPrice(text, minVal = 150, maxVal = 400) {
   return (v !== null && v >= minVal && v <= maxVal) ? parseFloat(v.toFixed(2)) : null;
 }
 
+// ── Puppeteer fetch (handles JS-rendered pages) ─────────────────────────────
+
+async function fetchRenderedHtml(url) {
+  const browser = await puppeteer.launch({
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+  await new Promise(r => setTimeout(r, 3000));
+  const html = await page.content();
+  await browser.close();
+  return html;
+}
+
 // ── HTML scraper ─────────────────────────────────────────────────────────────
 
 async function scrapeBarns(config) {
   const { id, reportUrl, parseRules } = config;
 
-  // ── 1. Fetch via Puppeteer (handles JS-rendered pages) ──────────────────
+  // ── 1. Fetch rendered HTML via Puppeteer ────────────────────────────────
   let html;
-  let browser;
   try {
     console.log(`[${id}] launching Puppeteer for: ${reportUrl}`);
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    const page = await browser.newPage();
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
-      '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    );
-
-    const response = await page.goto(reportUrl, {
-      waitUntil: 'networkidle2',
-      timeout: 30000,
-    });
-    console.log(`[${id}] page status: ${response.status()}`);
-    if (!response.ok()) throw new Error(`HTTP ${response.status()}`);
-
-    // Wait up to 5s for at least one <td> to be populated with text
-    try {
-      await page.waitForFunction(
-        () => [...document.querySelectorAll('td')].some(td => td.innerText.trim().length > 0),
-        { timeout: 5000 }
-      );
-      console.log(`[${id}] td cells populated`);
-    } catch {
-      console.warn(`[${id}] waitForFunction timed out — proceeding with page as-is after 3s`);
-      await new Promise(r => setTimeout(r, 3000));
-    }
-
-    html = await page.content();
+    html = await fetchRenderedHtml(reportUrl);
     console.log(`[${id}] fetch OK · ${html.length} bytes`);
-    // ── 3. HTML preview (first 500 chars) ─────────────────────────────────
     console.log(`[${id}] HTML preview:\n${html.slice(0, 500)}\n`);
     if (html.length < 500) throw new Error('response too short — likely blocked or empty');
-
   } catch (fetchErr) {
-    // ── 2. Fetch failed ────────────────────────────────────────────────────
     console.error(`[${id}] FETCH FAILED: ${fetchErr.message}`);
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: fetchErr.message };
-  } finally {
-    if (browser) await browser.close();
   }
 
   // ── Parse ────────────────────────────────────────────────────────────────
@@ -287,9 +266,55 @@ async function run() {
       if (result.error) entry.error = result.error;
       if (result.source === 'scraped') barnData.lastSuccess = todayStr;
     } else {
-      // No report URL — pending null entry
-      entry = nullEntry(todayStr, 'pending');
-      console.log(`[${id}] no reportUrl — writing pending entry`);
+      // hasTypeBreakdown is false — calculate discounted prices from beef baseline
+      // No type breakdown — calculate from the most recent beef baseline
+      // Find the latest scraped beef slaughter price across all barns processed so far
+      let beefBase = null;
+      for (const idx of indexOut) {
+        if (idx.slaughter?.beef != null) { beefBase = idx.slaughter.beef; break; }
+      }
+      // Fallback: check this barn's own history for a prior scraped beef price
+      if (beefBase === null) {
+        const prior = [...barnData.history]
+          .reverse()
+          .find(e => (e.source === 'scraped' || e.source === 'calculated') && e.slaughter?.beef != null);
+        if (prior) beefBase = prior.slaughter.beef;
+      }
+
+      if (beefBase !== null) {
+        // Feeder baseline: use most recent scraped feeder beef, or fall back to CME feeder price
+        let feederBase = null;
+        for (const idx of indexOut) {
+          if (idx.feeder?.beef != null) { feederBase = idx.feeder.beef; break; }
+        }
+        if (feederBase === null) {
+          const priorF = [...barnData.history]
+            .reverse()
+            .find(e => (e.source === 'scraped' || e.source === 'calculated') && e.feeder?.beef != null);
+          if (priorF) feederBase = priorF.feeder.beef;
+        }
+
+        entry = {
+          date: todayStr,
+          slaughter: {
+            beef:      parseFloat(beefBase.toFixed(2)),
+            crossbred: parseFloat((beefBase - 9.50).toFixed(2)),
+            holstein:  parseFloat((beefBase - 30.00).toFixed(2)),
+          },
+          feeder: {
+            beef:      feederBase != null ? parseFloat(feederBase.toFixed(2)) : null,
+            crossbred: feederBase != null ? parseFloat((feederBase - 3.80).toFixed(2)) : null,
+            holstein:  feederBase != null ? parseFloat((feederBase - 12.00).toFixed(2)) : null,
+            liteTest:  false,
+          },
+          source: 'calculated',
+        };
+        console.log(`[${id}] calculated from beef baseline: slaughter=${beefBase}, feeder=${feederBase}`);
+      } else {
+        // No baseline available yet — write pending entry
+        entry = nullEntry(todayStr, 'pending');
+        console.log(`[${id}] no beef baseline available — writing pending entry`);
+      }
     }
 
     console.log(`[${id}] entry to append: ${JSON.stringify(entry)}`);
