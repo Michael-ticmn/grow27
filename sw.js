@@ -1,4 +1,4 @@
-const CACHE = 'grow27-v1.13';
+const CACHE = 'grow27-v1.14';
 
 // Core files to precache for offline use
 const PRECACHE = [
@@ -80,4 +80,5 @@ self.addEventListener('fetch', e => {
     })
   );
 });
+
 
