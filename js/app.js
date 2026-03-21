@@ -18,8 +18,8 @@ function switchModule(mod, navEl){
     if(subs[mod]){subEl.textContent=subs[mod];subEl.style.display='';}
     else{subEl.textContent='';subEl.style.display='none';}
   }
-  const titles={markets:'#27Markets',herd:'#27Herd',fields:'#27Fields',finance:'#27Finance'};
-  document.title=titles[mod]||'#27Markets';
+  const titles={markets:'Markets',herd:'Herd',fields:'Fields',finance:'Finance',about:'grow27'};
+  document.title=titles[mod]||'grow27';
 
   // persist last module
 
@@ -32,7 +32,7 @@ function switchSubtab(sub){
     if(sm)sm.classList.toggle('active',s===sub);
   });
   const label={grain:'Grain',cattle:'Cattle',dairy:'Dairy'};
-  document.title='#27Markets · '+(label[sub]||'Markets');
+  document.title='Markets · '+(label[sub]||'Markets');
 }
 
 // Per-submodule tab switching — prefix all section IDs with submodule
