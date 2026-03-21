@@ -155,5 +155,8 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch
 
 // ── VERSION ──────────────────────────────────────────────────────────────────
 fetch('version.json').then(r=>r.json()).then(d=>{
-  document.querySelectorAll('.app-version').forEach(el=>el.textContent='v'+d.version);
+  const ver = 'v'+d.version;
+  document.querySelectorAll('.app-version').forEach(el=>el.textContent=ver);
+  const mailtoHref = 'mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20'+encodeURIComponent(ver)+'%0A%0AFeedback%3A%0A';
+  document.querySelectorAll('.feedback-btn,.feedback-fab').forEach(el=>el.href=mailtoHref);
 }).catch(()=>{});
