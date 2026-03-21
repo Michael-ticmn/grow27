@@ -14,12 +14,14 @@ jobs:
       contents: write   # needed to push commits
 
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
-          ref: main
-          fetch-depth: 0
+          ref: UserUpdates
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pull latest BEFORE the scraper runs so history files are current
+      - name: Pull latest
+        run: git pull origin UserUpdates
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -37,16 +39,6 @@ jobs:
         run: |
           git config user.name  "grow27-bot"
           git config user.email "actions@github.com"
-
-          # Switch to (or create) UserUpdates branch
-          git fetch origin
-          if git ls-remote --exit-code --heads origin UserUpdates; then
-            git checkout -B UserUpdates origin/UserUpdates
-            # Bring scripts/config forward from main if UserUpdates is behind
-            git merge --no-edit -s ours origin/main || true
-          else
-            git checkout -b UserUpdates
-          fi
 
           # Stage only the data files written by the scraper
           git add data/prices/

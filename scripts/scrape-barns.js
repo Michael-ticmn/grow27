@@ -16,12 +16,11 @@ const CONFIG_PATH  = path.join(ROOT, 'data', 'barns-config.json');
 const PRICES_DIR   = path.join(ROOT, 'data', 'prices');
 const INDEX_PATH   = path.join(PRICES_DIR, 'index.json');
 
-const MAX_HISTORY  = 14;   // entries to keep
-const MAX_AGE_DAYS = 14;   // days before trimming
+const MAX_HISTORY  = 14;
+const MAX_AGE_DAYS = 14;
 
-// ── Discount schedule ────────────────────────────────────────────────────────
-const SLAUGHTER_DISC = { beef: 0, crossbred: 9.50, holstein: 30.00 }; // ¢/cwt off beef
-const FEEDER_FACTOR  = 0.40; // feeder discount = 40% of slaughter discount
+const SLAUGHTER_DISC = { beef: 0, crossbred: 9.50, holstein: 30.00 };
+const FEEDER_FACTOR  = 0.40;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -36,15 +35,10 @@ function trimHistory(history) {
   return history.filter(e => e.date >= cutStr).slice(-MAX_HISTORY);
 }
 
-/** Normalise cell text: collapse whitespace, lowercase. */
 function norm(text) {
   return String(text).replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
-/**
- * Extract midpoint from a price string.
- * Handles: "224.00-239.00", "224.00–239.00", "224.00 to 239.00", "231.50"
- */
 function midpoint(text) {
   const range = text.match(/(\d{2,3}(?:\.\d+)?)\s*(?:[-–]|to)\s*(\d{2,3}(?:\.\d+)?)/);
   if (range) return (parseFloat(range[1]) + parseFloat(range[2])) / 2;
@@ -53,7 +47,6 @@ function midpoint(text) {
   return null;
 }
 
-/** Pull the first plausible price value from text in a price range. */
 function extractPrice(text, minVal = 150, maxVal = 400) {
   const v = midpoint(text);
   return (v !== null && v >= minVal && v <= maxVal) ? parseFloat(v.toFixed(2)) : null;
@@ -64,8 +57,10 @@ function extractPrice(text, minVal = 150, maxVal = 400) {
 async function scrapeBarns(config) {
   const { id, reportUrl, parseRules } = config;
 
+  // ── 1. Fetch ────────────────────────────────────────────────────────────
   let html;
   try {
+    console.log(`[${id}] fetching: ${reportUrl}`);
     const res = await fetch(reportUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; grow27-bot/1.0; +https://michael-ticmn.github.io/grow27/)',
@@ -73,29 +68,37 @@ async function scrapeBarns(config) {
       },
       signal: AbortSignal.timeout(15000),
     });
+    console.log(`[${id}] fetch status: ${res.status} ${res.statusText}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     html = await res.text();
-    if (html.length < 500) throw new Error('response too short — likely blocked');
+    console.log(`[${id}] fetch OK · ${html.length} bytes`);
+    // ── 3. HTML preview (first 500 chars) ─────────────────────────────────
+    console.log(`[${id}] HTML preview:\n${html.slice(0, 500)}\n`);
+    if (html.length < 500) throw new Error('response too short — likely blocked or empty');
   } catch (fetchErr) {
-    console.warn(`[${id}] fetch failed: ${fetchErr.message}`);
+    // ── 2. Fetch failed ────────────────────────────────────────────────────
+    console.error(`[${id}] FETCH FAILED: ${fetchErr.message}`);
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: fetchErr.message };
   }
 
+  // ── Parse ────────────────────────────────────────────────────────────────
   try {
     const $ = cheerio.load(html);
     const slaughter = { beef: null, crossbred: null, holstein: null };
     const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
 
-    // Flatten all td/th text with their position index
     const cells = [];
     $('td, th').each((i, el) => {
       cells.push({ i, text: $(el).text().replace(/\s+/g, ' ').trim() });
     });
+    console.log(`[${id}] total td/th cells found: ${cells.length}`);
 
-    /**
-     * Scan forward from headerIdx looking for the first cell whose text
-     * contains a plausible price value.
-     */
+    if (cells.length === 0) {
+      // Page likely JS-rendered — dump the raw HTML to help diagnose
+      console.warn(`[${id}] WARNING: zero cells found — page may be JS-rendered (Wix/React)`);
+      console.log(`[${id}] full HTML (first 2000 chars):\n${html.slice(0, 2000)}`);
+    }
+
     function priceAfter(headerIdx, minVal = 150, maxVal = 400) {
       for (let j = headerIdx + 1; j < Math.min(headerIdx + 12, cells.length); j++) {
         const p = extractPrice(cells[j].text, minVal, maxVal);
@@ -104,64 +107,73 @@ async function scrapeBarns(config) {
       return null;
     }
 
-    // ── Slaughter — match on parseRules.slaughter labels ──────────────────
+    // ── 4a. Slaughter parsing ─────────────────────────────────────────────
+    console.log(`[${id}] --- slaughter headers ---`);
     for (const [type, label] of Object.entries(parseRules.slaughter)) {
       const target = norm(label);
       const headerIdx = cells.findIndex(c => norm(c.text).includes(target));
       if (headerIdx === -1) {
-        console.warn(`[${id}] slaughter header not found: "${label}"`);
+        console.warn(`[${id}] slaughter.${type}: header NOT FOUND ("${label}")`);
         continue;
       }
+      console.log(`[${id}] slaughter.${type}: header found at cell[${headerIdx}] = "${cells[headerIdx].text}"`);
+      // Log next 5 cells so we can see what the price scanner sees
+      const nearby = cells.slice(headerIdx + 1, headerIdx + 6).map(c => `"${c.text}"`).join(', ');
+      console.log(`[${id}] slaughter.${type}: next 5 cells = [${nearby}]`);
       const price = priceAfter(headerIdx);
       if (price !== null) {
         slaughter[type] = price;
-        console.log(`[${id}] slaughter.${type} = ${price} (header: "${cells[headerIdx].text}")`);
+        console.log(`[${id}] slaughter.${type} = ${price} ✓`);
       } else {
-        console.warn(`[${id}] no price found after slaughter header: "${cells[headerIdx].text}"`);
+        console.warn(`[${id}] slaughter.${type}: NO PRICE extracted from nearby cells`);
       }
     }
 
-    // ── Feeder — fuzzy prefix match; strip "lite test" suffix before comparing ─
+    // ── 4b. Feeder parsing ────────────────────────────────────────────────
+    console.log(`[${id}] --- feeder headers ---`);
     for (const [type, labelPrefix] of Object.entries(parseRules.feeder)) {
       const target = norm(labelPrefix);
       const headerIdx = cells.findIndex(c => {
-        // Strip optional "- lite test" / "– lite test" suffix then check prefix
         const base = norm(c.text).replace(/\s*[-–]\s*lite\s*test.*$/, '').trim();
         return base.startsWith(target);
       });
       if (headerIdx === -1) {
-        console.warn(`[${id}] feeder header not found for prefix: "${labelPrefix}"`);
+        console.warn(`[${id}] feeder.${type}: header NOT FOUND (prefix "${labelPrefix}")`);
         continue;
       }
+      console.log(`[${id}] feeder.${type}: header found at cell[${headerIdx}] = "${cells[headerIdx].text}"`);
+      const nearby = cells.slice(headerIdx + 1, headerIdx + 6).map(c => `"${c.text}"`).join(', ');
+      console.log(`[${id}] feeder.${type}: next 5 cells = [${nearby}]`);
       const price = priceAfter(headerIdx, 100, 500);
       if (price !== null) {
         if (type === 'beef')     feeder.beef    = price;
         if (type === 'holstein') feeder.holstein = price;
-        // Flag lite-test cattle if the word "lite" appears anywhere in the matched header
         if (norm(cells[headerIdx].text).includes('lite')) feeder.liteTest = true;
-        console.log(`[${id}] feeder.${type} = ${price} (header: "${cells[headerIdx].text}")`);
+        console.log(`[${id}] feeder.${type} = ${price} ✓${feeder.liteTest ? ' [liteTest]' : ''}`);
       } else {
-        console.warn(`[${id}] no price found after feeder header: "${cells[headerIdx].text}"`);
+        console.warn(`[${id}] feeder.${type}: NO PRICE extracted from nearby cells`);
       }
     }
 
-    // Derive crossbred feeder from beef feeder if we got it
     if (feeder.beef !== null) {
       feeder.crossbred = parseFloat(
         (feeder.beef - SLAUGHTER_DISC.crossbred * FEEDER_FACTOR).toFixed(2)
       );
+      console.log(`[${id}] feeder.crossbred = ${feeder.crossbred} (derived from beef)`);
     }
 
     const hasSlaughter = Object.values(slaughter).some(v => v !== null);
     const hasFeeder    = feeder.beef !== null || feeder.holstein !== null;
+    console.log(`[${id}] parse result — hasSlaughter=${hasSlaughter} hasFeeder=${hasFeeder}`);
+
     if (!hasSlaughter && !hasFeeder) {
-      throw new Error('cheerio found headers but extracted zero prices — page structure may have changed');
+      throw new Error('zero prices extracted — page structure may have changed');
     }
 
     return { slaughter, feeder, source: 'scraped', error: null };
 
   } catch (parseErr) {
-    console.warn(`[${id}] parse error: ${parseErr.message}`);
+    console.error(`[${id}] PARSE ERROR: ${parseErr.message}`);
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: parseErr.message };
   }
 }
@@ -182,15 +194,25 @@ function nullEntry(dateStr, source = 'pending') {
 function loadBarnFile(id, name, location) {
   const p = path.join(PRICES_DIR, `${id}.json`);
   try {
-    return JSON.parse(fs.readFileSync(p, 'utf8'));
-  } catch {
+    const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+    console.log(`[${id}] loaded ${p} · history length: ${data.history.length}`);
+    return data;
+  } catch (e) {
+    console.warn(`[${id}] could not load ${p} (${e.message}) — starting fresh`);
     return { id, name, location, lastUpdated: today(), lastSuccess: null, history: [] };
   }
 }
 
 function saveBarnFile(data) {
   const p = path.join(PRICES_DIR, `${data.id}.json`);
-  fs.writeFileSync(p, JSON.stringify(data, null, 2) + '\n');
+  try {
+    fs.writeFileSync(p, JSON.stringify(data, null, 2) + '\n');
+    // ── 5. Confirm write ──────────────────────────────────────────────────
+    console.log(`[${data.id}] wrote ${p} · history length: ${data.history.length}`);
+  } catch (e) {
+    console.error(`[${data.id}] WRITE FAILED: ${p} — ${e.message}`);
+    throw e;
+  }
 }
 
 // ── Trend helper ──────────────────────────────────────────────────────────────
@@ -210,20 +232,26 @@ function calcTrend(history) {
 
 async function run() {
   const todayStr = today();
-  console.log(`\n=== grow27 barn scraper · ${todayStr} ===\n`);
+  console.log(`\n=== grow27 barn scraper · ${todayStr} ===`);
+  console.log(`ROOT: ${ROOT}`);
+  console.log(`CONFIG: ${CONFIG_PATH}`);
+  console.log(`PRICES_DIR: ${PRICES_DIR}\n`);
 
   const barnsConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  console.log(`Loaded config · ${barnsConfig.length} barns\n`);
+
   const indexOut = [];
 
   for (const config of barnsConfig) {
     const { id, name, location } = config;
-    console.log(`── ${id} ──`);
+    console.log(`\n════ ${id} (${name}) ════`);
 
+    // ── 1. Load existing file ─────────────────────────────────────────────
     const barnData = loadBarnFile(id, name, location);
 
     let entry;
     if (config.hasTypeBreakdown && config.reportUrl) {
-      // Attempt live scrape
+      // ── 2. Attempt live scrape ──────────────────────────────────────────
       const result = await scrapeBarns(config);
       entry = {
         date:      todayStr,
@@ -234,18 +262,20 @@ async function run() {
       if (result.error) entry.error = result.error;
       if (result.source === 'scraped') barnData.lastSuccess = todayStr;
     } else {
-      // No report URL — write a pending null entry; USDA pipeline will fill slaughter baseline
+      // No report URL — pending null entry
       entry = nullEntry(todayStr, 'pending');
-      console.log(`[${id}] no reportUrl — pending entry written`);
+      console.log(`[${id}] no reportUrl — writing pending entry`);
     }
+
+    console.log(`[${id}] entry to append: ${JSON.stringify(entry)}`);
 
     // Trim then append — never duplicate same-date entries
     barnData.history = trimHistory(barnData.history).filter(e => e.date !== todayStr);
     barnData.history.push(entry);
     barnData.lastUpdated = todayStr;
 
+    // ── 5. Save ───────────────────────────────────────────────────────────
     saveBarnFile(barnData);
-    console.log(`[${id}] saved · source=${entry.source}\n`);
 
     // Build index row from most-recent successful entry
     const recent = [...barnData.history]
@@ -265,7 +295,7 @@ async function run() {
   }
 
   fs.writeFileSync(INDEX_PATH, JSON.stringify(indexOut, null, 2) + '\n');
-  console.log('=== index.json updated ===');
+  console.log('\n=== index.json updated ===');
 }
 
 run().catch(err => {

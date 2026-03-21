@@ -266,6 +266,25 @@
   /* ── BARN / LOCKER GRID ── */
   .barn-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
 
+  /* ── BARN TABLE ROWS + EXPANDABLE DRAWERS ── */
+  .barn-row{cursor:pointer;}
+  .barn-row:hover td{background:var(--bg3);}
+  .barn-chevron{display:inline-block;font-size:13px;color:var(--txt3);margin-left:5px;transition:transform .2s ease;transform:rotate(0deg);vertical-align:middle;line-height:1;}
+  .barn-chevron--open{transform:rotate(90deg);color:var(--cattle);}
+  /* Data source badge — appears in Date column */
+  .barn-src-badge{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:3px;padding:2px 5px;vertical-align:middle;margin-left:5px;border:1px solid;line-height:1;}
+  .barn-src-live{border-color:var(--up);color:var(--up);}
+  .barn-src-usda{border-color:var(--dairy);color:var(--dairy);}
+  .barn-src-cme{border-color:var(--flat);color:var(--flat);}
+  .barn-drawer{display:none;}
+  .barn-drawer--open{display:table-row;}
+  .barn-drawer > td{padding:0;background:var(--bg2);border-bottom:2px solid var(--border);}
+  .barn-detail-inner{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;}
+  .barn-drawer-mini{background:var(--bg1);border-radius:5px;overflow:hidden;border:1px solid var(--border);}
+  .barn-drawer-mini-header{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);padding:6px 8px;border-bottom:1px solid var(--border);background:var(--bg2);}
+  .barn-drawer-mini table{width:100%;border-collapse:collapse;}
+  .barn-drawer-mini-foot{font-size:9px;color:var(--txt3);padding:3px 8px;border-top:1px solid var(--border);font-style:italic;}
+
   /* ── STUB MODULES ── */
   .stub-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:40px;text-align:center;}
   .stub-mark{font-size:48px;font-weight:700;letter-spacing:-2px;}

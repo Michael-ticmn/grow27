@@ -98,6 +98,7 @@ async function loadCattlePrices(){
   document.getElementById('cp').value=c.price.toFixed(2);const cpNi=document.getElementById('cp-n');if(cpNi)cpNi.value=c.price.toFixed(2);setFieldVal('cp-val','$'+c.price.toFixed(2));
   calc();renderSeasonal();
   updateSlaughterWeightTable();
+  buildBarnTable(); // refresh feeder avg column now that CATTLE_DATA.fc is loaded
   markUpdated();
 }
 
@@ -420,12 +421,13 @@ function setCattleType(type) {
 // Auction barn data — base prices per cwt (beef steer baseline)
 // These are seeded with recent USDA IA-MN regional weighted averages
 // and updated via loadBarnPrices() which fetches the USDA AMS IA-MN report
+// dataSource: null | 'cme' | 'usda' | 'live'  (live = scraped from barn's own website)
 const BARNS_DATA = {
-  central:   { id:'central',   name:'Central Livestock',       loc:'Zumbrota MN',    lat:44.2933, lon:-92.6744, freq:'Mon·Tue·Wed', phone:'507-732-7305', url:'https://www.centrallivestock.com', basePrice:232.50, reportDate:'Mar 2026' },
-  lanesboro: { id:'lanesboro', name:'Lanesboro Sales',         loc:'Lanesboro MN',   lat:43.7180, lon:-91.9802, freq:'Wed & Fri',   phone:null,           url:'https://www.lanesborosalescommission.com', basePrice:231.00, reportDate:'Mar 2026' },
-  rockcreek: { id:'rockcreek', name:'Rock Creek Livestock',    loc:'Pine City MN',   lat:45.9524, lon:-92.9577, freq:'Mon & Wed',   phone:null,           url:'https://rockcreeklivestockmarket.com', basePrice:230.50, reportDate:'Mar 2026' },
-  sleepyeye: { id:'sleepyeye', name:'Sleepy Eye Auction',      loc:'Sleepy Eye MN',  lat:44.2972, lon:-94.7244, freq:'Every Wed',   phone:null,           url:'https://sleepyeyeauctionmarket.com', basePrice:231.50, reportDate:'Mar 2026' },
-  pipestone:  { id:'pipestone', name:'Pipestone Livestock',    loc:'Pipestone MN',   lat:43.9939, lon:-96.3172, freq:'2nd & 4th Thu',phone:null,           url:'https://www.pipestonelivestock.com', basePrice:230.00, reportDate:'Mar 2026' },
+  central:   { id:'central',   name:'Central Livestock',       loc:'Zumbrota MN',    lat:44.2933, lon:-92.6744, freq:'Mon·Tue·Wed', phone:'507-732-7305', url:'https://www.centrallivestock.com', basePrice:232.50, reportDate:'Mar 2026', dataSource:null, finishPrices:null, feederWeights:null, _scrapeError:null },
+  lanesboro: { id:'lanesboro', name:'Lanesboro Sales',         loc:'Lanesboro MN',   lat:43.7180, lon:-91.9802, freq:'Wed & Fri',   phone:null,           url:'https://www.lanesborosalescommission.com', basePrice:231.00, reportDate:'Mar 2026', dataSource:null, finishPrices:null, feederWeights:null },
+  rockcreek: { id:'rockcreek', name:'Rock Creek Livestock',    loc:'Pine City MN',   lat:45.9524, lon:-92.9577, freq:'Mon & Wed',   phone:null,           url:'https://rockcreeklivestockmarket.com', basePrice:230.50, reportDate:'Mar 2026', dataSource:null, finishPrices:null, feederWeights:null },
+  sleepyeye: { id:'sleepyeye', name:'Sleepy Eye Auction',      loc:'Sleepy Eye MN',  lat:44.2972, lon:-94.7244, freq:'Every Wed',   phone:null,           url:'https://sleepyeyeauctionmarket.com', basePrice:231.50, reportDate:'Mar 2026', dataSource:null, finishPrices:null, feederWeights:null },
+  pipestone:  { id:'pipestone', name:'Pipestone Livestock',    loc:'Pipestone MN',   lat:43.9939, lon:-96.3172, freq:'2nd & 4th Thu',phone:null,           url:'https://www.pipestonelivestock.com', basePrice:230.00, reportDate:'Mar 2026', dataSource:null, finishPrices:null, feederWeights:null },
 };
 
 let barnPriceDate = 'Recent values';
@@ -452,6 +454,7 @@ async function loadBarnPrices() {
         // Apply regional adjustment — IA-MN typically runs slight premium to national
         Object.keys(BARNS_DATA).forEach(k => {
           BARNS_DATA[k].basePrice = usda;
+          if(!BARNS_DATA[k].dataSource) BARNS_DATA[k].dataSource = 'usda';
         });
         const now = new Date();
         barnPriceDate = 'USDA IA-MN · ' + (now.getMonth()+1) + '/' + now.getDate() + '/' + now.getFullYear();
@@ -469,6 +472,7 @@ async function loadBarnPrices() {
         // Small barn-specific variance ±1.5¢
         const variance = [-0.5, -1.0, -1.5, -0.8, -1.2][i] || 0;
         BARNS_DATA[k].basePrice = parseFloat((proxy + variance).toFixed(2));
+        if(!BARNS_DATA[k].dataSource) BARNS_DATA[k].dataSource = 'cme';
       });
       barnPriceDate = 'CME proxy · live cattle futures';
     }
@@ -477,7 +481,160 @@ async function loadBarnPrices() {
   }
 }
 
+// ── CENTRAL LIVESTOCK SCRAPER ─────────────────────────────────────────────────
+// Fetches centrallivestock.com/monday---cattle.html and parses:
+//   finishPrices: { beef, crossbred, holstein }  — high end of reported range, ¢/cwt
+//   feederWeights: [{ range, priceHi, types }]   — feeder weight classes + price ceiling
+// Sets BARNS_DATA.central.dataSource = 'live' on success.
+async function loadCentralLivestockData() {
+  try {
+    const url = 'https://www.centrallivestock.com/monday---cattle.html';
+    // Try proxies in order — some block certain domains
+    const proxies = [
+      'https://corsproxy.io/?' + encodeURIComponent(url),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
+    ];
+    let html = null;
+    for(const proxyUrl of proxies) {
+      try {
+        const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+        if(!r.ok) { console.warn('[central] proxy failed:', proxyUrl, r.status); continue; }
+        const text = await r.text();
+        if(text.length < 500) { console.warn('[central] proxy returned empty/short response:', proxyUrl); continue; }
+        console.log('[central] proxy success:', proxyUrl, 'bytes:', text.length);
+        html = text;
+        break;
+      } catch(pe) {
+        console.warn('[central] proxy error:', proxyUrl, pe.message);
+      }
+    }
+    if(!html) throw new Error('all proxies failed');
+
+    // Parse via DOM
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const cells = [...doc.querySelectorAll('td')];
+    const getText = c => c.textContent.replace(/\s+/g,' ').trim();
+
+    // Extract report date
+    const dateCell = cells.find(c => /Market Report/i.test(getText(c)));
+    const dateMatch = dateCell ? getText(dateCell).match(/(\d{1,2}\/\d{1,2}\/\d{4})/) : null;
+    const reportDate = dateMatch ? dateMatch[1] : '';
+
+    // Helper: given a cell index, scan forward for first price > threshold
+    function nextPrice(fromIdx, minVal = 150, maxVal = 500) {
+      for(let i = fromIdx + 1; i < Math.min(fromIdx + 10, cells.length); i++) {
+        const v = parseFloat(getText(cells[i]));
+        if(!isNaN(v) && v >= minVal && v <= maxVal) return v;
+      }
+      return null;
+    }
+
+    // Helper: find cell index matching text (partial, case-insensitive)
+    function findIdx(text, afterIdx = 0) {
+      for(let i = afterIdx; i < cells.length; i++) {
+        if(getText(cells[i]).toLowerCase().includes(text.toLowerCase())) return i;
+      }
+      return -1;
+    }
+
+    // ── Finish prices by type ──
+    const finishPrices = {};
+
+    const beefIdx = findIdx('Finished Beef Steers');
+    if(beefIdx > -1) {
+      // Get the HIGHER of the two prices in the range
+      const prices = [];
+      for(let i = beefIdx + 1; i < Math.min(beefIdx + 10, cells.length); i++) {
+        const v = parseFloat(getText(cells[i]));
+        if(!isNaN(v) && v > 150 && v < 400) prices.push(v);
+        if(prices.length >= 2) break;
+      }
+      if(prices.length) finishPrices.beef = Math.max(...prices);
+    }
+
+    const dairyXIdx = findIdx('Dairy-X') > -1 ? findIdx('Dairy-X') : findIdx('Dairy X');
+    if(dairyXIdx > -1) {
+      const prices = [];
+      for(let i = dairyXIdx + 1; i < Math.min(dairyXIdx + 10, cells.length); i++) {
+        const v = parseFloat(getText(cells[i]));
+        if(!isNaN(v) && v > 150 && v < 400) prices.push(v);
+        if(prices.length >= 2) break;
+      }
+      if(prices.length) finishPrices.crossbred = Math.max(...prices);
+    }
+
+    // Finished Dairy Steers — first price cell after "Finished Dairy Steers" label
+    const dairyFinIdx = findIdx('Finished Dairy Steers');
+    if(dairyFinIdx > -1) {
+      const prices = [];
+      for(let i = dairyFinIdx + 1; i < Math.min(dairyFinIdx + 10, cells.length); i++) {
+        const v = parseFloat(getText(cells[i]));
+        if(!isNaN(v) && v > 150 && v < 400) prices.push(v);
+        if(prices.length >= 2) break;
+      }
+      if(prices.length) finishPrices.holstein = Math.max(...prices);
+    }
+
+    // ── Feeder weights ──
+    const feederWeights = [];
+
+    // Beef Steers & Bulls feeder section
+    const bsIdx = findIdx('Beef Steers & Bulls');
+    const bhIdx = findIdx('Beef Heifers', bsIdx > -1 ? bsIdx : 0);
+    if(bsIdx > -1) {
+      const sectionCells = cells.slice(bsIdx, bhIdx > bsIdx ? bhIdx : bsIdx + 25);
+      sectionCells.forEach((cell, ci) => {
+        const t = getText(cell);
+        const wm = t.match(/^(\d{3})\s*[-–]\s*(\d{3,4})#?$/);
+        if(wm) {
+          const range = wm[1] + '–' + wm[2] + '#';
+          const absIdx = cells.indexOf(cell);
+          const price = nextPrice(absIdx, 100, 600);
+          if(price) feederWeights.push({ range, price, types: ['beef','crossbred'] });
+        }
+      });
+    }
+
+    // Dairy Steers feeder section
+    const dsFeederIdx = findIdx('Dairy Steers') > -1
+      ? findIdx('Dairy Steers', findIdx('Feeder Cattle') > -1 ? findIdx('Feeder Cattle') : 0)
+      : -1;
+    if(dsFeederIdx > -1) {
+      const sectionCells = cells.slice(dsFeederIdx, dsFeederIdx + 25);
+      sectionCells.forEach(cell => {
+        const t = getText(cell);
+        const wm = t.match(/^(\d{3})\s*[-–]\s*(\d{3,4})#?$/);
+        if(wm) {
+          const range = wm[1] + '–' + wm[2] + '#';
+          const absIdx = cells.indexOf(cell);
+          const price = nextPrice(absIdx, 100, 600);
+          if(price) feederWeights.push({ range, price, types: ['holstein'] });
+        }
+      });
+    }
+
+    if(!Object.keys(finishPrices).length && !feederWeights.length) throw new Error('no data parsed');
+
+    // Store scraped data on the barn
+    const b = BARNS_DATA.central;
+    if(finishPrices.beef)      b.basePrice = finishPrices.beef; // update baseline
+    b.finishPrices  = finishPrices;
+    b.feederWeights = feederWeights.length ? feederWeights : null;
+    b.dataSource    = 'live';
+    if(reportDate)  b.reportDate = reportDate;
+
+    buildBarnTable();
+
+  } catch(e) {
+    console.warn('[central] loadCentralLivestockData failed:', e.message);
+    BARNS_DATA.central._scrapeError = e.message;
+    buildBarnTable(); // re-render so error state shows in UI
+  }
+}
+
 let selectedBarnKey = null;
+let expandedBarnKey = null;
 
 function rebuildBarnSelect() {
   const sel = document.getElementById('cattle-barn-select'); if(!sel) return;
@@ -514,7 +671,23 @@ function onCattleBarnChange() {
   } else {
     if(distEl) distEl.textContent = '';
   }
-  if(key) highlightBarnRow(key);
+  if(key) {
+    highlightBarnRow(key);
+    // Open this barn's drawer if not already open
+    if(expandedBarnKey !== key) {
+      if(expandedBarnKey) {
+        const prev = document.getElementById('drawer-' + expandedBarnKey);
+        const prevChev = document.getElementById('chevron-' + expandedBarnKey);
+        if(prev) prev.classList.remove('barn-drawer--open');
+        if(prevChev) prevChev.classList.remove('barn-chevron--open');
+      }
+      const drawer = document.getElementById('drawer-' + key);
+      const chev   = document.getElementById('chevron-' + key);
+      if(drawer) drawer.classList.add('barn-drawer--open');
+      if(chev)   chev.classList.add('barn-chevron--open');
+      expandedBarnKey = key;
+    }
+  }
 }
 
 function selectBarn(key) {
@@ -527,7 +700,37 @@ function selectBarn(key) {
   switchTab('cattle','prices', document.querySelector('#sub-cattle .tab'));
 }
 function highlightBarnRow(key) {
-  document.querySelectorAll('#barn-table-body tr').forEach(tr => tr.classList.toggle('selected', tr.dataset.key===key));
+  document.querySelectorAll('#barn-table-body tr.barn-row').forEach(tr => tr.classList.toggle('selected', tr.dataset.key===key));
+}
+
+function toggleBarnRow(key) {
+  selectedBarnKey = key;
+  highlightBarnRow(key);
+  // Sync dropdown
+  const sel = document.getElementById('cattle-barn-select');
+  if(sel) sel.value = key;
+
+  // Close any previously open drawer
+  if(expandedBarnKey && expandedBarnKey !== key) {
+    const prev = document.getElementById('drawer-' + expandedBarnKey);
+    const prevChev = document.getElementById('chevron-' + expandedBarnKey);
+    if(prev) prev.classList.remove('barn-drawer--open');
+    if(prevChev) prevChev.classList.remove('barn-chevron--open');
+  }
+
+  const drawer = document.getElementById('drawer-' + key);
+  const chev   = document.getElementById('chevron-' + key);
+  if(expandedBarnKey === key) {
+    // Collapse
+    if(drawer) drawer.classList.remove('barn-drawer--open');
+    if(chev)   chev.classList.remove('barn-chevron--open');
+    expandedBarnKey = null;
+  } else {
+    // Expand
+    if(drawer) drawer.classList.add('barn-drawer--open');
+    if(chev)   chev.classList.add('barn-chevron--open');
+    expandedBarnKey = key;
+  }
 }
 
 function barnAdjustedPrice(basePrice) {
@@ -539,29 +742,189 @@ function buildBarnTable() {
   const tbody = document.getElementById('barn-table-body');
   if(!tbody) return;
   const typeInfo = CATTLE_TYPE_DISCOUNTS[cattleType];
-  // Sort by distance if we have location
+  const disc = typeInfo.discountCwt;
+  const typeLabel = typeInfo.label;
   const keys = Object.keys(BARNS_DATA);
   const sorted = userLat
     ? keys.slice().sort((a,b) => distMiles(userLat,userLon,BARNS_DATA[a].lat,BARNS_DATA[a].lon) - distMiles(userLat,userLon,BARNS_DATA[b].lat,BARNS_DATA[b].lon))
     : keys;
 
-  const rows = sorted.map((key, idx) => {
+  const fcPrice = CATTLE_DATA.fc?.price;
+  const feederDisc = disc * 0.4;
+  const feederAvg = fcPrice ? (fcPrice - feederDisc).toFixed(2) + '¢' : '—';
+
+  // Feeder data source — shared across all barn rows (USDA or CME fallback)
+  const feederDataSource = FEEDER_WEIGHT_DATA
+    ? (FEEDER_WEIGHT_DATA.region === 'CME Index proxy' ? 'cme' : 'usda')
+    : null;
+
+  // Badge helper
+  function makeBadge(src) {
+    if(!src) return '';
+    const cls = src === 'live' ? 'barn-src-live' : src === 'usda' ? 'barn-src-usda' : 'barn-src-cme';
+    const lbl = src.toUpperCase();
+    return `<span class="barn-src-badge ${cls}">${lbl}</span>`;
+  }
+
+  // Finish weight classes — grade schedule adjustments off each barn's own reported price
+  const weightClasses = [
+    { range: '1000–1099 lbs', adj: +2.50 },
+    { range: '1100–1199 lbs', adj: +1.00 },
+    { range: '1200–1299 lbs', adj:  0    },
+    { range: '1300–1399 lbs', adj: -1.50 },
+    { range: '1400–1499 lbs', adj: -3.50 },
+  ];
+
+  // Feeder weight buckets — real USDA data only, blank if interpolated
+  const buckets = ['400-499','500-599','600-699','700-799','800-899','900-999'];
+  const parsedKeys = FEEDER_WEIGHT_DATA?._parsedKeys || [];
+  const feederSource = FEEDER_WEIGHT_DATA
+    ? `USDA sj_ls850.txt · ${FEEDER_WEIGHT_DATA.region} · actual data only`
+    : 'USDA sj_ls850.txt · loading…';
+
+  const rows = sorted.map((key) => {
     const b = BARNS_DATA[key];
-    const adjPrice = barnAdjustedPrice(b.basePrice);
-    const dist = userLat ? Math.round(distMiles(userLat,userLon,b.lat,b.lon)) : null;
-    const distBadge = dist !== null
-      ? (idx===0 ? `<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`
-                 : `<span style="font-size:12px;">${dist} mi</span>`)
-      : '—';
-    const disc = CATTLE_TYPE_DISCOUNTS[cattleType].discountCwt;
-    const discStr = disc > 0 ? `<span style="color:var(--down);font-size:11px;">−${disc.toFixed(2)}</span>` : '<span style="color:var(--up);font-size:11px;">baseline</span>';
-    return `<tr data-key="${key}" onclick="selectedBarnKey='${key}';highlightBarnRow('${key}')"><td><div class="elev-name-cell">${b.name}</div><div class="elev-loc-cell">${b.loc} · ${b.freq}</div></td><td class="cash-price-cell">${adjPrice}¢</td><td>${discStr}</td><td style="font-size:11px;color:var(--txt3);">${b.reportDate}</td><td>${distBadge}</td></tr>`;
+
+    // ── Slaughter avg: use scraped type-specific price if available ──
+    const scraped = b.finishPrices && b.finishPrices[cattleType] != null;
+    const adjPrice = scraped
+      ? b.finishPrices[cattleType].toFixed(2)
+      : barnAdjustedPrice(b.basePrice);
+
+    const discStr = disc > 0
+      ? `<span style="color:var(--down);font-size:11px;">−${disc.toFixed(2)}</span>`
+      : '<span style="color:var(--up);font-size:11px;">baseline</span>';
+
+    // ── Per-column source badges ──
+    // Slaughter: LIVE if barn has scraped finishPrices, else barn's dataSource (usda/cme)
+    const slaughterSrc = b.finishPrices ? 'live' : b.dataSource;
+    const slaughterBadge = makeBadge(slaughterSrc);
+    // Feeder: LIVE if barn has scraped feederWeights, else shared feederDataSource (usda/cme)
+    const barnFeederSrc = (b.feederWeights && b.feederWeights.length) ? 'live' : feederDataSource;
+    const feederBadge = makeBadge(barnFeederSrc);
+
+    // ── Finish weight rows ──
+    // If scraped finish prices exist, use them as the effective baseline for this type
+    const finishBase = (b.finishPrices && b.finishPrices.beef != null) ? b.finishPrices.beef : b.basePrice;
+    const finishRows = weightClasses.map(w => {
+      // For scraped barns with type-specific prices, anchor to the type price; otherwise use grade-adj off base
+      let price;
+      if(scraped && b.finishPrices.beef != null) {
+        // Scale from the scraped beef baseline keeping grade-schedule offsets
+        price = (b.finishPrices.beef + w.adj - disc).toFixed(2);
+      } else {
+        price = (b.basePrice + w.adj - disc).toFixed(2);
+      }
+      const isBase = w.adj === 0;
+      const srcNote = scraped && isBase ? ' <span style="font-size:9px;color:var(--up);opacity:.8;">barn reported</span>' : isBase ? ' <span style="font-size:9px;opacity:.6;">baseline</span>' : '';
+      return `<tr${isBase ? ' style="background:var(--bg3);"' : ''}>
+        <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}${srcNote}</td>
+        <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${price}¢</td>
+      </tr>`;
+    }).join('');
+    const finishFoot = scraped
+      ? `${b.name} sale report · USDA grade schedule adj`
+      : `${b.name} reported price · USDA grade schedule adj`;
+
+    // ── Feeder weight rows ──
+    // Priority: scraped barn data → USDA sj_ls850.txt → blank
+    let feederRows = '';
+    let feederFoot = '';
+    if(b.feederWeights && b.feederWeights.length) {
+      // Use barn's own scraped feeder data, filtered to relevant cattle type
+      const relevantWeights = b.feederWeights.filter(w => w.types.includes(cattleType));
+      if(relevantWeights.length) {
+        feederRows = relevantWeights.map(w => {
+          const adjP = (w.price - feederDisc).toFixed(2);
+          return `<tr>
+            <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}</td>
+            <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${adjP}¢</td>
+          </tr>`;
+        }).join('');
+        feederFoot = `${b.name} sale report · price ceiling`;
+      } else {
+        feederRows = `<tr><td colspan="2" style="font-size:11px;color:var(--txt3);padding:8px;text-align:center;">No ${typeLabel} feeder data reported</td></tr>`;
+        feederFoot = `${b.name} sale report`;
+      }
+    } else if(FEEDER_WEIGHT_DATA) {
+      feederRows = buckets.map(bucket => {
+        const rawPrice = FEEDER_WEIGHT_DATA.prices[bucket];
+        const isReal = parsedKeys.includes(bucket);
+        const isTarget = bucket === '700-799' || bucket === '800-899';
+        const displayPrice = (rawPrice && isReal) ? (parseFloat(rawPrice) - feederDisc).toFixed(2) + '¢' : '—';
+        const priceColor = (rawPrice && isReal) ? 'var(--txt1)' : 'var(--txt3)';
+        const priceFw   = (rawPrice && isReal) ? '700' : '400';
+        return `<tr${isTarget ? ' style="background:var(--bg3);"' : ''}>
+          <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${bucket} lbs</td>
+          <td style="font-size:12px;color:${priceColor};font-weight:${priceFw};padding:5px 8px;text-align:right;">${displayPrice}</td>
+        </tr>`;
+      }).join('');
+      feederFoot = feederSource;
+    } else {
+      feederRows = buckets.map(bucket => `<tr>
+        <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${bucket} lbs</td>
+        <td style="font-size:12px;color:var(--txt3);padding:5px 8px;text-align:right;">—</td>
+      </tr>`).join('');
+      feederFoot = 'USDA sj_ls850.txt · loading…';
+    }
+
+    const discNote = disc > 0
+      ? `<div style="font-size:10px;color:var(--txt3);padding:3px 8px 5px;border-top:1px solid var(--border);font-style:italic;">${typeLabel} · −${disc.toFixed(2)}¢/cwt applied</div>`
+      : '';
+
+    const drawerHtml = `<tr class="barn-drawer" id="drawer-${key}">
+      <td colspan="5">
+        <div class="barn-detail-inner">
+          <div class="barn-drawer-mini">
+            <div class="barn-drawer-mini-header">Finish Weights <span style="font-weight:400;color:var(--txt3);">slaughter ¢/lb</span></div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr>
+                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">LBS</th>
+                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
+              </tr></thead>
+              <tbody>${finishRows}</tbody>
+            </table>
+            ${discNote}
+            <div class="barn-drawer-mini-foot">${finishFoot}</div>
+          </div>
+          <div class="barn-drawer-mini">
+            <div class="barn-drawer-mini-header">Feeder Weights <span style="font-weight:400;color:var(--txt3);">buy price ¢/lb</span></div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr>
+                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">LBS</th>
+                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
+              </tr></thead>
+              <tbody>${feederRows}</tbody>
+            </table>
+            <div class="barn-drawer-mini-foot">${feederFoot}</div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+
+    return `<tr class="barn-row" data-key="${key}" onclick="toggleBarnRow('${key}')">
+      <td>
+        <div class="elev-name-cell">${b.name} <span class="barn-chevron" id="chevron-${key}">›</span></div>
+        <div class="elev-loc-cell">${b.loc} · ${b.freq}</div>
+      </td>
+      <td class="cash-price-cell">${adjPrice}¢ ${slaughterBadge}</td>
+      <td class="cash-price-cell">${feederAvg} ${feederBadge}</td>
+      <td>${discStr}</td>
+      <td style="font-size:11px;color:var(--txt3);">${b.reportDate}${b._scrapeError ? ` <span title="${b._scrapeError}" style="font-size:9px;color:var(--down);border:1px solid var(--down);border-radius:2px;padding:1px 4px;cursor:help;">FETCH ERR</span>` : ''}</td>
+    </tr>${drawerHtml}`;
   });
 
   tbody.innerHTML = rows.join('');
   if(selectedBarnKey) highlightBarnRow(selectedBarnKey);
 
-  // Update source line
+  // Restore open drawer if one was expanded before a table rebuild
+  if(expandedBarnKey) {
+    const drawer = document.getElementById('drawer-' + expandedBarnKey);
+    const chev   = document.getElementById('chevron-' + expandedBarnKey);
+    if(drawer) drawer.classList.add('barn-drawer--open');
+    if(chev)   chev.classList.add('barn-chevron--open');
+  }
+
   const srcEl = document.getElementById('barn-price-source');
   if(srcEl) srcEl.textContent = 'Source: ' + barnPriceDate + ' · ' + typeInfo.label;
 }
@@ -929,6 +1292,7 @@ async function loadFeederWeightPrices() {
     };
 
     updateFeederCard();
+    buildBarnTable(); // refresh drawer feeder rows now that USDA data is loaded
 
   } catch(e) {
     // Fallback: use CME futures as the 700-800 lb anchor and extrapolate
@@ -945,10 +1309,12 @@ async function loadFeederWeightPrices() {
           '700-799': base.toFixed(2),
           '800-899': (base - 25).toFixed(2),
           '900-999': (base - 45).toFixed(2),
-        }
+        },
+        _parsedKeys: ['400-499','500-599','600-699','700-799','800-899','900-999']
       };
     }
     updateFeederCard();
+    buildBarnTable(); // refresh drawer feeder rows with CME fallback data
   }
 }
 

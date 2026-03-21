@@ -51,6 +51,9 @@
   /* Auction barns + meat lockers: single column */
   .barn-grid{grid-template-columns:1fr;}
 
+  /* Barn detail panel: stack mini tables vertically on small screens */
+  .barn-detail-inner{grid-template-columns:1fr;gap:8px;padding:8px;}
+
   /* Dairy plant stat boxes: smaller value text, ensure no overflow */
   .plant-stat-val{font-size:13px;}
   .plant-stat-box{min-width:80px;}

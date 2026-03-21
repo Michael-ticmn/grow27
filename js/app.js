@@ -130,6 +130,7 @@ loadGrainPrices();
 loadCattlePrices();
 loadDairyPrices();
 loadBarnPrices();
+loadCentralLivestockData();
 loadFeedInputPrices();
 loadFeederWeightPrices();
 updateSlaughterWeightTable();
