@@ -2,7 +2,7 @@
 // grow27 — auction barn price scraper
 // Runs via GitHub Actions daily at 7am CT.
 // Reads data/barns-config.json, writes data/prices/<id>.json + data/prices/index.json.
-// Deps: cheerio (HTML parsing), puppeteer (JS-rendered pages).
+// Deps: cheerio (HTML parsing), puppeteer (JS-rendered pages), @anthropic-ai/sdk (vision).
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -11,6 +11,7 @@ const fs        = require('fs');
 const path      = require('path');
 const cheerio   = require('cheerio');
 const puppeteer = require('puppeteer');
+const Anthropic = require('@anthropic-ai/sdk');
 
 const ROOT         = path.join(__dirname, '..');
 const CONFIG_PATH  = path.join(ROOT, 'data', 'barns-config.json');
@@ -23,6 +24,8 @@ const MAX_AGE_DAYS = 14;
 const SLAUGHTER_DISC = { beef: 0, crossbred: 9.50, holstein: 30.00 };
 const FEEDER_FACTOR  = 0.40;
 
+const anthropic = new Anthropic();   // reads ANTHROPIC_API_KEY from env
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function today() {
@@ -34,23 +37,6 @@ function trimHistory(history) {
   cutoff.setDate(cutoff.getDate() - MAX_AGE_DAYS);
   const cutStr = cutoff.toISOString().slice(0, 10);
   return history.filter(e => e.date >= cutStr).slice(-MAX_HISTORY);
-}
-
-function norm(text) {
-  return String(text).replace(/\s+/g, ' ').trim().toLowerCase();
-}
-
-function midpoint(text) {
-  const range = text.match(/(\d{2,3}(?:\.\d+)?)\s*(?:[-–]|to)\s*(\d{2,3}(?:\.\d+)?)/);
-  if (range) return (parseFloat(range[1]) + parseFloat(range[2])) / 2;
-  const single = text.match(/(\d{2,3}(?:\.\d+)?)/);
-  if (single) return parseFloat(single[1]);
-  return null;
-}
-
-function extractPrice(text, minVal = 150, maxVal = 400) {
-  const v = midpoint(text);
-  return (v !== null && v >= minVal && v <= maxVal) ? parseFloat(v.toFixed(2)) : null;
 }
 
 // ── Puppeteer fetch (handles JS-rendered pages) ─────────────────────────────
@@ -67,10 +53,25 @@ async function fetchRenderedHtml(url) {
   return html;
 }
 
-// ── HTML scraper ─────────────────────────────────────────────────────────────
+// ── Vision-based scraper (for barns that publish report as PNG image) ────────
+
+const VISION_PROMPT = `Extract cattle price data from this market report image. Return JSON only, no other text:
+{
+  "slaughter": {
+    "beef": <midpoint of Finished Beef Steers range as number, or null>,
+    "crossbred": <midpoint of Finished Dairy-X Steers & Heifers range as number, or null>,
+    "holstein": <midpoint of Finished Dairy Steers range as number, or null>
+  },
+  "feeder": {
+    "beef": <midpoint of Feeder Cattle (any variant of this header) range as number, or null>,
+    "holstein": <midpoint of Dairy Steers (any variant) range as number, or null>,
+    "liteTest": <true if "lite test" appears anywhere near feeder headers, false otherwise>
+  }
+}
+Return null for any value not found in the image. Numbers should be in cents per cwt (e.g. 231.50).`;
 
 async function scrapeBarns(config) {
-  const { id, reportUrl, parseRules } = config;
+  const { id, reportUrl } = config;
 
   // ── 1. Fetch rendered HTML via Puppeteer ────────────────────────────────
   let html;
@@ -78,87 +79,99 @@ async function scrapeBarns(config) {
     console.log(`[${id}] launching Puppeteer for: ${reportUrl}`);
     html = await fetchRenderedHtml(reportUrl);
     console.log(`[${id}] fetch OK · ${html.length} bytes`);
-    console.log(`[${id}] HTML preview:\n${html.slice(0, 500)}\n`);
     if (html.length < 500) throw new Error('response too short — likely blocked or empty');
   } catch (fetchErr) {
     console.error(`[${id}] FETCH FAILED: ${fetchErr.message}`);
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: fetchErr.message };
   }
 
-  // ── Parse ────────────────────────────────────────────────────────────────
+  // ── 2. Extract og:image URL containing the market report PNG ──────────
+  let imageUrl;
   try {
     const $ = cheerio.load(html);
-    const slaughter = { beef: null, crossbred: null, holstein: null };
-    const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
-
-    const cells = [];
-    $('td, th').each((i, el) => {
-      cells.push({ i, text: $(el).text().replace(/\s+/g, ' ').trim() });
+    const ogImages = [];
+    $('meta[property="og:image"]').each((_, el) => {
+      const url = $(el).attr('content');
+      if (url) ogImages.push(url);
     });
-    console.log(`[${id}] total td/th cells found: ${cells.length}`);
+    console.log(`[${id}] og:image URLs found: ${ogImages.length}`);
+    ogImages.forEach((u, i) => console.log(`[${id}]   [${i}] ${u}`));
 
-    if (cells.length === 0) {
-      // Page likely JS-rendered — dump the raw HTML to help diagnose
-      console.warn(`[${id}] WARNING: zero cells found — page may be JS-rendered (Wix/React)`);
-      console.log(`[${id}] full HTML (first 2000 chars):\n${html.slice(0, 2000)}`);
-    }
+    // Prefer URL containing "screenshot" or typical report-image patterns
+    imageUrl = ogImages.find(u => /screenshot/i.test(u))
+            || ogImages.find(u => /report|market|cattle|price/i.test(u))
+            || ogImages[0];
 
-    function priceAfter(headerIdx, minVal = 150, maxVal = 400) {
-      for (let j = headerIdx + 1; j < Math.min(headerIdx + 12, cells.length); j++) {
-        const p = extractPrice(cells[j].text, minVal, maxVal);
-        if (p !== null) return p;
-      }
-      return null;
-    }
+    if (!imageUrl) throw new Error('no og:image meta tag found');
+    console.log(`[${id}] selected image URL: ${imageUrl}`);
+  } catch (imgErr) {
+    console.error(`[${id}] IMAGE EXTRACT FAILED: ${imgErr.message}`);
+    return { slaughter: null, feeder: null, source: 'fetch_failed', error: imgErr.message };
+  }
 
-    // ── 4a. Slaughter parsing ─────────────────────────────────────────────
-    console.log(`[${id}] --- slaughter headers ---`);
-    for (const [type, label] of Object.entries(parseRules.slaughter)) {
-      const target = norm(label);
-      const headerIdx = cells.findIndex(c => norm(c.text).includes(target));
-      if (headerIdx === -1) {
-        console.warn(`[${id}] slaughter.${type}: header NOT FOUND ("${label}")`);
-        continue;
-      }
-      console.log(`[${id}] slaughter.${type}: header found at cell[${headerIdx}] = "${cells[headerIdx].text}"`);
-      // Log next 5 cells so we can see what the price scanner sees
-      const nearby = cells.slice(headerIdx + 1, headerIdx + 6).map(c => `"${c.text}"`).join(', ');
-      console.log(`[${id}] slaughter.${type}: next 5 cells = [${nearby}]`);
-      const price = priceAfter(headerIdx);
-      if (price !== null) {
-        slaughter[type] = price;
-        console.log(`[${id}] slaughter.${type} = ${price} ✓`);
-      } else {
-        console.warn(`[${id}] slaughter.${type}: NO PRICE extracted from nearby cells`);
-      }
-    }
+  // ── 3. Download PNG as base64 ─────────────────────────────────────────
+  let imageBase64;
+  let mediaType = 'image/png';
+  try {
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) throw new Error(`HTTP ${imgRes.status}`);
+    const contentType = imgRes.headers.get('content-type') || 'image/png';
+    if (contentType.includes('jpeg') || contentType.includes('jpg')) mediaType = 'image/jpeg';
+    else if (contentType.includes('webp')) mediaType = 'image/webp';
+    else if (contentType.includes('gif')) mediaType = 'image/gif';
+    const buf = Buffer.from(await imgRes.arrayBuffer());
+    imageBase64 = buf.toString('base64');
+    console.log(`[${id}] image downloaded · ${buf.length} bytes · ${mediaType}`);
+  } catch (dlErr) {
+    console.error(`[${id}] IMAGE DOWNLOAD FAILED: ${dlErr.message}`);
+    return { slaughter: null, feeder: null, source: 'fetch_failed', error: dlErr.message };
+  }
 
-    // ── 4b. Feeder parsing ────────────────────────────────────────────────
-    console.log(`[${id}] --- feeder headers ---`);
-    for (const [type, labelPrefix] of Object.entries(parseRules.feeder)) {
-      const target = norm(labelPrefix);
-      const headerIdx = cells.findIndex(c => {
-        const base = norm(c.text).replace(/\s*[-–]\s*lite\s*test.*$/, '').trim();
-        return base.startsWith(target);
-      });
-      if (headerIdx === -1) {
-        console.warn(`[${id}] feeder.${type}: header NOT FOUND (prefix "${labelPrefix}")`);
-        continue;
-      }
-      console.log(`[${id}] feeder.${type}: header found at cell[${headerIdx}] = "${cells[headerIdx].text}"`);
-      const nearby = cells.slice(headerIdx + 1, headerIdx + 6).map(c => `"${c.text}"`).join(', ');
-      console.log(`[${id}] feeder.${type}: next 5 cells = [${nearby}]`);
-      const price = priceAfter(headerIdx, 100, 500);
-      if (price !== null) {
-        if (type === 'beef')     feeder.beef    = price;
-        if (type === 'holstein') feeder.holstein = price;
-        if (norm(cells[headerIdx].text).includes('lite')) feeder.liteTest = true;
-        console.log(`[${id}] feeder.${type} = ${price} ✓${feeder.liteTest ? ' [liteTest]' : ''}`);
-      } else {
-        console.warn(`[${id}] feeder.${type}: NO PRICE extracted from nearby cells`);
-      }
-    }
+  // ── 4. Send to Claude vision API for price extraction ─────────────────
+  try {
+    console.log(`[${id}] sending image to Claude API (claude-sonnet-4-20250514)...`);
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: mediaType,
+              data: imageBase64,
+            },
+          },
+          {
+            type: 'text',
+            text: VISION_PROMPT,
+          },
+        ],
+      }],
+    });
 
+    const rawText = response.content[0].text.trim();
+    console.log(`[${id}] Claude response:\n${rawText}`);
+
+    // Strip markdown fences if present
+    const jsonStr = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const parsed = JSON.parse(jsonStr);
+
+    const slaughter = {
+      beef:      typeof parsed.slaughter?.beef      === 'number' ? parsed.slaughter.beef      : null,
+      crossbred: typeof parsed.slaughter?.crossbred === 'number' ? parsed.slaughter.crossbred : null,
+      holstein:  typeof parsed.slaughter?.holstein  === 'number' ? parsed.slaughter.holstein  : null,
+    };
+    const feeder = {
+      beef:      typeof parsed.feeder?.beef      === 'number' ? parsed.feeder.beef      : null,
+      crossbred: null,
+      holstein:  typeof parsed.feeder?.holstein  === 'number' ? parsed.feeder.holstein  : null,
+      liteTest:  !!parsed.feeder?.liteTest,
+    };
+
+    // Derive crossbred feeder from beef feeder
     if (feeder.beef !== null) {
       feeder.crossbred = parseFloat(
         (feeder.beef - SLAUGHTER_DISC.crossbred * FEEDER_FACTOR).toFixed(2)
@@ -171,14 +184,14 @@ async function scrapeBarns(config) {
     console.log(`[${id}] parse result — hasSlaughter=${hasSlaughter} hasFeeder=${hasFeeder}`);
 
     if (!hasSlaughter && !hasFeeder) {
-      throw new Error('zero prices extracted — page structure may have changed');
+      throw new Error('Claude returned no usable prices');
     }
 
     return { slaughter, feeder, source: 'scraped', error: null };
 
-  } catch (parseErr) {
-    console.error(`[${id}] PARSE ERROR: ${parseErr.message}`);
-    return { slaughter: null, feeder: null, source: 'fetch_failed', error: parseErr.message };
+  } catch (apiErr) {
+    console.error(`[${id}] CLAUDE API ERROR: ${apiErr.message}`);
+    return { slaughter: null, feeder: null, source: 'fetch_failed', error: apiErr.message };
   }
 }
 
@@ -266,55 +279,9 @@ async function run() {
       if (result.error) entry.error = result.error;
       if (result.source === 'scraped') barnData.lastSuccess = todayStr;
     } else {
-      // hasTypeBreakdown is false — calculate discounted prices from beef baseline
-      // No type breakdown — calculate from the most recent beef baseline
-      // Find the latest scraped beef slaughter price across all barns processed so far
-      let beefBase = null;
-      for (const idx of indexOut) {
-        if (idx.slaughter?.beef != null) { beefBase = idx.slaughter.beef; break; }
-      }
-      // Fallback: check this barn's own history for a prior scraped beef price
-      if (beefBase === null) {
-        const prior = [...barnData.history]
-          .reverse()
-          .find(e => (e.source === 'scraped' || e.source === 'calculated') && e.slaughter?.beef != null);
-        if (prior) beefBase = prior.slaughter.beef;
-      }
-
-      if (beefBase !== null) {
-        // Feeder baseline: use most recent scraped feeder beef, or fall back to CME feeder price
-        let feederBase = null;
-        for (const idx of indexOut) {
-          if (idx.feeder?.beef != null) { feederBase = idx.feeder.beef; break; }
-        }
-        if (feederBase === null) {
-          const priorF = [...barnData.history]
-            .reverse()
-            .find(e => (e.source === 'scraped' || e.source === 'calculated') && e.feeder?.beef != null);
-          if (priorF) feederBase = priorF.feeder.beef;
-        }
-
-        entry = {
-          date: todayStr,
-          slaughter: {
-            beef:      parseFloat(beefBase.toFixed(2)),
-            crossbred: parseFloat((beefBase - 9.50).toFixed(2)),
-            holstein:  parseFloat((beefBase - 30.00).toFixed(2)),
-          },
-          feeder: {
-            beef:      feederBase != null ? parseFloat(feederBase.toFixed(2)) : null,
-            crossbred: feederBase != null ? parseFloat((feederBase - 3.80).toFixed(2)) : null,
-            holstein:  feederBase != null ? parseFloat((feederBase - 12.00).toFixed(2)) : null,
-            liteTest:  false,
-          },
-          source: 'calculated',
-        };
-        console.log(`[${id}] calculated from beef baseline: slaughter=${beefBase}, feeder=${feederBase}`);
-      } else {
-        // No baseline available yet — write pending entry
-        entry = nullEntry(todayStr, 'pending');
-        console.log(`[${id}] no beef baseline available — writing pending entry`);
-      }
+      // No type breakdown / no report URL — write pending entry
+      entry = nullEntry(todayStr, 'pending');
+      console.log(`[${id}] no reportUrl or no type breakdown — writing pending entry`);
     }
 
     console.log(`[${id}] entry to append: ${JSON.stringify(entry)}`);
