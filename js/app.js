@@ -151,3 +151,9 @@ setInterval(loadDairyPrices,15*60*1000);
 setInterval(()=>{if(userLat)loadWeather(userLat,userLon);},30*60*1000);
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+
+
+// ── VERSION ──────────────────────────────────────────────────────────────────
+fetch('version.json').then(r=>r.json()).then(d=>{
+  document.querySelectorAll('.app-version').forEach(el=>el.textContent='v'+d.version);
+}).catch(()=>{});
