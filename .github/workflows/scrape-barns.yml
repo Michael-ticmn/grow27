@@ -1,9 +1,6 @@
 name: Scrape Auction Barn Prices
-
 on:
   schedule:
-    # 7:00am CT = 12:00 UTC (CST) / 13:00 UTC (CDT)
-    # Running at 12:00 UTC covers both CST and CDT within an hour.
     - cron: '0 12 * * *'
   workflow_dispatch:
 
@@ -11,17 +8,13 @@ jobs:
   scrape:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # needed to push commits
-
+      contents: write
     steps:
       - uses: actions/checkout@v3
         with:
           ref: UserUpdates
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Pull latest BEFORE the scraper runs so history files are current
-      - name: Pull latest
-        run: git pull origin UserUpdates
+          fetch-depth: 0
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -33,9 +26,6 @@ jobs:
 
       - name: Run barn scraper
         run: node scripts/scrape-barns.js
-
-      - name: Reset non-price files
-        run: git checkout -- . && git clean -fd --exclude=data/prices/
 
       - name: Commit updated price files
         run: |
