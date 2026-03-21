@@ -35,31 +35,9 @@ jobs:
         run: node scripts/scrape-barns.js
 
       - name: Commit updated price files
-        id: commit
         run: |
-          git config user.name  "grow27-bot"
-          git config user.email "actions@github.com"
-
-          # Stage only the data files written by the scraper
+          git config user.name "grow27-bot"
+          git config user.email "bot@grow27.com"
           git add data/prices/
-
-          if git diff --staged --quiet; then
-            echo "no_changes=true" >> "$GITHUB_OUTPUT"
-            echo "No price changes — skipping commit."
-          else
-            git commit -m "data: barn prices $(date -u +'%Y-%m-%d %H:%MZ')"
-            git push origin UserUpdates
-            echo "no_changes=false" >> "$GITHUB_OUTPUT"
-            echo "Pushed updated prices to UserUpdates."
-          fi
-
-      - name: Summary
-        run: |
-          if [ "${{ steps.commit.outputs.no_changes }}" = "true" ]; then
-            echo "### No price changes today" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "### Barn prices updated" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            cat data/prices/index.json >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          fi
+          git diff --staged --quiet || git commit -m "data: barn prices $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push origin UserUpdates
