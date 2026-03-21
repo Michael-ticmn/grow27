@@ -29,6 +29,7 @@
   .beta-badge{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#0f0f0f;background:var(--corn);border-radius:3px;padding:2px 6px;flex-shrink:0;}
   .feedback-btn{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--txt3);border:1px solid var(--border2);border-radius:3px;padding:5px 11px;text-decoration:none;transition:all .12s;white-space:nowrap;font-family:inherit;}
   .feedback-btn:hover{color:var(--corn);border-color:var(--corn);background:var(--corn-dim);}
+  .feedback-fab{display:none;}
 
   /* ── BOTTOM NAV ── */
   .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);padding-bottom:env(safe-area-inset-bottom);background:var(--bg1);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;z-index:100;}

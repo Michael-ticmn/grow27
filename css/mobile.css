@@ -96,8 +96,10 @@
   /* Brand: hide italic subtitle (keeps logo + module name) */
   .brand-subtitle{display:none!important;}
 
-  /* Hide feedback button text — too crowded at this size */
+  /* Hide topbar feedback button, show FAB instead */
   .feedback-btn{display:none;}
+  .feedback-fab{display:flex;align-items:center;justify-content:center;position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 14px);right:16px;width:42px;height:42px;border-radius:50%;background:var(--bg2);border:1px solid var(--border2);color:var(--txt2);font-size:18px;text-decoration:none;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.4);transition:all .12s;}
+  .feedback-fab:hover{border-color:var(--corn);color:var(--corn);}
 
   /* Topbar clock: drop the last-updated line, keep status dot */
   #last-updated-txt{display:none;}
