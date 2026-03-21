@@ -895,16 +895,38 @@ async function loadFeederWeightPrices() {
 
     // Build clean weight class averages
     const buckets = ['400-499','500-599','600-699','700-799','800-899','900-999'];
+    const parsedPrices = {};
+    buckets.forEach(b => {
+      if(weightPrices[b]) {
+        parsedPrices[b] = (weightPrices[b].sum / weightPrices[b].count).toFixed(2);
+      }
+    });
+
+    // If fewer than 3 weight classes came back, supplement missing ones using
+    // CME feeder index as the 700-799 anchor and standard ¢/cwt slide
+    const filledPrices = {};
+    const offsets = {'400-499':120,'500-599':80,'600-699':40,'700-799':0,'800-899':-25,'900-999':-45};
+    const cmeBase = CATTLE_DATA.fc ? CATTLE_DATA.fc.price : null;
+    // Find an anchor from parsed data or CME
+    let anchor700 = parsedPrices['700-799'] ? parseFloat(parsedPrices['700-799'])
+                  : parsedPrices['600-699']  ? parseFloat(parsedPrices['600-699']) - 40
+                  : parsedPrices['800-899']  ? parseFloat(parsedPrices['800-899']) + 25
+                  : cmeBase;
+    buckets.forEach(b => {
+      if(parsedPrices[b]) {
+        filledPrices[b] = parsedPrices[b]; // prefer real USDA data
+      } else if(anchor700) {
+        filledPrices[b] = (anchor700 + offsets[b]).toFixed(2); // fill gap with extrapolation
+      }
+    });
+
     FEEDER_WEIGHT_DATA = {
       region: regionName,
       date: FEEDER_REPORT_DATE,
-      prices: {}
+      prices: filledPrices,
+      sparse: Object.keys(parsedPrices).length < 3,
+      _parsedKeys: Object.keys(parsedPrices)
     };
-    buckets.forEach(b => {
-      if(weightPrices[b]) {
-        FEEDER_WEIGHT_DATA.prices[b] = (weightPrices[b].sum / weightPrices[b].count).toFixed(2);
-      }
-    });
 
     updateFeederCard();
 
@@ -943,12 +965,16 @@ function updateFeederCard() {
   // Use half the slaughter discount as a proxy for feeder price differential
   const feederDisc = disc * 0.4; // feeder discount is roughly 40% of slaughter discount
 
+  const parsedPrices = FEEDER_WEIGHT_DATA.sparse ? null : null; // use sparseKeys for est. marking
+  const sparseKeys = FEEDER_WEIGHT_DATA._parsedKeys || null;
+
   const rows = Object.entries(prices).map(([range, price], idx) => {
     const adjPrice = (parseFloat(price) - feederDisc).toFixed(2);
-    const isTarget = range === '700-799' || range === '800-899'; // typical finish weight entry
+    const isTarget = range === '700-799' || range === '800-899';
+    const isEst = FEEDER_WEIGHT_DATA.sparse && sparseKeys && !sparseKeys.includes(range);
     return `<tr style="${isTarget ? 'background:var(--bg3);' : ''}">
-      <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${range} lbs</td>
-      <td style="font-size:13px;color:${idx===0?'var(--up)':'var(--txt1)'};font-weight:700;padding:5px 8px;text-align:right;">${adjPrice}¢</td>
+      <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${range} lbs${isEst ? ' <span style="font-size:9px;color:var(--txt3);opacity:.7;">est</span>' : ' <span style="font-size:9px;color:var(--txt3);opacity:.7;">actual</span>'}</td>
+      <td style="font-size:13px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${adjPrice}¢</td>
     </tr>`;
   }).join('');
 
@@ -1012,7 +1038,7 @@ function updateSlaughterWeightTable() {
     const isBaseline = w.adj === 0;
     const adjColor = w.adj > 0 ? 'var(--up)' : w.adj < 0 ? 'var(--down)' : 'var(--txt1)';
     return `<tr style="${isBaseline ? 'background:var(--bg3);' : ''}">
-      <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}</td>
+      <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}${isBaseline ? ' <span style="font-size:9px;color:var(--txt3);opacity:.7;">baseline</span>' : ' <span style="font-size:9px;color:var(--txt3);opacity:.7;">est</span>'}</td>
       <td style="font-size:13px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${price}¢</td>
       <td style="font-size:10px;color:${adjColor};padding:5px 8px;text-align:right;">${w.adj > 0 ? '+' : ''}${w.adj !== 0 ? w.adj.toFixed(2) : '—'}</td>
     </tr>`;
@@ -1037,7 +1063,7 @@ function updateSlaughterWeightTable() {
     </table>
     ${discNote}
     <div style="font-size:9px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);">
-      vs CME nearby · weight premiums per USDA grade schedule
+      est · anchored to CME nearby · premiums per USDA grade schedule
     </div>
   `;
 }
