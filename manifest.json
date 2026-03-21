@@ -2,7 +2,7 @@
   "name": "Grow27",
   "short_name": "Grow27",
   "description": "Farm market intelligence for the #27 operation. Grain, cattle, herd, fields, and finance — one platform.",
-  "start_url": "/grain-dashboard.html",
+  "start_url": "/grow27/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#111214",
@@ -14,9 +14,9 @@
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "shortcuts": [
-    { "name": "Markets", "short_name": "Markets", "url": "/grain-dashboard.html" },
-    { "name": "Herd",    "short_name": "Herd",    "url": "/app.html#herd" },
-    { "name": "Fields",  "short_name": "Fields",  "url": "/app.html#fields" },
-    { "name": "Finance", "short_name": "Finance", "url": "/app.html#finance" }
+    { "name": "Markets", "short_name": "Markets", "url": "/grow27/" },
+    { "name": "Herd",    "short_name": "Herd",    "url": "/grow27/#herd" },
+    { "name": "Fields",  "short_name": "Fields",  "url": "/grow27/#fields" },
+    { "name": "Finance", "short_name": "Finance", "url": "/grow27/#finance" }
   ]
 }
