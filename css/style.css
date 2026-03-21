@@ -250,6 +250,16 @@
   .elev-link{font-size:11px;color:var(--soy);text-decoration:none;border:1px solid var(--soy-border);padding:3px 9px;border-radius:3px;transition:all .12s;display:inline-block;}
   .elev-link:hover{background:var(--soy-dim);}
 
+  /* ── DAIRY PLANT STAT ROW ── */
+  .plant-stat-row{margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;}
+  .plant-stat-box{background:var(--bg3);border-radius:3px;padding:8px 12px;flex:1;min-width:100px;}
+  .plant-stat-box--mailbox{background:var(--dairy-dim);}
+  .plant-stat-label{font-size:10px;color:var(--txt3);letter-spacing:2px;}
+  .plant-stat-val{font-size:16px;font-weight:700;margin-top:3px;}
+
+  /* ── BARN / LOCKER GRID ── */
+  .barn-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+
   /* ── STUB MODULES ── */
   .stub-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:40px;}
   .stub-mark{font-size:48px;font-weight:700;letter-spacing:-2px;}

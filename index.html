@@ -95,7 +95,7 @@
 
         <div class="section-divider">Local Cash Prices — All Buyers</div>
         <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
-          <table class="cash-table"><thead><tr><th>Local Buyer</th><th>Corn Cash</th><th>Corn Basis</th><th>Soy Cash</th><th>Soy Basis</th><th>Distance</th></tr></thead><tbody id="cash-table-body"><tr><td colspan="6" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody></table>
+          <div class="table-scroll"><table class="cash-table"><thead><tr><th>Local Buyer</th><th>Corn Cash</th><th>Corn Basis</th><th>Soy Cash</th><th>Soy Basis</th><th>Distance</th></tr></thead><tbody id="cash-table-body"><tr><td colspan="6" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody></table></div>
         </div>
 
         <div class="two-col">
@@ -107,7 +107,7 @@
       <!-- GRAIN LOCAL BUYERS -->
       <div class="section" id="grain-buyers">
         <div class="insight-strip">Curated grain buyers plus any additional grain buyers found within ~50 miles of your location. Basis on discovered buyers is estimated — verify with the buyer directly. <span id="discovery-status-dir" style="color:var(--corn);"></span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><div id="elev-dir-col-1" style="display:flex;flex-direction:column;gap:14px;"><div style="text-align:center;padding:40px;color:var(--txt3);font-size:13px;">Locating nearby grain buyers…</div></div><div id="elev-dir-col-2" style="display:flex;flex-direction:column;gap:14px;"></div></div>
+        <div class="barn-grid"><div id="elev-dir-col-1" style="display:flex;flex-direction:column;gap:14px;"><div style="text-align:center;padding:40px;color:var(--txt3);font-size:13px;">Locating nearby grain buyers…</div></div><div id="elev-dir-col-2" style="display:flex;flex-direction:column;gap:14px;"></div></div>
       </div>
 
       <!-- GRAIN MARGIN CALC -->
@@ -349,7 +349,7 @@
         </div>
 
         <div class="insight-strip" id="cattle-insight">Fetching market data...</div>
-        <div class="cards" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+        <div class="cards">
           <div class="card lc">
             <div class="card-label">CME · Live Cattle</div>
             <div class="card-name" id="lc-card-name">Market Steer</div>
@@ -440,10 +440,10 @@
         <!-- Auction barn avg prices -->
         <div class="section-divider">Auction Barn Avg Prices</div>
         <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
-          <table class="cash-table">
+          <div class="table-scroll"><table class="cash-table">
             <thead><tr><th>Auction Barn</th><th>Avg Price ¢/lb</th><th>Type Discount</th><th>Report Date</th><th>Distance</th></tr></thead>
             <tbody id="barn-table-body"><tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody>
-          </table>
+          </table></div>
           <div id="barn-price-source" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;"></div>
         </div>
 
@@ -632,7 +632,7 @@
       <!-- CATTLE AUCTION BARNS -->
       <div class="section" id="cattle-barns">
         <div class="insight-strip"><strong>Livestock auction barns near your location</strong> — sorted by distance. All licensed by the Minnesota Board of Animal Health.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div class="barn-grid">
           <div id="barn-col-1" style="display:flex;flex-direction:column;gap:14px;"><div style="color:var(--txt3);font-size:13px;padding:20px;text-align:center;">Locating nearby barns…</div></div>
           <div id="barn-col-2" style="display:flex;flex-direction:column;gap:14px;"></div>
         </div>
@@ -648,7 +648,7 @@
       <!-- CATTLE MEAT LOCKERS -->
       <div class="section" id="cattle-lockers">
         <div class="insight-strip"><strong>Custom beef processing near your location</strong> — sorted by distance. Call ahead, most book weeks in advance.</div>
-        <div id="locker-directory" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div id="locker-directory" class="barn-grid">
           <div style="color:var(--txt3);font-size:13px;padding:20px;text-align:center;grid-column:1/-1;">Locating nearby processors…</div>
         </div>
         <div class="panel" style="margin-top:4px;">
@@ -695,7 +695,7 @@
 
         <!-- MN Grade Cards -->
         <div class="section-divider">Minnesota Milk Prices</div>
-        <div class="cards" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+        <div class="cards">
           <div class="card dc2">
             <div class="card-label">Grade A · Class 1 · Est.</div>
             <div class="card-name">Fluid Milk · Order 30</div>
@@ -757,10 +757,10 @@
         <!-- All-plant comparison table -->
         <div class="section-divider">All Plants — Est. Mailbox Price</div>
         <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
-          <table class="cash-table">
+          <div class="table-scroll"><table class="cash-table">
             <thead><tr><th>Plant</th><th id="dairy-mailbox-col-header">Est. Grade A Mailbox</th><th>Est. Premium ($/cwt)</th><th>Distance</th></tr></thead>
             <tbody id="dairy-plant-table-body"><tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading plant data…</td></tr></tbody>
-          </table>
+          </table></div>
           <div id="dairy-table-footnote" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;">Grade A mailbox = Class 1 est. + plant premium · premiums estimated — verify with your plant's monthly announcement</div>
         </div>
 
@@ -830,7 +830,7 @@
       <!-- DAIRY LOCAL PLANTS -->
       <div class="section" id="dairy-plants">
         <div class="insight-strip">Grade A dairy plants and cooperatives serving southern Minnesota. Premiums are estimates — verify the exact amount with your plant's monthly price announcement or fieldman. Select your plant on the Prices tab to set it as your anchor.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="barn-grid">
           <div id="dairy-dir-col-1" style="display:flex;flex-direction:column;gap:14px;"><div style="text-align:center;padding:40px;color:var(--txt3);font-size:13px;">Loading plant directory…</div></div>
           <div id="dairy-dir-col-2" style="display:flex;flex-direction:column;gap:14px;"></div>
         </div>

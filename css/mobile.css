@@ -12,11 +12,21 @@
 ══════════════════════════════════════════════════ */
 
 
+/* ── ALL SIZES: table horizontal scroll wrapper ── */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.table-scroll .cash-table{min-width:480px;}
+
+
 /* ── 768px: tablet / large phone ── */
 @media(max-width:768px){
 
   /* Topbar: reduce horizontal padding */
   .topbar{padding-left:14px;padding-right:14px;}
+
+  /* Subtabs + inner tabs: horizontal scroll, no wrap */
+  .subtabs,.tabs{padding:0 8px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;}
+  .subtabs::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none;}
+  .subtab,.tab{padding:10px 12px;font-size:11px;white-space:nowrap;}
 
   /* Elevator bar: stack selector and toggles vertically */
   .elevator-bar{flex-direction:column;align-items:flex-start;gap:10px;padding:12px 14px;}
@@ -38,13 +48,15 @@
 /* ── 600px: standard phone ── */
 @media(max-width:600px){
 
+  /* Auction barns + meat lockers: single column */
+  .barn-grid{grid-template-columns:1fr;}
+
+  /* Dairy plant stat boxes: smaller value text, ensure no overflow */
+  .plant-stat-val{font-size:13px;}
+  .plant-stat-box{min-width:80px;}
+
   /* Topbar */
   .topbar{padding-left:12px;padding-right:12px;}
-
-  /* Subtabs + inner tabs: horizontal scroll, no wrap */
-  .subtabs,.tabs{padding:0 8px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;}
-  .subtabs::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none;}
-  .subtab,.tab{padding:10px 14px;font-size:11px;white-space:nowrap;}
 
   /* Content padding */
   .content{padding:12px;}

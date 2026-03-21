@@ -1398,18 +1398,18 @@ function buildDairyPlantDirectory() {
       </div>
       <div class="auction-detail">📍 ${p.loc}</div>
       <div class="auction-detail">📞 <a href="tel:${p.phone}" style="color:var(--txt3);text-decoration:none;">${p.phone}</a></div>
-      <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;">
-        <div style="background:var(--bg3);border-radius:3px;padding:8px 12px;flex:1;min-width:100px;">
-          <div style="font-size:10px;color:var(--txt3);letter-spacing:2px;">PRODUCTS</div>
-          <div style="font-size:12px;color:var(--txt2);margin-top:3px;">${p.products}</div>
+      <div class="plant-stat-row">
+        <div class="plant-stat-box">
+          <div class="plant-stat-label">PRODUCTS</div>
+          <div class="plant-stat-val" style="font-size:12px;color:var(--txt2);">${p.products}</div>
         </div>
-        <div style="background:var(--bg3);border-radius:3px;padding:8px 12px;flex:1;min-width:100px;">
-          <div style="font-size:10px;color:var(--txt3);letter-spacing:2px;">EST. PREMIUM</div>
-          <div style="font-size:16px;font-weight:700;color:${p.premium>=0?'var(--up)':'var(--down)'};margin-top:3px;">${pmStr} $/cwt</div>
+        <div class="plant-stat-box">
+          <div class="plant-stat-label">EST. PREMIUM</div>
+          <div class="plant-stat-val" style="color:${p.premium>=0?'var(--up)':'var(--down)'};">${pmStr} $/cwt</div>
         </div>
-        <div style="background:var(--dairy-dim);border-radius:3px;padding:8px 12px;flex:1;min-width:100px;">
-          <div style="font-size:10px;color:var(--dairy);letter-spacing:2px;">EST. MAILBOX</div>
-          <div style="font-size:16px;font-weight:700;color:var(--dairy);margin-top:3px;">$${mailbox.toFixed(2)}/cwt</div>
+        <div class="plant-stat-box plant-stat-box--mailbox">
+          <div class="plant-stat-label" style="color:var(--dairy);">EST. MAILBOX</div>
+          <div class="plant-stat-val" style="color:var(--dairy);">$${mailbox.toFixed(2)}/cwt</div>
         </div>
       </div>
       ${p.note?`<div class="auction-detail" style="margin-top:8px;">${p.note}</div>`:''}
