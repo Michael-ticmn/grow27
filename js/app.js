@@ -26,13 +26,13 @@ function switchModule(mod, navEl){
 }
 
 function switchSubtab(sub){
-  const last=sub==='grain'?'cattle':'grain';
-  document.getElementById('subtab-'+sub).classList.add('active');
-  document.getElementById('subtab-'+last).classList.remove('active');
-  document.getElementById('sub-'+sub).classList.add('active');
-  document.getElementById('sub-'+last).classList.remove('active');
-  // persist
-
+  ['grain','cattle','dairy'].forEach(s=>{
+    const st=document.getElementById('subtab-'+s), sm=document.getElementById('sub-'+s);
+    if(st)st.classList.toggle('active',s===sub);
+    if(sm)sm.classList.toggle('active',s===sub);
+  });
+  const label={grain:'Grain',cattle:'Cattle',dairy:'Dairy'};
+  document.title='#27Markets · '+(label[sub]||'Markets');
 }
 
 // Per-submodule tab switching — prefix all section IDs with submodule
@@ -109,13 +109,13 @@ async function loadWeather(ulat,ulon){
   const BARNS=[{id:'central',lat:44.2933,lon:-92.6744},{id:'lanesboro',lat:43.7180,lon:-91.9802},{id:'rockcreek',lat:45.9524,lon:-92.9577},{id:'sleepyeye',lat:44.2972,lon:-94.7244},{id:'pipestone',lat:43.9939,lon:-96.3172}];
   const LOCKERS=[{id:'herdas',lat:44.2955,lon:-93.2688},{id:'kreniks',lat:44.3900,lon:-93.5600},{id:'lonsdale',lat:44.4791,lon:-93.4158},{id:'dennison',lat:44.4063,lon:-92.9855},{id:'okeefes',lat:44.3922,lon:-93.7302}];
   if(ulat&&ulon){BARNS.forEach(b=>{const el=document.getElementById('dist-'+b.id);if(el)el.textContent='~'+Math.round(distMiles(ulat,ulon,b.lat,b.lon))+' miles';});LOCKERS.forEach(l=>{const el=document.getElementById('dist-'+l.id);if(el)el.textContent='~'+Math.round(distMiles(ulat,ulon,l.lat,l.lon))+' miles';});}
-  if(ulat&&ulon){rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();buildBarnDirectory();buildLockerDirectory();updateCornCardCattle();}
+  if(ulat&&ulon){rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();rebuildBarnSelect();buildBarnDirectory();buildLockerDirectory();updateCornCardCattle();}
   markUpdated();
 }
 
 function initLocation(){
-  if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{userLat=pos.coords.latitude;userLon=pos.coords.longitude;if(activeRegion==='auto')setRegion('auto');loadWeather(userLat,userLon);discoverElevators(userLat,userLon);},()=>{userLat=44.03;userLon=-94.76;if(activeRegion==='auto')setRegion('auto');loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);});}
-  else{userLat=44.03;userLon=-94.76;if(activeRegion==='auto')setRegion('auto');loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);}
+  if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{userLat=pos.coords.latitude;userLon=pos.coords.longitude;if(activeRegion==='auto')setRegion('auto');loadWeather(userLat,userLon);discoverElevators(userLat,userLon);rebuildDairyPlantSelect();rebuildBarnSelect();},()=>{userLat=44.03;userLon=-94.76;if(activeRegion==='auto')setRegion('auto');loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();});}
+  else{userLat=44.03;userLon=-94.76;if(activeRegion==='auto')setRegion('auto');loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();}
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
@@ -128,6 +128,7 @@ try{
 
 loadGrainPrices();
 loadCattlePrices();
+loadDairyPrices();
 loadBarnPrices();
 loadFeedInputPrices();
 loadFeederWeightPrices();
@@ -139,12 +140,14 @@ initLocation();
 calcGrain();
 calcSoy();
 calc();
+calcDairy();
 updateRegionBadge();
 // Build directories — slight delay to ensure DOM is ready
-setTimeout(()=>{ rebuildElevatorDirectory(); buildBarnDirectory(); buildLockerDirectory(); }, 100);
+setTimeout(()=>{ rebuildElevatorDirectory(); rebuildBarnSelect(); buildBarnDirectory(); buildLockerDirectory(); rebuildDairyPlantSelect(); buildDairyPlantDirectory(); }, 100);
 
 setInterval(loadGrainPrices,15*60*1000);
 setInterval(loadCattlePrices,15*60*1000);
+setInterval(loadDairyPrices,15*60*1000);
 setInterval(()=>{if(userLat)loadWeather(userLat,userLon);},30*60*1000);
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}

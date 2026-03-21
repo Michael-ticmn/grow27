@@ -104,6 +104,9 @@ async function loadCattlePrices(){
 // ── CATTLE CHARTS ─────────────────────────────────────────────────────────────
 function genHistory(price,days,vol=0.008){const arr=[];let p=price*(1-(Math.random()*0.05));for(let i=0;i<days;i++){p=p*(1+(Math.random()-0.49)*vol);arr.push(parseFloat(p.toFixed(3)));}arr.push(price);return arr;}
 function genLabels(days){const labs=[],now=new Date();for(let i=days;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);labs.push((d.getMonth()+1)+'/'+d.getDate());}return labs;}
+// Monthly helpers — used by dairy premium chart (rolling 13 months)
+function genMonthlyLabels(n){const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],labs=[],now=new Date();for(let i=n-1;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);labs.push(MO[d.getMonth()]+' \''+(d.getFullYear()%100).toString().padStart(2,'0'));}return labs;}
+function genMonthlyHistory(premium,n,vol=0.015){const arr=[];let p=premium*(1-(Math.random()*0.04));for(let i=0;i<n-1;i++){p=p*(1+(Math.random()-0.49)*vol);arr.push(parseFloat(p.toFixed(3)));}arr.push(premium);return arr;}
 function makeLine(id,labels,datasets,opts={}){if(charts[id])charts[id].destroy();const ctx=document.getElementById(id);if(!ctx)return;charts[id]=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:{x:{ticks:{color:'#5e6369',font:{size:11},maxTicksLimit:8,maxRotation:0},grid:{color:'#252a31'}},y:{ticks:{color:'#5e6369',font:{size:11}},grid:{color:'#252a31'}}},elements:{point:{radius:0,hitRadius:12},line:{tension:0.35}}}});}
 function renderHistCharts(){const{lc,fc,cn}=CATTLE_DATA;if(!lc)return;const labs=genLabels(histRange);makeLine('hist-lc',labs,[{label:'Live Cattle',data:genHistory(lc.price,histRange,0.01),borderColor:'#c46a40',borderWidth:2,fill:false}]);makeLine('hist-fc',labs,[{label:'Feeder Cattle',data:genHistory(fc.price,histRange,0.012),borderColor:'#d4a027',borderWidth:2,fill:false}]);makeLine('hist-cn-chart',labs,[{label:'Corn',data:genHistory(cn.price,histRange,0.015),borderColor:'#3ea8aa',borderWidth:2,fill:false}]);const lcH=genHistory(lc.price,histRange,0.01),fcH=genHistory(fc.price,histRange,0.012);makeLine('hist-spread',labs,[{label:'Spread',data:lcH.map((v,i)=>parseFloat((v-fcH[i]).toFixed(2))),borderColor:'#d4a027',borderWidth:2,fill:true,backgroundColor:'rgba(212,160,39,.07)'}]);}
 function setRange(r,btn){histRange=r;document.querySelectorAll('.hist-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderHistCharts();}
@@ -175,8 +178,8 @@ function calc(){
 }
 
 // ── GRAIN MARGIN CALC ────────────────────────────────────────────────────────
-function calcGrain(){const yld=+document.getElementById('c-yield').value,seed=+document.getElementById('c-seed').value,fert=+document.getElementById('c-fert').value,chem=+document.getElementById('c-chem').value,land=+document.getElementById('c-land').value,mach=+document.getElementById('c-mach').value,dry=(+document.getElementById('c-dry').value/100)*yld,sale=+document.getElementById('c-sale').value/100,acres=+document.getElementById('c-acres').value||400;document.getElementById('cv-sale').textContent='$'+sale.toFixed(2);const total=seed+fert+chem+land+mach+dry,be=total/yld,rev=yld*sale,margin=rev-total;document.getElementById('cr-seed').textContent=fmt$(seed);document.getElementById('cr-fert').textContent=fmt$(fert);document.getElementById('cr-chem').textContent=fmt$(chem);document.getElementById('cr-land').textContent=fmt$(land);document.getElementById('cr-mach').textContent=fmt$(mach);document.getElementById('cr-dry').textContent=fmt$(dry);document.getElementById('cr-total').textContent=fmt$(total);document.getElementById('cr-be').textContent='$'+be.toFixed(2)+'/bu';document.getElementById('cr-rev').textContent=fmt$(rev);document.getElementById('cr-margin').textContent=fmt$(margin);document.getElementById('cr-margin-row').className='result-row total '+(margin>=0?'profit':'loss');const vEl=document.getElementById('c-verdict');if(sale>be+0.30){vEl.className='verdict strong-sell';vEl.innerHTML='<strong>Strong sell signal.</strong> You are $'+(sale-be).toFixed(2)+'/bu above break-even.';}else if(sale>be+0.05){vEl.className='verdict hold';vEl.innerHTML='<strong>Above break-even.</strong> Modest margin of $'+(sale-be).toFixed(2)+'/bu.';}else if(sale>=be){vEl.className='verdict neutral';vEl.innerHTML='<strong>At/near break-even.</strong> Only $'+(sale-be).toFixed(2)+'/bu margin.';}else{vEl.className='verdict neutral';vEl.innerHTML='<strong>Below break-even.</strong> Loss of $'+(be-sale).toFixed(2)+'/bu.';}document.getElementById('cf-rev').textContent=fmtK(rev*acres);document.getElementById('cf-cost').textContent=fmtK(total*acres);const fm=margin*acres;document.getElementById('cf-margin').textContent=fmtK(fm);document.getElementById('cf-margin').style.color=fm>=0?'var(--up)':'var(--down)';document.getElementById('cf-be').textContent='$'+be.toFixed(2)+'/bu';}
-function calcSoy(){const yld=+document.getElementById('s-yield').value,seed=+document.getElementById('s-seed').value,fert=+document.getElementById('s-fert').value,chem=+document.getElementById('s-chem').value,land=+document.getElementById('s-land').value,mach=+document.getElementById('s-mach').value,sale=+document.getElementById('s-sale').value/100,acres=+document.getElementById('s-acres').value||400;document.getElementById('sv-sale').textContent='$'+sale.toFixed(2);const total=seed+fert+chem+land+mach,be=total/yld,rev=yld*sale,margin=rev-total;document.getElementById('sr-seed').textContent=fmt$(seed);document.getElementById('sr-fert').textContent=fmt$(fert);document.getElementById('sr-chem').textContent=fmt$(chem);document.getElementById('sr-land').textContent=fmt$(land);document.getElementById('sr-mach').textContent=fmt$(mach);document.getElementById('sr-total').textContent=fmt$(total);document.getElementById('sr-be').textContent='$'+be.toFixed(2)+'/bu';document.getElementById('sr-rev').textContent=fmt$(rev);document.getElementById('sr-margin').textContent=fmt$(margin);document.getElementById('sr-margin-row').className='result-row total '+(margin>=0?'profit':'loss');const vEl=document.getElementById('s-verdict');if(sale>be+1.50){vEl.className='verdict strong-sell';vEl.innerHTML='<strong>Strong sell signal.</strong> You are $'+(sale-be).toFixed(2)+'/bu above break-even.';}else if(sale>be+0.25){vEl.className='verdict hold';vEl.innerHTML='<strong>Above break-even.</strong> Margin of $'+(sale-be).toFixed(2)+'/bu.';}else if(sale>=be){vEl.className='verdict neutral';vEl.innerHTML='<strong>At/near break-even.</strong> Only $'+(sale-be).toFixed(2)+'/bu margin.';}else{vEl.className='verdict neutral';vEl.innerHTML='<strong>Below break-even.</strong> Loss of $'+(be-sale).toFixed(2)+'/bu.';}document.getElementById('sf-rev').textContent=fmtK(rev*acres);document.getElementById('sf-cost').textContent=fmtK(total*acres);const fm=margin*acres;document.getElementById('sf-margin').textContent=fmtK(fm);document.getElementById('sf-margin').style.color=fm>=0?'var(--up)':'var(--down)';document.getElementById('sf-be').textContent='$'+be.toFixed(2)+'/bu';}
+function calcGrain(){const yld=+document.getElementById('c-yield').value,seed=+document.getElementById('c-seed').value,fert=+document.getElementById('c-fert').value,chem=+document.getElementById('c-chem').value,land=+document.getElementById('c-land').value,mach=+document.getElementById('c-mach').value,dry=+document.getElementById('c-dry').value*yld,sale=+document.getElementById('c-sale').value,acres=+document.getElementById('c-acres').value||400;document.getElementById('cv-sale').textContent='$'+sale.toFixed(2);const total=seed+fert+chem+land+mach+dry,be=total/yld,rev=yld*sale,margin=rev-total;document.getElementById('cr-seed').textContent=fmt$(seed);document.getElementById('cr-fert').textContent=fmt$(fert);document.getElementById('cr-chem').textContent=fmt$(chem);document.getElementById('cr-land').textContent=fmt$(land);document.getElementById('cr-mach').textContent=fmt$(mach);document.getElementById('cr-dry').textContent=fmt$(dry);document.getElementById('cr-total').textContent=fmt$(total);document.getElementById('cr-be').textContent='$'+be.toFixed(2)+'/bu';document.getElementById('cr-rev').textContent=fmt$(rev);document.getElementById('cr-margin').textContent=fmt$(margin);document.getElementById('cr-margin-row').className='result-row total '+(margin>=0?'profit':'loss');const vEl=document.getElementById('c-verdict');if(sale>be+0.30){vEl.className='verdict strong-sell';vEl.innerHTML='<strong>Strong sell signal.</strong> You are $'+(sale-be).toFixed(2)+'/bu above break-even.';}else if(sale>be+0.05){vEl.className='verdict hold';vEl.innerHTML='<strong>Above break-even.</strong> Modest margin of $'+(sale-be).toFixed(2)+'/bu.';}else if(sale>=be){vEl.className='verdict neutral';vEl.innerHTML='<strong>At/near break-even.</strong> Only $'+(sale-be).toFixed(2)+'/bu margin.';}else{vEl.className='verdict neutral';vEl.innerHTML='<strong>Below break-even.</strong> Loss of $'+(be-sale).toFixed(2)+'/bu.';}document.getElementById('cf-rev').textContent=fmtK(rev*acres);document.getElementById('cf-cost').textContent=fmtK(total*acres);const fm=margin*acres;document.getElementById('cf-margin').textContent=fmtK(fm);document.getElementById('cf-margin').style.color=fm>=0?'var(--up)':'var(--down)';document.getElementById('cf-be').textContent='$'+be.toFixed(2)+'/bu';}
+function calcSoy(){const yld=+document.getElementById('s-yield').value,seed=+document.getElementById('s-seed').value,fert=+document.getElementById('s-fert').value,chem=+document.getElementById('s-chem').value,land=+document.getElementById('s-land').value,mach=+document.getElementById('s-mach').value,sale=+document.getElementById('s-sale').value,acres=+document.getElementById('s-acres').value||400;document.getElementById('sv-sale').textContent='$'+sale.toFixed(2);const total=seed+fert+chem+land+mach,be=total/yld,rev=yld*sale,margin=rev-total;document.getElementById('sr-seed').textContent=fmt$(seed);document.getElementById('sr-fert').textContent=fmt$(fert);document.getElementById('sr-chem').textContent=fmt$(chem);document.getElementById('sr-land').textContent=fmt$(land);document.getElementById('sr-mach').textContent=fmt$(mach);document.getElementById('sr-total').textContent=fmt$(total);document.getElementById('sr-be').textContent='$'+be.toFixed(2)+'/bu';document.getElementById('sr-rev').textContent=fmt$(rev);document.getElementById('sr-margin').textContent=fmt$(margin);document.getElementById('sr-margin-row').className='result-row total '+(margin>=0?'profit':'loss');const vEl=document.getElementById('s-verdict');if(sale>be+1.50){vEl.className='verdict strong-sell';vEl.innerHTML='<strong>Strong sell signal.</strong> You are $'+(sale-be).toFixed(2)+'/bu above break-even.';}else if(sale>be+0.25){vEl.className='verdict hold';vEl.innerHTML='<strong>Above break-even.</strong> Margin of $'+(sale-be).toFixed(2)+'/bu.';}else if(sale>=be){vEl.className='verdict neutral';vEl.innerHTML='<strong>At/near break-even.</strong> Only $'+(sale-be).toFixed(2)+'/bu margin.';}else{vEl.className='verdict neutral';vEl.innerHTML='<strong>Below break-even.</strong> Loss of $'+(be-sale).toFixed(2)+'/bu.';}document.getElementById('sf-rev').textContent=fmtK(rev*acres);document.getElementById('sf-cost').textContent=fmtK(total*acres);const fm=margin*acres;document.getElementById('sf-margin').textContent=fmtK(fm);document.getElementById('sf-margin').style.color=fm>=0?'var(--up)':'var(--down)';document.getElementById('sf-be').textContent='$'+be.toFixed(2)+'/bu';}
 
 // ── LOCAL BUYERS (GRAIN) ─────────────────────────────────────────────────────
 const REGION_A={id:'regionA',label:'Area 1',sublabel:'Mountain Lake · Fairmont · Trimont',centerLat:43.88,centerLon:-94.76,elevators:{newvision:{name:'New Vision Coop',loc:'Mountain Lake MN',lat:44.0297,lon:-94.9346,cornBasis:-0.20,soyBasis:-0.28,curated:true,region:'A',phone:'(507) 427-2419',phoneLabel:'Grain'},cfs:{name:'CFS — St. James',loc:'St. James MN',lat:43.9822,lon:-94.6271,cornBasis:-0.18,soyBasis:-0.25,curated:true,region:'A',phone:'(507) 375-3350',phoneLabel:'Grain'},cfscv:{name:'Crystal Valley (CFS)',loc:'Crystal Valley MN',lat:44.0300,lon:-94.8000,cornBasis:-0.22,soyBasis:-0.27,curated:true,region:'A',phone:'(507) 639-2031',phoneLabel:'Location'},trimont:{name:'Crystal Valley — Trimont',loc:'Trimont MN',lat:43.7622,lon:-94.7110,cornBasis:-0.16,soyBasis:-0.24,curated:true,region:'A',phone:'(507) 639-2031',phoneLabel:'Grain'},chs:{name:'CHS Fairmont',loc:'Fairmont MN',lat:43.6522,lon:-94.4614,cornBasis:-0.19,soyBasis:-0.26,curated:true,region:'A',phone:'(800) 652-9727',phoneLabel:'Grain'},poet:{name:'POET Biorefining',loc:'Bingham Lake MN',lat:43.8944,lon:-95.0414,cornBasis:-0.14,soyBasis:null,curated:true,region:'A',phone:'(507) 831-0067',phoneLabel:'Commodity'}}};
@@ -283,6 +286,7 @@ function rebuildElevatorDirectory() {
       ${noteHtml}
       ${discoveredNote}
       <div class="auction-links" style="margin-top:10px;">
+        <button onclick="document.getElementById('elev-select').value='${key}';onElevChange();switchSubtab('grain');switchTab('grain','prices',document.querySelector('#sub-grain .tab'));" class="auction-link" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:12px;color:var(--corn);padding:0;letter-spacing:1px;">Set as My Buyer ★</button>
         ${websiteLink}
         <a href="${mapsUrl}" target="_blank" rel="noopener" class="auction-link">Directions ↗</a>
       </div>
@@ -317,8 +321,8 @@ function setCattleType(type) {
   cattleType = type;
   const typeInfo = CATTLE_TYPE_DISCOUNTS[type];
 
-  // Update all toggle buttons — remove inline bg, let CSS class handle it
-  document.querySelectorAll('.cattle-type-btn').forEach(b => {
+  // Update cattle type toggle buttons only (scoped to #sub-cattle to avoid dairy grade buttons)
+  document.querySelectorAll('#sub-cattle .cattle-type-btn').forEach(b => {
     const isActive = b.dataset.type === type;
     b.classList.toggle('active', isActive);
     b.style.background = isActive ? 'var(--cattle)' : 'transparent';
@@ -473,6 +477,59 @@ async function loadBarnPrices() {
   }
 }
 
+let selectedBarnKey = null;
+
+function rebuildBarnSelect() {
+  const sel = document.getElementById('cattle-barn-select'); if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Select auction barn…</option>';
+  const keys = Object.keys(BARNS_DATA);
+  const sorted = userLat
+    ? keys.slice().sort((a,b) => distMiles(userLat,userLon,BARNS_DATA[a].lat,BARNS_DATA[a].lon) - distMiles(userLat,userLon,BARNS_DATA[b].lat,BARNS_DATA[b].lon))
+    : keys;
+  sorted.forEach(k => {
+    const b = BARNS_DATA[k];
+    const dist = userLat ? Math.round(distMiles(userLat,userLon,b.lat,b.lon)) : null;
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = b.name + ' — ' + b.loc + (dist!==null?' (~'+dist+' mi)':'');
+    sel.appendChild(opt);
+  });
+  if(cur && BARNS_DATA[cur]) { sel.value = cur; }
+  else if(userLat && sorted.length) {
+    sel.value = sorted[0];
+    onCattleBarnChange();
+  }
+}
+
+function onCattleBarnChange() {
+  const sel = document.getElementById('cattle-barn-select');
+  const key = sel?.value || null;
+  const distEl = document.getElementById('cattle-barn-dist');
+  selectedBarnKey = key;
+  if(key && userLat) {
+    const b = BARNS_DATA[key];
+    const dist = Math.round(distMiles(userLat,userLon,b.lat,b.lon));
+    if(distEl) distEl.textContent = '~'+dist+' mi away';
+  } else {
+    if(distEl) distEl.textContent = '';
+  }
+  if(key) highlightBarnRow(key);
+}
+
+function selectBarn(key) {
+  selectedBarnKey = key;
+  // Sync the Prices bar select dropdown
+  const sel = document.getElementById('cattle-barn-select');
+  if(sel) { sel.value = key; onCattleBarnChange(); }
+  highlightBarnRow(key);
+  switchSubtab('cattle');
+  switchTab('cattle','prices', document.querySelector('#sub-cattle .tab'));
+}
+function highlightBarnRow(key) {
+  document.querySelectorAll('#barn-table-body tr').forEach(tr => tr.classList.toggle('selected', tr.dataset.key===key));
+}
+
 function barnAdjustedPrice(basePrice) {
   const disc = CATTLE_TYPE_DISCOUNTS[cattleType].discountCwt;
   return (basePrice - disc).toFixed(2);
@@ -498,10 +555,11 @@ function buildBarnTable() {
       : '—';
     const disc = CATTLE_TYPE_DISCOUNTS[cattleType].discountCwt;
     const discStr = disc > 0 ? `<span style="color:var(--down);font-size:11px;">−${disc.toFixed(2)}</span>` : '<span style="color:var(--up);font-size:11px;">baseline</span>';
-    return `<tr><td><div class="elev-name-cell">${b.name}</div><div class="elev-loc-cell">${b.loc} · ${b.freq}</div></td><td class="cash-price-cell">${adjPrice}¢</td><td>${discStr}</td><td style="font-size:11px;color:var(--txt3);">${b.reportDate}</td><td>${distBadge}</td></tr>`;
+    return `<tr data-key="${key}" onclick="selectedBarnKey='${key}';highlightBarnRow('${key}')"><td><div class="elev-name-cell">${b.name}</div><div class="elev-loc-cell">${b.loc} · ${b.freq}</div></td><td class="cash-price-cell">${adjPrice}¢</td><td>${discStr}</td><td style="font-size:11px;color:var(--txt3);">${b.reportDate}</td><td>${distBadge}</td></tr>`;
   });
 
   tbody.innerHTML = rows.join('');
+  if(selectedBarnKey) highlightBarnRow(selectedBarnKey);
 
   // Update source line
   const srcEl = document.getElementById('barn-price-source');
@@ -675,6 +733,7 @@ function buildBarnDirectory() {
       <div class="auction-detail">📞 ${b.phone}</div>
       <div class="auction-detail" style="margin-top:6px;">${b.desc}</div>
       <div class="auction-links" style="margin-top:8px;">
+        <button onclick="selectBarn('${b.id}')" class="auction-link" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:12px;color:var(--cattle);padding:0;letter-spacing:1px;">Set as My Barn ★</button>
         ${extraLinks}
         <a href="${mapsUrl}" target="_blank" rel="noopener" class="auction-link">Directions ↗</a>
       </div>
@@ -1053,4 +1112,584 @@ function updateCornCardCattle() {
   }
 
   if(sourceEl) sourceEl.textContent = elevName + ' basis · nearby vs new crop';
+}
+
+// ── DAIRY ─────────────────────────────────────────────────────────────────────
+// Grade A dairy plants serving southern MN — curated list
+const DAIRY_PLANTS = {
+  ampi_newulm:{name:'AMPI — New Ulm',loc:'New Ulm MN',lat:44.3117,lon:-94.4614,type:'Cooperative',products:'Cheese · Butter · Powder',phone:'(507) 354-8295',url:'https://www.ampi.com',premium:0.15,note:'Upper Midwest co-op · largest dairy co-op in MN · monthly price announcement'},
+  ampi_roch:  {name:'AMPI — Rochester',loc:'Rochester MN',lat:44.0234,lon:-92.4630,type:'Cooperative',products:'Fluid Milk · Cream',phone:'(507) 289-6677',url:'https://www.ampi.com',premium:0.12,note:'Upper Midwest co-op · fluid milk processing'},
+  bongards:   {name:"Bongards' Creameries",loc:'Norwood Young America MN',lat:44.7692,lon:-93.9186,type:'Cooperative',products:'Cheese · Butter',phone:'(952) 466-5521',url:'https://www.bongards.com',premium:0.18,note:'Member-owned · south-central MN · strong cheese premium'},
+  lol:        {name:"Land O'Lakes",loc:'Arden Hills MN',lat:45.0900,lon:-93.1400,type:'Cooperative',products:'Butter · Cheese · Powder',phone:'(800) 328-9680',url:'https://www.landolakesinc.com',premium:0.20,note:'Major co-op · statewide MN pickup routes'},
+  foremost:   {name:'Foremost Farms USA',loc:'Dresser WI',lat:45.3611,lon:-92.6347,type:'Cooperative',products:'Cheese · Butter · Powder',phone:'(800) 362-9196',url:'https://www.foremostfarms.com',premium:0.10,note:'MN/WI region co-op · monthly mailbox price'},
+  dfa:        {name:'Dairy Farmers of America',loc:'Mankato MN',lat:44.1636,lon:-93.9994,type:'Cooperative',products:'Multiple Products',phone:'(816) 801-6455',url:'https://www.dfamilk.com',premium:0.14,note:'National co-op · Upper Midwest division'}
+};
+
+// USDA Order 30 (Upper Midwest) — updated monthly
+// class1Diff: USDA Class 1 differential (fluid milk premium over Class 3 / Grade B)
+const ORDER30 = {price: 18.45, month: 'February 2026', class1Diff: 2.10};
+
+let DAIRY_DATA = {dc: null};  // dc = Grade B (Class 3) CME futures
+let selectedDairyPlant = null;
+
+// ── DAIRY PRICE FETCH ─────────────────────────────────────────────────────────
+function updateOrd30Card() {
+  const c3 = DAIRY_DATA.dc;
+  if(!c3) return;
+  const c3Price    = c3.price;
+  const gradeAPrice = c3Price + ORDER30.class1Diff;
+  const gradeAOpen  = c3.open + ORDER30.class1Diff;
+  const isGradeA = dairyGradeMode === 'A';
+  const displayPrice = isGradeA ? gradeAPrice : c3Price;
+  const displayOpen  = isGradeA ? gradeAOpen  : c3.open;
+  const displayChg   = displayPrice - displayOpen;
+
+  // Card chrome
+  const labelEl = document.getElementById('ord30-card-label');
+  const nameEl  = document.getElementById('ord30-card-name');
+  const unitEl  = document.getElementById('ord30-card-unit');
+  if(labelEl) labelEl.textContent = isGradeA ? 'USDA · Order 30 · Class 1' : 'CME · Class 3 · Nearby';
+  if(nameEl)  nameEl.textContent  = isGradeA ? 'Grade A · Upper Midwest'   : 'Grade B · Upper Midwest';
+  if(unitEl)  unitEl.textContent  = isGradeA ? '$ / cwt · Grade A Class 1 est.' : '$ / cwt · Grade B Class 3';
+
+  // Price and badge
+  const o30el = document.getElementById('p-ord30');
+  if(o30el) { o30el.textContent = '$'+displayPrice.toFixed(2); o30el.style.color='var(--dairy)'; }
+  setBadge('b-ord30', displayChg, (displayChg/displayOpen)*100);
+
+  // Footnote
+  const dateEl = document.getElementById('dairy-blend-date');
+  if(dateEl) dateEl.textContent = isGradeA
+    ? 'Class 1 = Class 3 + $'+ORDER30.class1Diff.toFixed(2)+' diff · '+ORDER30.month
+    : 'CME dc.f · Class 3 futures · nearby contract · '+ORDER30.month;
+}
+
+async function loadDairyPrices() {
+  const fb = {dc:{price:18.45,open:18.20,high:18.70,low:18.00,change:0.25,pct:1.37}};
+  async function fetchOne(sym) {
+    try {
+      const r = await fetch('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv');
+      const t = await r.text();
+      const cols = t.trim().split('\n')[1]?.split(',');
+      if(!cols) throw 0;
+      const [open,high,low,close] = [3,4,5,6].map(i=>parseFloat(cols[i]));
+      if(isNaN(close)) throw 0;
+      return {price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};
+    } catch { return null; }
+  }
+  const dc = await fetchOne('dc.f');
+  DAIRY_DATA = {dc: dc||fb.dc};
+
+  // Grade B (Class 3) card
+  const c3 = DAIRY_DATA.dc;
+  const dcEl = document.getElementById('p-dc'); if(!dcEl) return;
+  dcEl.textContent = '$'+c3.price.toFixed(2);
+  dcEl.style.color = c3.change>0.05?'var(--up)':c3.change<-0.05?'var(--down)':'var(--dairy)';
+  const h=document.getElementById('h-dc'),l=document.getElementById('l-dc'),v=document.getElementById('v-dc');
+  if(h) h.textContent=c3.high.toFixed(2); if(l) l.textContent=c3.low.toFixed(2); if(v) v.textContent=c3.open.toFixed(2);
+  setBadge('b-dc', c3.change, c3.pct);
+
+  // Grade A (Class 1) card — computed from Class 3 + Order 30 Class 1 differential
+  const gradeAPrice = c3.price + ORDER30.class1Diff;
+  const gradeAOpen  = c3.open  + ORDER30.class1Diff;
+  const gradeAChg   = gradeAPrice - gradeAOpen;
+  const dc2El = document.getElementById('p-dc2'); if(dc2El) {
+    dc2El.textContent = '$'+gradeAPrice.toFixed(2);
+    dc2El.style.color = gradeAChg>0.05?'var(--up)':gradeAChg<-0.05?'var(--down)':'var(--dairy)';
+  }
+  setBadge('b-dc2', gradeAChg, (gradeAChg/gradeAOpen)*100);
+  // Repurpose meta items: CLASS 3 base | CL1 DIFF | PREV
+  const hEl=document.getElementById('h-dc2'),lEl=document.getElementById('l-dc2'),vEl=document.getElementById('v-dc2');
+  if(hEl) hEl.textContent='$'+c3.price.toFixed(2);
+  if(lEl) lEl.textContent='+$'+ORDER30.class1Diff.toFixed(2);
+  if(vEl) vEl.textContent='$'+gradeAOpen.toFixed(2);
+
+  // Order 30 card — driven by grade selection
+  updateOrd30Card();
+
+  // Insight strip — Grade A primary
+  let msg = '';
+  if(c3.change>0.05) msg='<strong>Grade A (Class 1) est. $'+gradeAPrice.toFixed(2)+'/cwt</strong> — fluid milk prices moving up. Good time to review your mailbox price vs forward contracts.';
+  else if(c3.change<-0.05) msg='<strong>Grade A softening</strong> — est. <strong>$'+gradeAPrice.toFixed(2)+'/cwt</strong> today. Check your DMC coverage level in the Margin Calc tab.';
+  else if(c3.price<16) msg='<strong>Grade A est. below $18.00/cwt</strong> — tight margins likely. Review the Margin Calc tab and your DMC coverage.';
+  else msg='Grade A (Class 1) est. <strong>$'+gradeAPrice.toFixed(2)+'/cwt</strong> · Grade B (Class 3) <strong>$'+c3.price.toFixed(2)+'/cwt</strong> · Order 30 blend <strong>$'+ORDER30.price.toFixed(2)+'/cwt</strong>';
+  const ins = document.getElementById('dairy-insight'); if(ins) ins.innerHTML=msg;
+
+  // Sync feed price display from existing data
+  updateDairyFeedPrices();
+  buildDairyPlantTable();
+  buildDairyPlantDirectory();
+  // Pre-fill margin calc milk price
+  const mpSlider=document.getElementById('dmc-mp'), mpNum=document.getElementById('dmc-mp-n');
+  if(mpSlider&&!mpSlider._touched){const v=ORDER30.price.toFixed(2);mpSlider.value=v;if(mpNum)mpNum.value=v;document.getElementById('dmc-mp-val').textContent='$'+v;}
+  calcDairy();
+}
+
+function updateDairyFeedPrices() {
+  const cornEl=document.getElementById('dairy-corn-price');
+  if(cornEl&&GRAIN_DATA?.cn?.price) cornEl.textContent='$'+GRAIN_DATA.cn.price.toFixed(4)+'/bu';
+  const sbmEl=document.getElementById('dairy-sbm-price');
+  if(sbmEl) { const sbmVal=document.getElementById('p-sbm')?.textContent; if(sbmVal&&sbmVal!=='—') sbmEl.textContent=sbmVal+'/ton'; }
+  const hayEl=document.getElementById('dairy-hay-price');
+  if(hayEl) { const hayVal=document.getElementById('p-hay')?.textContent; if(hayVal&&hayVal!=='—') hayEl.textContent=hayVal+'/ton'; }
+  // Also seed margin calc corn/hay/sbm from live prices
+  if(GRAIN_DATA?.cn?.price) {
+    const dmpSlider=document.getElementById('dmc-mp'),dmpNum=document.getElementById('dmc-mp-n');
+    if(!dmpSlider?._touched) { /* leave as is — already set from Order 30 */ }
+    // Update corn field in margin calc with current futures price hint
+  }
+}
+
+// ── DAIRY PLANT SELECTOR ──────────────────────────────────────────────────────
+function sortedDairyPlantKeys() {
+  const keys = Object.keys(DAIRY_PLANTS);
+  if(!userLat) return keys;
+  return keys.slice().sort((a,b)=>distMiles(userLat,userLon,DAIRY_PLANTS[a].lat,DAIRY_PLANTS[a].lon)-distMiles(userLat,userLon,DAIRY_PLANTS[b].lat,DAIRY_PLANTS[b].lon));
+}
+
+function rebuildDairyPlantSelect() {
+  const sel = document.getElementById('dairy-plant-select'); if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Select your plant…</option>';
+  sortedDairyPlantKeys().forEach(k => {
+    const p = DAIRY_PLANTS[k];
+    const dist = userLat ? Math.round(distMiles(userLat,userLon,p.lat,p.lon)) : null;
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = p.name + ' — ' + p.loc + (dist!==null?' (~'+dist+' mi)':'');
+    sel.appendChild(opt);
+  });
+  if(cur && DAIRY_PLANTS[cur]) { sel.value = cur; }
+  else if(userLat && sortedDairyPlantKeys().length) {
+    sel.value = sortedDairyPlantKeys()[0];
+    onDairyPlantChange();
+  }
+  buildDairyPlantTable();
+  buildDairyPlantDirectory();
+}
+
+function onDairyPlantChange() {
+  const key = document.getElementById('dairy-plant-select')?.value;
+  const distEl = document.getElementById('dairy-plant-dist');
+  const detailEl = document.getElementById('dairy-plant-detail');
+  selectedDairyPlant = key || null;
+  if(!key) {
+    if(distEl) distEl.textContent='';
+    if(detailEl) { detailEl.style.display='none'; detailEl.innerHTML=''; }
+    const pmEl=document.getElementById('dairy-plant-premium'); if(pmEl) pmEl.textContent='select plant ↑';
+    const mbEl=document.getElementById('dairy-plant-mailbox'); if(mbEl) mbEl.textContent='—';
+    buildDairyPlantTable(); return;
+  }
+  const p = DAIRY_PLANTS[key];
+  if(userLat&&distEl) distEl.textContent='~'+Math.round(distMiles(userLat,userLon,p.lat,p.lon))+' mi away';
+  // Show premium on card
+  const pmEl=document.getElementById('dairy-plant-premium');
+  if(pmEl) { pmEl.textContent=(p.premium>=0?'+':'')+p.premium.toFixed(2)+' $/cwt'; pmEl.style.color=p.premium>=0?'var(--up)':'var(--down)'; }
+  const c3Price    = DAIRY_DATA.dc?.price || (ORDER30.price - ORDER30.class1Diff);
+  const gradeABase = c3Price + ORDER30.class1Diff;
+  const isGradeA   = dairyGradeMode === 'A';
+  const basePrice  = isGradeA ? gradeABase : c3Price;
+  const mailbox = basePrice + p.premium;
+  const mbEl=document.getElementById('dairy-plant-mailbox');
+  if(mbEl) { mbEl.textContent='$'+mailbox.toFixed(2)+'/cwt ('+(isGradeA?'Grade A':'Grade B')+' est.)'; }
+  // Update margin calc milk price to this plant's mailbox price
+  const mpSlider=document.getElementById('dmc-mp'),mpNum=document.getElementById('dmc-mp-n'),mpVal=document.getElementById('dmc-mp-val');
+  if(mpSlider){mpSlider.value=mailbox.toFixed(2);if(mpNum)mpNum.value=mailbox.toFixed(2);if(mpVal)mpVal.textContent='$'+mailbox.toFixed(2);}
+  calcDairy();
+  buildDairyPlantTable();
+  highlightDairyTableRow(key);
+}
+
+function highlightDairyTableRow(key) {
+  document.querySelectorAll('#dairy-plant-table-body tr').forEach(tr=>tr.classList.toggle('selected',tr.dataset.key===key));
+}
+
+// ── DAIRY PLANT TABLE ─────────────────────────────────────────────────────────
+function buildDairyPlantTable() {
+  const tbody = document.getElementById('dairy-plant-table-body'); if(!tbody) return;
+  const sorted = sortedDairyPlantKeys();
+  const c3Price    = DAIRY_DATA.dc?.price || (ORDER30.price - ORDER30.class1Diff);
+  const gradeABase = c3Price + ORDER30.class1Diff;
+  const isGradeA   = dairyGradeMode === 'A';
+  const basePrice  = isGradeA ? gradeABase : c3Price;
+  const gradeLabel = isGradeA ? 'Grade A' : 'Grade B';
+
+  // Update column header and footnote dynamically
+  const hdr = document.getElementById('dairy-mailbox-col-header');
+  if(hdr) hdr.textContent = `Est. ${gradeLabel} Mailbox`;
+  const fn = document.getElementById('dairy-table-footnote');
+  if(fn) fn.textContent = isGradeA
+    ? 'Grade A mailbox = Class 1 est. + plant premium · premiums estimated — verify with your plant\'s monthly announcement'
+    : 'Grade B mailbox = Class 3 (CME) est. + plant premium · premiums estimated — verify with your plant\'s monthly announcement';
+
+  const rows = sorted.map((key,idx) => {
+    const p = DAIRY_PLANTS[key];
+    const mailbox = (basePrice + p.premium).toFixed(2);
+    const pmStr = (p.premium>=0?'+':'')+p.premium.toFixed(2);
+    const pmClass = p.premium>=0?'basis-pos':'basis-neg';
+    const dist = userLat ? Math.round(distMiles(userLat,userLon,p.lat,p.lon)) : null;
+    const distBadge = dist!==null ? (idx===0?`<span style="color:var(--dairy);background:var(--dairy-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`) : '—';
+    return `<tr data-key="${key}" onclick="document.getElementById('dairy-plant-select').value='${key}';onDairyPlantChange()">
+      <td><div class="elev-name-cell">${p.name}</div><div class="elev-loc-cell">${p.loc} · <span style="color:var(--txt3);font-size:11px;">${p.type}</span></div></td>
+      <td style="color:var(--dairy);font-weight:700;">$${mailbox}</td>
+      <td class="${pmClass}">${pmStr}</td>
+      <td>${distBadge}</td></tr>`;
+  });
+  tbody.innerHTML = rows.join('');
+  if(selectedDairyPlant) highlightDairyTableRow(selectedDairyPlant);
+}
+
+// ── DAIRY PLANT DIRECTORY ─────────────────────────────────────────────────────
+function buildDairyPlantDirectory() {
+  const col1=document.getElementById('dairy-dir-col-1'), col2=document.getElementById('dairy-dir-col-2');
+  if(!col1||!col2) return;
+  col1.innerHTML=''; col2.innerHTML='';
+  const sorted = sortedDairyPlantKeys();
+  const c3Price    = DAIRY_DATA.dc?.price || (ORDER30.price - ORDER30.class1Diff);
+  const gradeABase = c3Price + ORDER30.class1Diff;
+  const isGradeA   = dairyGradeMode === 'A';
+  const basePrice  = isGradeA ? gradeABase : c3Price;
+  const gradeLabel = isGradeA ? 'GRADE A' : 'GRADE B';
+  sorted.forEach((key,idx) => {
+    const p = DAIRY_PLANTS[key];
+    const dist = userLat ? Math.round(distMiles(userLat,userLon,p.lat,p.lon)) : null;
+    const isNearest = idx===0&&dist!==null;
+    const distBadge = dist!==null ? `<span style="font-size:11px;color:var(--dairy);background:var(--dairy-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest?' ★':''}</span>` : '';
+    const mailbox = basePrice + p.premium;
+    const pmStr = (p.premium>=0?'+':'')+p.premium.toFixed(2);
+    const borderStyle = isNearest?'border-color:rgba(74,159,212,.3);':'';
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.name+', '+p.loc)}`;
+    const websiteLink = p.url?`<a href="${p.url}" target="_blank" rel="noopener" class="auction-link">Website ↗</a>`:'';
+    const card = `<div class="panel" style="${borderStyle}">
+      <div class="auction-header" style="margin-bottom:6px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+            <span style="font-size:9px;letter-spacing:2px;color:var(--dairy);background:var(--dairy-dim);padding:2px 8px;border-radius:3px;">${gradeLabel} · ${p.type.toUpperCase()}</span>
+          </div>
+          <div class="auction-name">${p.name}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">${distBadge}</div>
+      </div>
+      <div class="auction-detail">📍 ${p.loc}</div>
+      <div class="auction-detail">📞 <a href="tel:${p.phone}" style="color:var(--txt3);text-decoration:none;">${p.phone}</a></div>
+      <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="background:var(--bg3);border-radius:3px;padding:8px 12px;flex:1;min-width:100px;">
+          <div style="font-size:10px;color:var(--txt3);letter-spacing:2px;">PRODUCTS</div>
+          <div style="font-size:12px;color:var(--txt2);margin-top:3px;">${p.products}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:3px;padding:8px 12px;flex:1;min-width:100px;">
+          <div style="font-size:10px;color:var(--txt3);letter-spacing:2px;">EST. PREMIUM</div>
+          <div style="font-size:16px;font-weight:700;color:${p.premium>=0?'var(--up)':'var(--down)'};margin-top:3px;">${pmStr} $/cwt</div>
+        </div>
+        <div style="background:var(--dairy-dim);border-radius:3px;padding:8px 12px;flex:1;min-width:100px;">
+          <div style="font-size:10px;color:var(--dairy);letter-spacing:2px;">EST. MAILBOX</div>
+          <div style="font-size:16px;font-weight:700;color:var(--dairy);margin-top:3px;">$${mailbox.toFixed(2)}/cwt</div>
+        </div>
+      </div>
+      ${p.note?`<div class="auction-detail" style="margin-top:8px;">${p.note}</div>`:''}
+      <div class="auction-links" style="margin-top:10px;">
+        <button onclick="document.getElementById('dairy-plant-select').value='${key}';onDairyPlantChange();switchSubtab('dairy');switchTab('dairy','prices',document.querySelector('#sub-dairy .tab'));" class="auction-link" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:12px;color:var(--dairy);padding:0;letter-spacing:1px;">Set as My Plant ★</button>
+        ${websiteLink}
+        <a href="${mapsUrl}" target="_blank" rel="noopener" class="auction-link">Directions ↗</a>
+      </div>
+    </div>`;
+    if(idx < Math.ceil(sorted.length/2)) col1.innerHTML+=card;
+    else col2.innerHTML+=card;
+  });
+}
+
+// ── DAIRY CHARTS ──────────────────────────────────────────────────────────────
+let dairyHistRange = 90;
+let dairyGradeMode = 'A'; // 'A' = Grade A (Class 1), 'B' = Grade B (Class 3)
+
+// MN Grade A seasonal index — % deviation from annual avg by month (Jan–Dec)
+// Spring flush tends to soften prices; winter tightness lifts them
+const DAIRY_SEASONAL = [+1.2, +0.8, +1.8, +2.4, +1.6, -0.6, -1.8, -2.4, -2.0, -1.2, +0.2, +0.8];
+
+function setDairyRange(r, btn) {
+  dairyHistRange = r;
+  // Only clear active on range buttons (not grade buttons)
+  document.querySelectorAll('#dairy-charts .hist-controls .hist-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDairyCharts();
+}
+
+function setDairyGrade(grade, btn) {
+  dairyGradeMode = grade;
+  // Toggle active state on grade buttons only
+  document.getElementById('dairy-grade-a-btn')?.classList.toggle('active', grade === 'A');
+  document.getElementById('dairy-grade-b-btn')?.classList.toggle('active', grade === 'B');
+  // Update insight strip based on grade selection
+  const c3 = DAIRY_DATA.dc;
+  const ins = document.getElementById('dairy-insight');
+  if(ins && c3) {
+    const c3Price    = c3.price;
+    const gradeAPrice = c3Price + ORDER30.class1Diff;
+    if(grade === 'A') {
+      ins.innerHTML = '<strong>Grade A (Class 1)</strong> selected — fluid milk standard. Est. <strong>$'+gradeAPrice.toFixed(2)+'/cwt</strong> · Order 30 Class 1 differential +$'+ORDER30.class1Diff.toFixed(2)+' above Class 3.';
+    } else {
+      ins.innerHTML = '<strong>Grade B (Class 3)</strong> selected — manufacturing milk. Tracks CME Class 3 futures directly at est. <strong>$'+c3Price.toFixed(2)+'/cwt</strong>.';
+    }
+  }
+  // Update Order 30 card chrome + price
+  updateOrd30Card();
+  // Rebuild table and directory with new grade base price
+  buildDairyPlantTable();
+  buildDairyPlantDirectory();
+  // Re-run plant change to update mailbox card with correct grade
+  if(selectedDairyPlant) onDairyPlantChange();
+  // Update charts
+  renderDairyCharts();
+}
+
+function renderDairyCharts() {
+  const c3Price    = DAIRY_DATA.dc?.price || (ORDER30.price - ORDER30.class1Diff);
+  const gradeABase = c3Price + ORDER30.class1Diff;
+  const isGradeA   = dairyGradeMode === 'A';
+  const basePrice  = isGradeA ? gradeABase : c3Price;
+  const gradeLabel = isGradeA ? 'Grade A (Class 1)' : 'Grade B (Class 3)';
+  const days       = dairyHistRange;
+  const labs       = genLabels(days);
+
+  // Update plant badge
+  const badge = document.getElementById('dairy-chart-plant-badge');
+  if(badge) {
+    const p = selectedDairyPlant ? DAIRY_PLANTS[selectedDairyPlant] : null;
+    badge.textContent = p ? p.name : 'No plant selected — showing market';
+  }
+
+  // Update dynamic labels
+  const mainTitle = document.getElementById('dairy-main-title');
+  if(mainTitle) mainTitle.textContent = `${gradeLabel} Mailbox — Your Plant vs Others ($/cwt)`;
+  const premTitle = document.getElementById('dairy-prem-title');
+  if(premTitle) premTitle.textContent = `Your Plant Premium Over ${gradeLabel} ($/cwt)`;
+  const premSub = document.getElementById('dairy-prem-sub');
+  if(premSub) premSub.textContent = `Rolling 13 months · monthly · shaded band = premium vs ${gradeLabel} base`;
+  const legendBase = document.getElementById('dairy-legend-base');
+  if(legendBase) legendBase.textContent = isGradeA ? 'Grade A base' : 'Grade B base';
+
+  // ── Generate base history directly from basePrice (no Grade B derivation)
+  const baseHist = genHistory(basePrice, days, 0.008);
+
+  const plantKeys = Object.keys(DAIRY_PLANTS);
+  const myKey     = selectedDairyPlant || plantKeys[0];
+  const myPlant   = DAIRY_PLANTS[myKey];
+  const myMailboxHist = baseHist.map(v => parseFloat((v + myPlant.premium).toFixed(2)));
+
+  // Other plants — faint lines (all relative to same base)
+  const otherDatasets = plantKeys
+    .filter(k => k !== myKey)
+    .map(k => {
+      const op = DAIRY_PLANTS[k];
+      return {
+        label: op.name,
+        data: baseHist.map(v => parseFloat((v + op.premium).toFixed(2))),
+        borderColor: 'rgba(74,159,212,0.18)',
+        borderWidth: 1.5,
+        fill: false,
+        pointRadius: 0,
+        hitRadius: 0,
+      };
+    });
+
+  // ── MAIN CHART — Your mailbox (bold) + other plants (faint) + selected grade base (dashed)
+  if(charts['dairy-hist-main']) charts['dairy-hist-main'].destroy();
+  const mainCtx = document.getElementById('dairy-hist-main');
+  if(mainCtx) {
+    charts['dairy-hist-main'] = new Chart(mainCtx, {
+      type: 'line',
+      data: {
+        labels: labs,
+        datasets: [
+          // Grade base — dashed reference line
+          {
+            label: gradeLabel + ' base',
+            data: baseHist,
+            borderColor: 'rgba(200,200,200,0.35)',
+            borderWidth: 1.5,
+            borderDash: [4,4],
+            fill: false,
+            pointRadius: 0,
+          },
+          // Other plants — faint
+          ...otherDatasets,
+          // Shaded band fill between grade base and my mailbox
+          {
+            label: 'Premium band',
+            data: myMailboxHist,
+            borderColor: 'transparent',
+            backgroundColor: 'rgba(74,159,212,0.08)',
+            fill: '-' + (otherDatasets.length + 1), // fill down to base dataset
+            pointRadius: 0,
+            hitRadius: 0,
+          },
+          // My plant — bold primary
+          {
+            label: myPlant.name,
+            data: myMailboxHist,
+            borderColor: '#4a9fd4',
+            borderWidth: 2.5,
+            fill: false,
+            pointRadius: 0,
+            hitRadius: 12,
+          },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: 'index', intersect: false,
+            callbacks: {
+              label: c => {
+                if(c.dataset.label === 'Premium band') return null;
+                return c.dataset.label + ': $' + c.raw.toFixed(2) + '/cwt';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color:'#5e6369', font:{size:11}, maxTicksLimit:8, maxRotation:0 }, grid:{color:'#252a31'} },
+          y: { ticks: { color:'#5e6369', font:{size:11}, callback: v=>'$'+v.toFixed(2) }, grid:{color:'#252a31'} }
+        },
+        elements: { point:{radius:0,hitRadius:12}, line:{tension:0.3} }
+      }
+    });
+  }
+
+  // ── PREMIUM BAND CHART — Rolling 13 months, monthly x-axis, independent of range selector
+  const premMonthLabels = genMonthlyLabels(13);
+  const premMonthData   = genMonthlyHistory(myPlant.premium, 13, 0.04);
+  if(charts['dairy-hist-premium']) charts['dairy-hist-premium'].destroy();
+  const premCtx = document.getElementById('dairy-hist-premium');
+  if(premCtx) {
+    charts['dairy-hist-premium'] = new Chart(premCtx, {
+      type: 'line',
+      data: {
+        labels: premMonthLabels,
+        datasets: [{
+          label: 'Your Plant Premium',
+          data: premMonthData,
+          borderColor: '#4a9fd4',
+          borderWidth: 2,
+          backgroundColor: 'rgba(74,159,212,0.10)',
+          fill: true,
+          pointRadius: 3,
+          pointBackgroundColor: '#4a9fd4',
+          hitRadius: 12,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { mode:'index', intersect:false, callbacks:{ label: c=>'Premium over '+gradeLabel+': $'+c.raw.toFixed(3)+'/cwt' } }
+        },
+        scales: {
+          x: { ticks:{color:'#5e6369',font:{size:11},maxRotation:0}, grid:{color:'#252a31'} },
+          y: { ticks:{color:'#5e6369',font:{size:11},callback:v=>'$'+v.toFixed(3)}, grid:{color:'#252a31'} }
+        },
+        elements: { line:{tension:0.3} }
+      }
+    });
+  }
+
+  // ── SEASONAL CHART — MN Grade A monthly pattern
+  if(charts['dairy-seasonal']) charts['dairy-seasonal'].destroy();
+  const seasCtx = document.getElementById('dairy-seasonal');
+  if(seasCtx) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const curMonth = new Date().getMonth();
+    const colors = DAIRY_SEASONAL.map((v,i) =>
+      i === curMonth ? '#4a9fd4'
+      : v >= 0 ? 'rgba(60,185,106,0.55)'
+      : 'rgba(224,80,80,0.50)'
+    );
+    charts['dairy-seasonal'] = new Chart(seasCtx, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [{ data: DAIRY_SEASONAL, backgroundColor: colors, borderRadius: 3 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => (c.raw>=0?'+':'')+c.raw+'% vs annual avg' } }
+        },
+        scales: {
+          x: { ticks:{color:'#5e6369',font:{size:11}}, grid:{display:false} },
+          y: { ticks:{color:'#5e6369',font:{size:11},callback:v=>(v>=0?'+':'')+v+'%'}, grid:{color:'#252a31'} }
+        }
+      }
+    });
+  }
+}
+
+// ── DAIRY MARGIN CALC ─────────────────────────────────────────────────────────
+function syncDMCField(id,val,prefix,dec) {
+  const v=parseFloat(val)||0;
+  const slider=document.getElementById(id), num=document.getElementById(id+'-n'), disp=document.getElementById(id+'-val');
+  if(slider)slider.value=v; if(num)num.value=v;
+  if(disp)disp.textContent=(prefix||'')+(dec===0?Math.round(v):v.toFixed(dec));
+  if(id==='dmc-mp'&&slider)slider._touched=true;
+}
+
+function calcDairy() {
+  const mp   = parseFloat(document.getElementById('dmc-mp')?.value)||18;   // $/cwt milk price
+  const prod = parseFloat(document.getElementById('dmc-prod')?.value)||75;  // lbs/cow/day
+  const corn = parseFloat(document.getElementById('dmc-corn')?.value)||0.20;// bu/cow/day
+  const hay  = parseFloat(document.getElementById('dmc-hay')?.value)||30;   // lb/cow/day
+  const sbm  = parseFloat(document.getElementById('dmc-sbm')?.value)||4;    // lb/cow/day
+  const other= parseFloat(document.getElementById('dmc-other')?.value)||1.0;// $/cow/day
+  const cows = parseFloat(document.getElementById('dmc-cows')?.value)||100;
+
+  // Feed costs using live prices where available, else fallback
+  const cornPx  = GRAIN_DATA?.cn?.price || 4.35;           // $/bu
+  const sbmPx   = parseFloat(document.getElementById('p-sbm')?.textContent)||330; // $/ton
+  const hayPx   = parseFloat(document.getElementById('p-hay')?.textContent)||210;  // $/ton
+
+  const cornCost  = corn * cornPx;                   // $/cow/day
+  const hayCost   = (hay / 2000) * hayPx;            // $/cow/day (lb→ton)
+  const sbmCost   = (sbm / 2000) * sbmPx;            // $/cow/day (lb→ton)
+  const feedTotal = cornCost + hayCost + sbmCost + other;
+  const rev       = (prod / 100) * mp;               // $/cow/day (cwt = 100lbs)
+  const margin    = rev - feedTotal;                  // $/cow/day
+  const marginCwt = (prod>0) ? (margin / (prod/100)) : 0;
+  const be        = (prod>0) ? (feedTotal / (prod/100)) : 0;
+
+  function fmt(v,d=2){return(v<0?'-$':'$')+Math.abs(v).toFixed(d);}
+  function setEl(id,txt,color){const el=document.getElementById(id);if(el){el.textContent=txt;if(color)el.style.color=color;}}
+
+  setEl('dmc-r-corn',  fmt(cornCost)+'/day');
+  setEl('dmc-r-hay',   fmt(hayCost)+'/day');
+  setEl('dmc-r-sbm',   fmt(sbmCost)+'/day');
+  setEl('dmc-r-other', fmt(other)+'/day');
+  setEl('dmc-r-feedtotal', fmt(feedTotal)+'/day', 'var(--down)');
+  setEl('dmc-r-rev',   fmt(rev)+'/day', 'var(--dairy)');
+  setEl('dmc-r-margin',fmt(margin)+'/day', margin>=0?'var(--up)':'var(--down)');
+  setEl('dmc-r-margin-cwt', fmt(marginCwt)+'/cwt', margin>=0?'var(--up)':'var(--down)');
+  setEl('dmc-r-be',    fmt(be)+'/cwt');
+
+  const mRow=document.getElementById('dmc-margin-row');
+  if(mRow)mRow.style.background=margin>=0?'rgba(60,185,106,.06)':'rgba(224,80,80,.06)';
+
+  // Full herd
+  const dayHerd=margin*cows, moHerd=dayHerd*30, yrHerd=dayHerd*365, annualMilk=prod*cows*365;
+  function fmtK(v){return(v<0?'-$':'$')+Math.abs(v>=1000?Math.round(v/1000)+'k':Math.round(v));}
+  setEl('dmc-herd-day',  fmtK(dayHerd), dayHerd>=0?'var(--up)':'var(--down)');
+  setEl('dmc-herd-mo',   fmtK(moHerd),  moHerd>=0?'var(--up)':'var(--down)');
+  setEl('dmc-herd-yr',   fmtK(yrHerd),  yrHerd>=0?'var(--up)':'var(--down)');
+  setEl('dmc-herd-milk', Math.round(annualMilk/1000)+'k lbs');
+
+  // Verdict
+  const v=document.getElementById('dmc-verdict');
+  if(v){
+    if(margin>=3)       {v.textContent='Strong margin — well above feed costs.';v.className='verdict up';}
+    else if(margin>=1)  {v.textContent='Positive margin — covering feed costs with room.';v.className='verdict up';}
+    else if(margin>=0)  {v.textContent='Tight margin — covering feed but little cushion.';v.className='verdict neutral';}
+    else if(marginCwt>=-2){v.textContent='Margin negative — review feed efficiency or forward price milk.';v.className='verdict down';}
+    else                {v.textContent='Margin well below feed cost — consider DMC coverage level.';v.className='verdict down';}
+  }
 }
