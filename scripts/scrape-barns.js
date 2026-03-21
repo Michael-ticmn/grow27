@@ -2,14 +2,15 @@
 // grow27 — auction barn price scraper
 // Runs via GitHub Actions daily at 7am CT.
 // Reads data/barns-config.json, writes data/prices/<id>.json + data/prices/index.json.
-// Node.js 20+ (built-in fetch). Only external dep: cheerio.
+// Deps: cheerio (HTML parsing), puppeteer (JS-rendered pages).
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
 
-const fs      = require('fs');
-const path    = require('path');
-const cheerio = require('cheerio');
+const fs        = require('fs');
+const path      = require('path');
+const cheerio   = require('cheerio');
+const puppeteer = require('puppeteer');
 
 const ROOT         = path.join(__dirname, '..');
 const CONFIG_PATH  = path.join(ROOT, 'data', 'barns-config.json');
@@ -57,28 +58,52 @@ function extractPrice(text, minVal = 150, maxVal = 400) {
 async function scrapeBarns(config) {
   const { id, reportUrl, parseRules } = config;
 
-  // ── 1. Fetch ────────────────────────────────────────────────────────────
+  // ── 1. Fetch via Puppeteer (handles JS-rendered pages) ──────────────────
   let html;
+  let browser;
   try {
-    console.log(`[${id}] fetching: ${reportUrl}`);
-    const res = await fetch(reportUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; grow27-bot/1.0; +https://michael-ticmn.github.io/grow27/)',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-      signal: AbortSignal.timeout(15000),
+    console.log(`[${id}] launching Puppeteer for: ${reportUrl}`);
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
-    console.log(`[${id}] fetch status: ${res.status} ${res.statusText}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    html = await res.text();
+    const page = await browser.newPage();
+    await page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+      '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    );
+
+    const response = await page.goto(reportUrl, {
+      waitUntil: 'networkidle2',
+      timeout: 30000,
+    });
+    console.log(`[${id}] page status: ${response.status()}`);
+    if (!response.ok()) throw new Error(`HTTP ${response.status()}`);
+
+    // Wait up to 5s for at least one <td> to be populated with text
+    try {
+      await page.waitForFunction(
+        () => [...document.querySelectorAll('td')].some(td => td.innerText.trim().length > 0),
+        { timeout: 5000 }
+      );
+      console.log(`[${id}] td cells populated`);
+    } catch {
+      console.warn(`[${id}] waitForFunction timed out — proceeding with page as-is after 3s`);
+      await new Promise(r => setTimeout(r, 3000));
+    }
+
+    html = await page.content();
     console.log(`[${id}] fetch OK · ${html.length} bytes`);
     // ── 3. HTML preview (first 500 chars) ─────────────────────────────────
     console.log(`[${id}] HTML preview:\n${html.slice(0, 500)}\n`);
     if (html.length < 500) throw new Error('response too short — likely blocked or empty');
+
   } catch (fetchErr) {
     // ── 2. Fetch failed ────────────────────────────────────────────────────
     console.error(`[${id}] FETCH FAILED: ${fetchErr.message}`);
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: fetchErr.message };
+  } finally {
+    if (browser) await browser.close();
   }
 
   // ── Parse ────────────────────────────────────────────────────────────────

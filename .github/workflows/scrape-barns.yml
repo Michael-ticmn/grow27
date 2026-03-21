@@ -28,11 +28,14 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install cheerio
-        run: npm install cheerio
+      - name: Install dependencies
+        run: npm install cheerio puppeteer
 
       - name: Run barn scraper
         run: node scripts/scrape-barns.js
+
+      - name: Reset non-price files
+        run: git checkout -- . && git clean -fd --exclude=data/prices/
 
       - name: Commit updated price files
         run: |
