@@ -267,7 +267,7 @@
   .barn-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
 
   /* ── STUB MODULES ── */
-  .stub-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:40px;}
+  .stub-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:40px;text-align:center;}
   .stub-mark{font-size:48px;font-weight:700;letter-spacing:-2px;}
   .stub-name{font-size:18px;letter-spacing:3px;text-transform:uppercase;font-weight:700;}
   .stub-sub{font-size:13px;color:var(--txt3);letter-spacing:1px;}
