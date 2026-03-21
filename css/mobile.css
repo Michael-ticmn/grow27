@@ -96,6 +96,9 @@
   /* Brand: hide italic subtitle (keeps logo + module name) */
   .brand-subtitle{display:none!important;}
 
+  /* Hide feedback button text — too crowded at this size */
+  .feedback-btn{display:none;}
+
   /* Topbar clock: drop the last-updated line, keep status dot */
   #last-updated-txt{display:none;}
 
