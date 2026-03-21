@@ -1,0 +1,48 @@
+[
+  {
+    "id": "central",
+    "name": "Central Livestock Association",
+    "location": "Zumbrota MN",
+    "reportUrl": "https://centrallivestock.com/monday---cattle.html",
+    "hasTypeBreakdown": true,
+    "parseRules": {
+      "slaughter": {
+        "beef": "Finished Beef Steers",
+        "crossbred": "Finished Dairy-X Steers & Heifers",
+        "holstein": "Finished Dairy Steers"
+      },
+      "feeder": {
+        "beef": "Feeder Cattle",
+        "holstein": "Dairy Steers"
+      }
+    }
+  },
+  {
+    "id": "lanesboro",
+    "name": "Lanesboro Sales Commission",
+    "location": "Lanesboro MN",
+    "reportUrl": null,
+    "hasTypeBreakdown": false
+  },
+  {
+    "id": "rockcreek",
+    "name": "Rock Creek Livestock Market",
+    "location": "Pine City MN",
+    "reportUrl": null,
+    "hasTypeBreakdown": false
+  },
+  {
+    "id": "sleepyeye",
+    "name": "Sleepy Eye Auction Market",
+    "location": "Sleepy Eye MN",
+    "reportUrl": null,
+    "hasTypeBreakdown": false
+  },
+  {
+    "id": "pipestone",
+    "name": "Pipestone Livestock Auction",
+    "location": "Pipestone MN",
+    "reportUrl": null,
+    "hasTypeBreakdown": false
+  }
+]
