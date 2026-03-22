@@ -536,8 +536,8 @@ async function loadScrapedBarnData() {
 // pre-scraped data from index.json is missing or stale.
 // Sets BARNS_DATA.central.dataSource = 'live' on success.
 async function loadCentralLivestockData() {
-  // Skip if pre-scraped data already loaded
-  if (BARNS_DATA.central.finishPrices && BARNS_DATA.central.dataSource === 'live') {
+  // Skip if pre-scraped data already loaded (from index.json via loadScrapedBarnData)
+  if (BARNS_DATA.central.dataSource === 'live' || BARNS_DATA.central.repSales) {
     console.log('[central] skipping CORS scraper — pre-scraped data already loaded');
     return;
   }
