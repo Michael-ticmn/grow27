@@ -34,6 +34,55 @@
         "holstein": 203,
         "liteTest": true
       },
+      "feederWeights": [
+        {
+          "range": "350–600#",
+          "price": 405,
+          "types": [
+            "beef",
+            "crossbred"
+          ]
+        },
+        {
+          "range": "600–800#",
+          "price": 335,
+          "types": [
+            "beef",
+            "crossbred"
+          ]
+        },
+        {
+          "range": "800–1000#",
+          "price": 255,
+          "types": [
+            "beef",
+            "crossbred"
+          ]
+        },
+        {
+          "range": "600–800#",
+          "price": 350,
+          "types": [
+            "beef",
+            "crossbred"
+          ]
+        },
+        {
+          "range": "800–1000#",
+          "price": 240,
+          "types": [
+            "beef",
+            "crossbred"
+          ]
+        },
+        {
+          "range": "400–600#",
+          "price": 300,
+          "types": [
+            "holstein"
+          ]
+        }
+      ],
       "source": "scraped"
     }
   ]
