@@ -171,6 +171,7 @@ async function scrapeBarns(config) {
     const slaughter = { beef: null, crossbred: null, holstein: null };
     const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
     const feederWeights = [];  // { range, price, types } per weight class
+    let reportDate = null;  // extracted from "Market Report - MM/DD/YYYY"
 
     // Track whether we're in the feeder section (for liteTest detection)
     let inFeederSection = false;
@@ -206,6 +207,18 @@ async function scrapeBarns(config) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const lower = line.toLowerCase();
+
+      // ── Report date extraction ─────────────────────────────────────────
+      if (!reportDate && /market\s*report/i.test(line)) {
+        const dm = line.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+        if (dm) {
+          const mm = dm[1].padStart(2, '0');
+          const dd = dm[2].padStart(2, '0');
+          const yyyy = dm[3].length === 2 ? '20' + dm[3] : dm[3];
+          reportDate = `${yyyy}-${mm}-${dd}`;
+          console.log(`[${id}] report date: ${reportDate}`);
+        }
+      }
 
       // ── Slaughter headers ──────────────────────────────────────────────
       if (/finished\s+beef\s+steers/i.test(line)) {
@@ -319,7 +332,7 @@ async function scrapeBarns(config) {
       throw new Error('OCR returned no usable prices — text may be unreadable');
     }
 
-    return { slaughter, feeder, feederWeights, source: 'scraped', error: null };
+    return { slaughter, feeder, feederWeights, reportDate, source: 'scraped', error: null };
 
   } catch (parseErr) {
     console.error(`[${id}] PARSE ERROR: ${parseErr.message}`);
@@ -414,7 +427,7 @@ async function run() {
         source:    result.source,
       };
       if (result.error) entry.error = result.error;
-      if (result.source === 'scraped') barnData.lastSuccess = todayStr;
+      if (result.source === 'scraped') barnData.lastSuccess = result.reportDate || todayStr;
     } else {
       // No type breakdown / no report URL — write pending entry
       entry = nullEntry(todayStr, 'pending');

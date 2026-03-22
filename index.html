@@ -1085,7 +1085,7 @@
 </nav>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/markets.js?v=1.16"></script>
+<script src="js/markets.js?v=1.17"></script>
 <script>
 // Load pre-scraped barn data from GitHub Actions bot (inline to bypass JS cache)
 // Self-executing: loads data immediately AND patches the CORS scraper to skip
@@ -1107,14 +1107,30 @@
       }
       // Load feeder weight ranges into b.feederWeights (used by drawer detail table)
       if (entry.feederWeights && entry.feederWeights.length) {
-        b.feederWeights = entry.feederWeights;
-        console.log('[barn-data] loaded ' + entry.feederWeights.length + ' feeder weight ranges for ' + entry.id);
+        // Dedup: keep highest price per range+types combo
+        var seen = {};
+        var deduped = [];
+        entry.feederWeights.forEach(function(fw) {
+          var key = fw.range + '|' + (fw.types || []).sort().join(',');
+          if (!seen[key] || fw.price > seen[key].price) {
+            seen[key] = fw;
+          }
+        });
+        for (var k in seen) deduped.push(seen[k]);
+        // Sort by weight low bound
+        deduped.sort(function(a, b) {
+          var aNum = parseInt(a.range) || 0;
+          var bNum = parseInt(b.range) || 0;
+          return aNum - bNum;
+        });
+        b.feederWeights = deduped;
+        console.log('[barn-data] loaded ' + deduped.length + ' feeder weight ranges for ' + entry.id + ' (deduped from ' + entry.feederWeights.length + ')');
       }
       b.dataSource = 'live';
       b._scrapeError = null;
       if (entry.lastSuccess) {
         const d = new Date(entry.lastSuccess + 'T12:00:00');
-        b.reportDate = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        b.reportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       }
     }
     buildBarnTable();
@@ -1143,8 +1159,21 @@ buildBarnTable = function() {
   var keys = Object.keys(BARNS_DATA);
   keys.forEach(function(key) {
     var b = BARNS_DATA[key];
-    if (!b._feederScraped) return;
-    var feederPrice = b._feederScraped[type];
+    if (!b._feederScraped && !(b.feederWeights && b.feederWeights.length)) return;
+    // Derive header feeder price from weight detail (average of prices for selected type)
+    var feederPrice = null;
+    if (b.feederWeights && b.feederWeights.length) {
+      var sum = 0, count = 0;
+      b.feederWeights.forEach(function(fw) {
+        if (fw.types && fw.types.includes(type)) {
+          sum += fw.price;
+          count++;
+        }
+      });
+      if (count > 0) feederPrice = sum / count;
+    }
+    // Fall back to _feederScraped if no weight detail for this type
+    if (feederPrice === null && b._feederScraped) feederPrice = b._feederScraped[type];
     if (feederPrice == null) return;
     // Find the barn row and update its feeder cell
     var row = document.querySelector('tr.barn-row[data-key="' + key + '"]');
@@ -1156,7 +1185,7 @@ buildBarnTable = function() {
   });
 };
 </script>
-<script src="js/app.js?v=1.16"></script>
+<script src="js/app.js?v=1.17"></script>
 
 <!-- ── MOBILE FEEDBACK FAB ── -->
 <a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.10%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>

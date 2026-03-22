@@ -510,7 +510,7 @@ async function loadScrapedBarnData() {
       // Report date from lastSuccess
       if (entry.lastSuccess) {
         const d = new Date(entry.lastSuccess + 'T12:00:00');
-        b.reportDate = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        b.reportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       }
     }
 
@@ -835,9 +835,11 @@ function buildBarnTable() {
       ? b.finishPrices[cattleType].toFixed(2)
       : barnAdjustedPrice(b.basePrice);
 
-    const discStr = disc > 0
-      ? `<span style="color:var(--down);font-size:11px;">−${disc.toFixed(2)}</span>`
-      : '<span style="color:var(--up);font-size:11px;">baseline</span>';
+    const discStr = scraped
+      ? '<span style="color:var(--up);font-size:11px;">actual</span>'
+      : disc > 0
+        ? `<span style="color:var(--down);font-size:11px;">−${disc.toFixed(2)}</span>`
+        : '<span style="color:var(--up);font-size:11px;">baseline</span>';
 
     // ── Per-column source badges ──
     // Slaughter: LIVE if barn has scraped finishPrices, else barn's dataSource (usda/cme)
@@ -853,8 +855,11 @@ function buildBarnTable() {
     const finishRows = weightClasses.map(w => {
       // For scraped barns with type-specific prices, anchor to the type price; otherwise use grade-adj off base
       let price;
-      if(scraped && b.finishPrices.beef != null) {
-        // Scale from the scraped beef baseline keeping grade-schedule offsets
+      if(scraped && b.finishPrices[cattleType] != null) {
+        // Use the actual scraped type price + grade-schedule weight offset (no type discount)
+        price = (b.finishPrices[cattleType] + w.adj).toFixed(2);
+      } else if(scraped && b.finishPrices.beef != null) {
+        // Scraped but no type-specific price — fall back to beef minus discount
         price = (b.finishPrices.beef + w.adj - disc).toFixed(2);
       } else {
         price = (b.basePrice + w.adj - disc).toFixed(2);
@@ -879,7 +884,8 @@ function buildBarnTable() {
       const relevantWeights = b.feederWeights.filter(w => w.types.includes(cattleType));
       if(relevantWeights.length) {
         feederRows = relevantWeights.map(w => {
-          const adjP = (w.price - feederDisc).toFixed(2);
+          // Scraped feeder prices are already type-specific — no discount needed
+          const adjP = w.price.toFixed(2);
           return `<tr>
             <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}</td>
             <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${adjP}¢</td>
@@ -912,9 +918,11 @@ function buildBarnTable() {
       feederFoot = 'USDA sj_ls850.txt · loading…';
     }
 
-    const discNote = disc > 0
-      ? `<div style="font-size:10px;color:var(--txt3);padding:3px 8px 5px;border-top:1px solid var(--border);font-style:italic;">${typeLabel} · −${disc.toFixed(2)}¢/cwt applied</div>`
-      : '';
+    const discNote = scraped
+      ? (cattleType !== 'beef' ? `<div style="font-size:10px;color:var(--txt3);padding:3px 8px 5px;border-top:1px solid var(--border);font-style:italic;">${typeLabel} · actual barn-reported price</div>` : '')
+      : disc > 0
+        ? `<div style="font-size:10px;color:var(--txt3);padding:3px 8px 5px;border-top:1px solid var(--border);font-style:italic;">${typeLabel} · −${disc.toFixed(2)}¢/cwt applied</div>`
+        : '';
 
     const drawerHtml = `<tr class="barn-drawer" id="drawer-${key}">
       <td colspan="5">
