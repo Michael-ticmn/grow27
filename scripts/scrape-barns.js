@@ -405,10 +405,13 @@ async function scrapeBarns(config) {
         const SECTION_RE = /^Representative\s+Sales[:\s]+(.+)/i;
 
         // Sale row regex (loose — allows OCR case errors like BiKsTR)
-        const SALE_ROW_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2,3})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/g;
+        // Sale row regex: allow non-ASCII chars in description (OCR produces
+        // Ñ for X, ó for ¢, etc.) — use \S for description start char
+        const SALE_ROW_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2,3})\s+(\d{1,3})\s+(\S[\w\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/g;
 
-        // Cattle breed/sex filter — prevents hog rows from leaking in
-        const CATTLE_DESC_RE = /STR|HFR|COW|BULL|BUL|CALF|CLF/i;
+        // Cattle breed/sex filter — prevents hog rows from leaking in.
+        // ST\/H = "Steers/Heifers" (OCR merges breed+sex: "BKRDST/H")
+        const CATTLE_DESC_RE = /STR|ST\/H|HFR|COW|BULL|BUL|CALF|CLF/i;
 
         // Category mapper
         function mapCategory(secText) {
@@ -446,10 +449,12 @@ async function scrapeBarns(config) {
           let cattleType = 'beef';
           if (/HOL/i.test(descUpper)) cattleType = 'holstein';
           else if (/XBRD|BKRD|BWF|RWF|CROSS/i.test(descUpper)) cattleType = 'crossbred';
+          else if (/\u00d1BRD/i.test(desc)) cattleType = 'crossbred';  // OCR: Ñ for X
           // BLK, BIK, RED, CHAR, WF, ANG, SIM, etc. all default to beef
 
           let sex = 'steer';
-          if (/HFR/.test(descUpper)) sex = 'heifer';
+          if (/ST\/H/.test(descUpper)) sex = 'mixed';  // steers/heifers
+          else if (/HFR/.test(descUpper)) sex = 'heifer';
           else if (/BULL|BUL/.test(descUpper)) sex = 'bull';
           else if (/COW/.test(descUpper)) sex = 'cow';
 
