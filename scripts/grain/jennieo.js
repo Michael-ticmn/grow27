@@ -84,7 +84,7 @@ async function parse({ id, config, browser }) {
           const rows = table.querySelectorAll('tbody tr, tr');
 
           for (const row of rows) {
-            const cells = row.querySelectorAll('td');
+            const cells = row.querySelectorAll('td, th');
             if (cells.length < 5) continue;
 
             const delivery     = (cells[0]?.textContent || '').trim();
