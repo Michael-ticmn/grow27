@@ -67,6 +67,10 @@ Claude edits files directly in the local repo. Michael validates locally before 
 
 **Adding a new barn parser:** Create `scripts/barns/<id>.js` matching the id in `barns-config.json`. Export `parse({ id, browser, html, $ })`. The orchestrator picks it up automatically — no changes to `scrape-barns.js` needed.
 
+**Multiple sale days per barn:** Use a `reports` array in `barns-config.json` instead of a single `reportUrl`. Each entry has `{ "day": "Monday", "url": "..." }`. The orchestrator loops all reports, deduplicates history by `date + saleDay`, and the index includes a `saleDays` array with per-day data. Currently: Central has Monday (cattle) and Wednesday (cattle + hogs).
+
+**Hog data:** Captured by `central.js` from the Wednesday cattle+hogs report and stored as `hogs: { marketHogs, sows, boars }` in history/index. Not displayed in the PWA yet — stored for future use.
+
 **Scrape sources:**
 
 | `source` value | Meaning |

@@ -205,6 +205,9 @@ async function parse({ id, browser, html, $ }) {
     let saleDay = null;
     let liteTestNote = null;
 
+    const hogs = { marketHogs: null, sows: null, boars: null };
+    let inHogSection = false;
+
     let inFeederSection = false;
     let feederBeefHeader = -1;
     let feederHolsteinHeader = -1;
@@ -310,6 +313,31 @@ async function parse({ id, browser, html, $ }) {
       if (inFeederSection && /lite/i.test(lower)) {
         feeder.liteTest = true;
         console.log(`[${id}] feeder.liteTest = true`);
+      }
+
+      // ── Hog section (Wednesday cattle+hogs report) ──────────────────────
+      if (/hog|swine/i.test(lower) && /market|butcher/i.test(lower)) {
+        inHogSection = true;
+        inFeederSection = false;
+        console.log(`[${id}] entered hog section at line ${i}`);
+      }
+
+      if (inHogSection) {
+        // Market hogs / butcher hogs
+        if (/market\s*hog|butcher/i.test(lower) && hogs.marketHogs === null) {
+          const price = extractLinePrice(line);
+          if (price !== null) { hogs.marketHogs = price; console.log(`[${id}] hogs.marketHogs = ${price}`); }
+        }
+        // Sows
+        if (/sow/i.test(lower) && hogs.sows === null) {
+          const price = extractLinePrice(line);
+          if (price !== null) { hogs.sows = price; console.log(`[${id}] hogs.sows = ${price}`); }
+        }
+        // Boars
+        if (/boar/i.test(lower) && hogs.boars === null) {
+          const price = extractLinePrice(line);
+          if (price !== null) { hogs.boars = price; console.log(`[${id}] hogs.boars = ${price}`); }
+        }
       }
     }
 
@@ -487,9 +515,13 @@ async function parse({ id, browser, html, $ }) {
     console.log(`[${id}] bulls weight avgs: ${bullsWeightAvgs.length} buckets`);
     console.log(`[${id}] cows weight avgs: ${cowsWeightAvgs.length} buckets`);
 
+    // Only include hogs object if any hog prices were found
+    const hasHogs = Object.values(hogs).some(v => v !== null);
+
     return {
       slaughter, feeder, feederWeights, reportDate, saleDay, liteTestNote,
       repSales: { finishWeightAvgs, feederWeightAvgs, bullsWeightAvgs, cowsWeightAvgs, headCount },
+      hogs: hasHogs ? hogs : null,
       source: 'scraped', error: null
     };
 
