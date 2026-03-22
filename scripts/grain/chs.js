@@ -72,10 +72,15 @@ async function parse({ id, config, browser }) {
       const text = root.innerText;
       const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-      // Build a set of known location names (case-insensitive match)
-      const locNames = configLocs.map(l => l.name.toLowerCase());
+      // All CHS locations — needed to detect section boundaries so bids
+      // from unconfigured locations don't bleed into configured ones.
+      const allLocations = [
+        'Absolute Energy', 'Cahokia', 'Collins', 'Fairmont', 'Hallock',
+        'Kasson', 'Mankato', 'Ostrander', 'Savage', 'Winona', 'Wykoff'
+      ];
+      const configNames = configLocs.map(l => l.name.toLowerCase());
 
-      const sections = []; // { location, commodity, bids[] }
+      const sections = [];
       let currentLocation = null;
       let currentCommodity = null;
 
@@ -83,10 +88,11 @@ async function parse({ id, config, browser }) {
         const line = lines[i];
         const lineLower = line.toLowerCase();
 
-        // Detect location headers — match configured location names
-        const matchedLoc = configLocs.find(l => lineLower.includes(l.name.toLowerCase()));
-        if (matchedLoc && !/\d/.test(line)) {
-          currentLocation = matchedLoc.name;
+        // Detect ANY location header — reset context
+        const isAnyLoc = allLocations.some(loc => lineLower.includes(loc.toLowerCase()));
+        if (isAnyLoc && !/\d/.test(line)) {
+          const matchedConfig = configLocs.find(l => lineLower.includes(l.name.toLowerCase()));
+          currentLocation = matchedConfig ? matchedConfig.name : null;
           currentCommodity = null;
           continue;
         }
