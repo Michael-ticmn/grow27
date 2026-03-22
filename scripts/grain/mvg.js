@@ -63,6 +63,11 @@ async function parse({ id, config, browser }) {
   const baseUrl = config.url.split('?')[0];
 
   try {
+    // Set a realistic User-Agent — mnvalleygrain.com returns 403 to headless Chrome
+    await page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+    );
+
     for (const loc of config.locations) {
       const locUrl = `${baseUrl}?location_filter=${encodeURIComponent(loc.name)}&showcwt=0`;
       const slug = slugify(loc.name);
