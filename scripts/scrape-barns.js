@@ -47,13 +47,14 @@ function normalizePrice(raw) {
   const v = parseFloat(raw);
   if (isNaN(v)) return null;
   // Already has a decimal → use as-is if in valid range
-  if (raw.includes('.')) return (v >= 100 && v <= 400) ? v : null;
+  // Upper bound 500 covers light feeder calves (400-500¢/lb common)
+  if (raw.includes('.')) return (v >= 100 && v <= 500) ? v : null;
   // 5-digit integer (e.g. 22400 → 224.00, 40500 → 405.00)
   if (v >= 10000 && v <= 50000) return v / 100;
-  // 4-digit integer (e.g. 2300 → 230.0, 2375 → 237.5) — OCR drops trailing zero
+  // 4-digit integer (e.g. 2300 → 230.0, 4050 → 405.0) — OCR drops trailing zero
   if (v >= 1000 && v <= 5000) return v / 10;
   // 3-digit integer in valid range (e.g. 235 → 235.00)
-  if (v >= 100 && v <= 400) return v;
+  if (v >= 100 && v <= 500) return v;
   return null;
 }
 
@@ -595,12 +596,26 @@ async function scrapeBarns(config) {
       feederByWeight[range][sale.cattleType].count += sale.qty;
     }
 
+    // Bulls: compute average price and weight-class buckets
+    const bullsByWeight = {};
     for (const sale of repSales.bulls) {
       headCount.bulls += sale.qty;
+      const bucket = sale.weight !== null ? Math.floor(sale.weight / 100) * 100 : null;
+      const range = bucket !== null ? `${bucket}-${bucket + 99}` : 'mixed';
+      if (!bullsByWeight[range]) bullsByWeight[range] = { sum: 0, count: 0 };
+      bullsByWeight[range].sum += sale.price * sale.qty;
+      bullsByWeight[range].count += sale.qty;
     }
 
+    // Cows: compute average price and weight-class buckets
+    const cowsByWeight = {};
     for (const sale of repSales.cows) {
       headCount.cows += sale.qty;
+      const bucket = sale.weight !== null ? Math.floor(sale.weight / 100) * 100 : null;
+      const range = bucket !== null ? `${bucket}-${bucket + 99}` : 'mixed';
+      if (!cowsByWeight[range]) cowsByWeight[range] = { sum: 0, count: 0 };
+      cowsByWeight[range].sum += sale.price * sale.qty;
+      cowsByWeight[range].count += sale.qty;
     }
 
     // Convert to averages
@@ -630,13 +645,37 @@ async function scrapeBarns(config) {
     }
     feederWeightAvgs.sort((a, b) => parseInt(a.range) - parseInt(b.range));
 
+    // Bulls weight averages
+    const bullsWeightAvgs = [];
+    for (const [range, data] of Object.entries(bullsByWeight)) {
+      bullsWeightAvgs.push({
+        range: range === 'mixed' ? 'mixed wt' : range + ' lbs',
+        avgPrice: parseFloat((data.sum / data.count).toFixed(2)),
+        head: data.count
+      });
+    }
+    bullsWeightAvgs.sort((a, b) => parseInt(a.range) - parseInt(b.range));
+
+    // Cows weight averages
+    const cowsWeightAvgs = [];
+    for (const [range, data] of Object.entries(cowsByWeight)) {
+      cowsWeightAvgs.push({
+        range: range === 'mixed' ? 'mixed wt' : range + ' lbs',
+        avgPrice: parseFloat((data.sum / data.count).toFixed(2)),
+        head: data.count
+      });
+    }
+    cowsWeightAvgs.sort((a, b) => parseInt(a.range) - parseInt(b.range));
+
     console.log(`[${id}] head count — finished: ${headCount.finished}, feeder: ${headCount.feeder}, bulls: ${headCount.bulls}, cows: ${headCount.cows}`);
     console.log(`[${id}] finish weight avgs: ${finishWeightAvgs.length} buckets`);
     console.log(`[${id}] feeder weight avgs: ${feederWeightAvgs.length} buckets`);
+    console.log(`[${id}] bulls weight avgs: ${bullsWeightAvgs.length} buckets`);
+    console.log(`[${id}] cows weight avgs: ${cowsWeightAvgs.length} buckets`);
 
     return {
       slaughter, feeder, feederWeights, reportDate, saleDay, liteTestNote,
-      repSales: { finishWeightAvgs, feederWeightAvgs, headCount },
+      repSales: { finishWeightAvgs, feederWeightAvgs, bullsWeightAvgs, cowsWeightAvgs, headCount },
       source: 'scraped', error: null
     };
 

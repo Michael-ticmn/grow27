@@ -505,6 +505,16 @@ async function loadScrapedBarnData() {
         if (entry.slaughter.beef != null) b.basePrice = entry.slaughter.beef;
       }
 
+      // Rep sales (weight-class averages, headcounts, bulls, cows)
+      if (entry.repSales) b.repSales = entry.repSales;
+
+      // Feeder weight ranges from summary table
+      if (entry.feederWeights && entry.feederWeights.length) b.feederWeights = entry.feederWeights;
+
+      // Sale day & lite test note
+      if (entry.saleDay) b.saleDay = entry.saleDay;
+      if (entry.liteTestNote) b.liteTestNote = entry.liteTestNote;
+
       b.dataSource = 'live';
 
       // Report date from lastSuccess
@@ -829,11 +839,19 @@ function buildBarnTable() {
   const rows = sorted.map((key) => {
     const b = BARNS_DATA[key];
 
-    // ── Slaughter avg: use scraped type-specific price if available ──
+    // ── Slaughter avg: weighted average from rep sales if available ──
     const scraped = b.finishPrices && b.finishPrices[cattleType] != null;
-    const adjPrice = scraped
-      ? b.finishPrices[cattleType].toFixed(2)
-      : barnAdjustedPrice(b.basePrice);
+    const repFinishAll = b.repSales && b.repSales.finishWeightAvgs;
+    let adjPrice;
+    if (repFinishAll && repFinishAll.length) {
+      // Compute true head-weighted average from rep sales for this cattle type
+      const typeRows = repFinishAll.filter(r => r.type === cattleType);
+      const totalHead = typeRows.reduce((s, r) => s + r.head, 0);
+      const weightedSum = typeRows.reduce((s, r) => s + r.avgPrice * r.head, 0);
+      adjPrice = totalHead > 0 ? (weightedSum / totalHead).toFixed(2) : (scraped ? b.finishPrices[cattleType].toFixed(2) : barnAdjustedPrice(b.basePrice));
+    } else {
+      adjPrice = scraped ? b.finishPrices[cattleType].toFixed(2) : barnAdjustedPrice(b.basePrice);
+    }
 
     const discStr = scraped
       ? '<span style="color:var(--up);font-size:11px;">actual</span>'
@@ -841,12 +859,25 @@ function buildBarnTable() {
         ? `<span style="color:var(--down);font-size:11px;">−${disc.toFixed(2)}</span>`
         : '<span style="color:var(--up);font-size:11px;">baseline</span>';
 
+    // ── Feeder avg: weighted average from rep sales if available ──
+    const repFeederAll = b.repSales && b.repSales.feederWeightAvgs;
+    let barnFeederAvg;
+    if (repFeederAll && repFeederAll.length) {
+      const typeRows = repFeederAll.filter(r => r.type === cattleType);
+      const totalHead = typeRows.reduce((s, r) => s + r.head, 0);
+      const weightedSum = typeRows.reduce((s, r) => s + r.avgPrice * r.head, 0);
+      barnFeederAvg = totalHead > 0 ? (weightedSum / totalHead).toFixed(2) + '¢' : feederAvg;
+    } else {
+      barnFeederAvg = feederAvg;
+    }
+
     // ── Per-column source badges ──
     // Slaughter: LIVE if barn has scraped finishPrices, else barn's dataSource (usda/cme)
     const slaughterSrc = b.finishPrices ? 'live' : b.dataSource;
     const slaughterBadge = makeBadge(slaughterSrc);
-    // Feeder: LIVE if barn has scraped feederWeights, else shared feederDataSource (usda/cme)
-    const barnFeederSrc = (b.feederWeights && b.feederWeights.length) ? 'live' : feederDataSource;
+    // Feeder: LIVE if barn has rep sales feeder data or scraped feederWeights, else shared source
+    const barnFeederSrc = (repFeederAll && repFeederAll.length) ? 'live'
+      : (b.feederWeights && b.feederWeights.length) ? 'live' : feederDataSource;
     const feederBadge = makeBadge(barnFeederSrc);
 
     // ── Finish weight rows ──
@@ -952,6 +983,32 @@ function buildBarnTable() {
         ? `<div style="font-size:10px;color:var(--txt3);padding:3px 8px 5px;border-top:1px solid var(--border);font-style:italic;">${typeLabel} · −${disc.toFixed(2)}¢/cwt applied</div>`
         : '';
 
+    // ── Bulls & Cows rows ──
+    let bullsCowsRows = '';
+    let bullsCowsFoot = '';
+    const repBulls = b.repSales && b.repSales.bullsWeightAvgs;
+    const repCows = b.repSales && b.repSales.cowsWeightAvgs;
+    if ((repBulls && repBulls.length) || (repCows && repCows.length)) {
+      if (repBulls && repBulls.length) {
+        bullsCowsRows += `<tr><td colspan="2" style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt2);padding:5px 8px 2px;text-transform:uppercase;">Bulls</td></tr>`;
+        bullsCowsRows += repBulls.map(r => `<tr>
+          <td style="font-size:11px;color:var(--txt3);padding:3px 8px;">${r.range} <span style="font-size:9px;opacity:.6;">${r.head} hd</span></td>
+          <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:3px 8px;text-align:right;">${r.avgPrice.toFixed(2)}¢</td>
+        </tr>`).join('');
+      }
+      if (repCows && repCows.length) {
+        bullsCowsRows += `<tr><td colspan="2" style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt2);padding:5px 8px 2px;text-transform:uppercase;">Cows</td></tr>`;
+        bullsCowsRows += repCows.map(r => `<tr>
+          <td style="font-size:11px;color:var(--txt3);padding:3px 8px;">${r.range} <span style="font-size:9px;opacity:.6;">${r.head} hd</span></td>
+          <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:3px 8px;text-align:right;">${r.avgPrice.toFixed(2)}¢</td>
+        </tr>`).join('');
+      }
+      bullsCowsFoot = `${b.name} · rep. sales sample avg`;
+    } else {
+      bullsCowsRows = `<tr><td colspan="2" style="font-size:11px;color:var(--txt3);padding:8px;text-align:center;">No bull/cow data</td></tr>`;
+      bullsCowsFoot = '';
+    }
+
     const drawerHtml = `<tr class="barn-drawer" id="drawer-${key}">
       <td colspan="5">
         <div class="barn-detail-inner">
@@ -989,6 +1046,17 @@ function buildBarnTable() {
             </table>
             <div class="barn-drawer-mini-foot">${feederFoot}</div>
           </div>
+          <div class="barn-drawer-mini">
+            <div class="barn-drawer-mini-header">Market Bulls & Cows <span style="font-weight:400;color:var(--txt3);">¢/lb</span></div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr>
+                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">LBS</th>
+                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
+              </tr></thead>
+              <tbody>${bullsCowsRows}</tbody>
+            </table>
+            ${bullsCowsFoot ? `<div class="barn-drawer-mini-foot">${bullsCowsFoot}</div>` : ''}
+          </div>
         </div>
       </td>
     </tr>`;
@@ -999,7 +1067,7 @@ function buildBarnTable() {
         <div class="elev-loc-cell">${b.loc} · ${b.freq}</div>
       </td>
       <td class="cash-price-cell">${adjPrice}¢ ${slaughterBadge}</td>
-      <td class="cash-price-cell">${feederAvg} ${feederBadge}</td>
+      <td class="cash-price-cell">${barnFeederAvg} ${feederBadge}</td>
       <td>${discStr}</td>
       <td style="font-size:11px;color:var(--txt3);">${b.reportDate}${b._scrapeError ? ` <span title="${b._scrapeError}" style="font-size:9px;color:var(--down);border:1px solid var(--down);border-radius:2px;padding:1px 4px;cursor:help;">FETCH ERR</span>` : ''}</td>
     </tr>${drawerHtml}`;
