@@ -377,9 +377,11 @@ async function scrapeBarns(config) {
 
     // ── 6. Parse Representative Sales from OCR text (images 2 & 3) ─────────
     // The rep sales tables are PNG images, not HTML — parse from repOcrTexts[]
-    // OCR reads side-by-side columns left-to-right, merging them into single
-    // lines like "RED WING, MN 1 HoLcow 1365 155.00 C Representative Sales: Ma"
-    // Pre-split on "Representative Sales" boundaries to separate merged content.
+    // OCR reads two side-by-side columns left-to-right, producing merged lines:
+    //   "ALBERT LEA, MN 1 BIKSTR 1105 23900 C_ GOODHUE, MN 1 HoLcow 1425 19000"
+    // Strategy: detect dual-column mode when two section headers appear back-to-
+    // back, then extract multiple sale entries per line — first match goes to
+    // left-column category, second match to right-column category.
     const repSales = { finished: [], feeder: [], bulls: [], cows: [] };
     try {
       const allRepText = repOcrTexts.join('\n');
@@ -387,10 +389,8 @@ async function scrapeBarns(config) {
         console.log(`[${id}] parsing rep sales from ${repOcrTexts.length} OCR images · ${allRepText.length} chars`);
 
         const rawLines = allRepText.split('\n').map(l => l.trim()).filter(Boolean);
-        let currentCategory = null;
 
         // Pre-split: break merged lines on "Representative Sales" boundaries
-        // e.g. "data row here Representative Sales: Feeder Cattle" → 2 fragments
         const fragments = [];
         for (const line of rawLines) {
           const parts = line.split(/(?=Representative\s+Sales)/i);
@@ -401,78 +401,110 @@ async function scrapeBarns(config) {
         }
         console.log(`[${id}] rep OCR fragments: ${fragments.length} (from ${rawLines.length} raw lines)`);
 
-        // Section header regex — capture the full category after "Representative Sales:"
+        // Section header regex
         const SECTION_RE = /^Representative\s+Sales[:\s]+(.+)/i;
 
-        // Sale row regexes
-        // "ALBERT LEA, MN    1  BLK STR    1195    239.00"
-        // "MAZEPPA, MN       2  XBRD HFR   1417    238.00"
-        // "DODGE CENTER, MN  1  BLK STR    1345    23800"
-        const SALE_ROW_RE = /^([A-Z][A-Z\s.]+,\s*[A-Z]{2})\s+(\d{1,3})\s+([A-Z][A-Z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)\s*$/;
-        const SALE_ROW_LOOSE_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/;
+        // Sale row regex (loose — allows OCR case errors like BiKsTR)
+        const SALE_ROW_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2,3})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/g;
 
-        // Cattle breed/sex filter — must contain at least one cattle keyword.
-        // Prevents hog rows from leaking in when OCR interleaves two columns.
+        // Cattle breed/sex filter — prevents hog rows from leaking in
         const CATTLE_DESC_RE = /STR|HFR|COW|BULL|BUL|CALF|CLF/i;
 
-        for (const frag of fragments) {
-          // Check for section header
-          const secMatch = frag.match(SECTION_RE);
-          if (secMatch) {
-            const secText = secMatch[1].trim().toLowerCase();
-            // Map section name to category — keep current category for irrelevant
-            // sections (hogs, etc.) because two-column OCR interleaves headers
-            // from both columns. A cattle breed filter below prevents hog rows
-            // from leaking into cattle categories.
-            if (/finish/i.test(secText))            currentCategory = 'finished';
-            else if (/feeder\s*cattle/i.test(secText)) currentCategory = 'feeder';
-            else if (/calve/i.test(secText))         currentCategory = 'feeder';
-            else if (/market\s*cow/i.test(secText))  currentCategory = 'cows';
-            else if (/market\s*bull/i.test(secText))  currentCategory = 'bulls';
-            else if (/^bull/i.test(secText))          currentCategory = 'bulls';
-            // hogs and unknown sections: do NOT reset currentCategory — the
-            // interleaved cattle data that follows still belongs to the
-            // previous category. Non-cattle rows are filtered by CATTLE_DESC_RE.
-            console.log(`[${id}] rep sales section: ${currentCategory} ("${frag.slice(0, 60)}")`);
-            continue;
-          }
+        // Category mapper
+        function mapCategory(secText) {
+          if (/finish/i.test(secText))              return 'finished';
+          if (/feeder\s*cattle/i.test(secText))     return 'feeder';
+          if (/calve/i.test(secText))               return 'feeder';
+          if (/market\s*cow/i.test(secText))        return 'cows';
+          if (/market\s*bull/i.test(secText))       return 'bulls';
+          if (/^bull/i.test(secText))               return 'bulls';
+          return null;  // hogs, sows, boars, unknown — ignore
+        }
 
-          // Skip header/label rows
-          if (/^location|^description|^city/i.test(frag)) continue;
-          if (!currentCategory) continue;
+        // Dual-column tracking: when two headers appear back-to-back (no data
+        // between them), we know both columns are active. First sale entry on
+        // each line → leftCat, second → rightCat.
+        let pendingHeaders = [];  // accumulates headers until data arrives
+        let leftCat = null;
+        let rightCat = null;
 
-          // Try strict match first, then loose
-          const m = frag.match(SALE_ROW_RE) || frag.match(SALE_ROW_LOOSE_RE);
-          if (!m) continue;
-
+        function processSale(m, category) {
+          if (!category) return;
           const location = m[1].trim();
           const qty = parseInt(m[2]) || 1;
           const desc = m[3].trim();
           const weight = parseInt(m[4]);
           const rawPrice = m[5];
 
-          // Normalize price (OCR may drop decimal: "23800" → 238.00)
           const price = normalizePrice(rawPrice);
-          if (price === null || weight < 200 || weight > 2500) continue;
-
-          // Filter: must be cattle (not hogs etc. from interleaved columns)
-          if (!CATTLE_DESC_RE.test(desc)) continue;
+          if (price === null || weight < 200 || weight > 2500) return;
+          if (!CATTLE_DESC_RE.test(desc)) return;
 
           // Map description to cattle type
+          // OCR commonly reads "BLK" as "BIK"/"BiK" (L→I misread)
           const descUpper = desc.toUpperCase();
           let cattleType = 'beef';
-          if (/HOL/.test(descUpper)) cattleType = 'holstein';
-          else if (/XBRD|BKRD|BWF|RWF|CROSS/.test(descUpper)) cattleType = 'crossbred';
+          if (/HOL/i.test(descUpper)) cattleType = 'holstein';
+          else if (/XBRD|BKRD|BWF|RWF|CROSS/i.test(descUpper)) cattleType = 'crossbred';
+          // BLK, BIK, RED, CHAR, WF, ANG, SIM, etc. all default to beef
 
-          // Map description to sex
           let sex = 'steer';
           if (/HFR/.test(descUpper)) sex = 'heifer';
           else if (/BULL|BUL/.test(descUpper)) sex = 'bull';
           else if (/COW/.test(descUpper)) sex = 'cow';
 
-          repSales[currentCategory].push({
-            location, qty, desc, cattleType, sex, weight, price
-          });
+          repSales[category].push({ location, qty, desc, cattleType, sex, weight, price });
+        }
+
+        for (const frag of fragments) {
+          // Check for section header
+          const secMatch = frag.match(SECTION_RE);
+          if (secMatch) {
+            const cat = mapCategory(secMatch[1].trim().toLowerCase());
+            pendingHeaders.push(cat);
+            console.log(`[${id}] rep sales header: ${cat} ("${frag.slice(0, 60)}")`);
+            continue;
+          }
+
+          // Skip header/label rows (Location, Description, Weight, Price)
+          if (/^location|^description|^city/i.test(frag)) {
+            // Still a header row — don't flush pending headers yet because
+            // sub-header rows sit between the section headers and data
+            continue;
+          }
+
+          // Flush pending headers when we hit actual data
+          if (pendingHeaders.length > 0) {
+            // Filter out nulls (hogs, etc.) for category assignment
+            const cats = pendingHeaders.filter(c => c !== null);
+            if (cats.length >= 2) {
+              leftCat = cats[0];
+              rightCat = cats[1];
+              console.log(`[${id}] dual-column mode: left=${leftCat}, right=${rightCat}`);
+            } else if (cats.length === 1) {
+              leftCat = cats[0];
+              rightCat = null;
+              console.log(`[${id}] single-column mode: ${leftCat}`);
+            }
+            // If all headers were null (e.g. all hogs), keep previous categories
+            // so interleaved cattle data from the other column isn't lost
+            pendingHeaders = [];
+          }
+
+          if (!leftCat) continue;
+
+          // Find all sale entries on this line (handles merged two-column rows)
+          const matches = [...frag.matchAll(SALE_ROW_RE)];
+          if (matches.length === 0) continue;
+
+          if (matches.length >= 2 && rightCat) {
+            // Dual column: first match → left, second match → right
+            processSale(matches[0], leftCat);
+            processSale(matches[1], rightCat);
+          } else {
+            // Single column or only one match found
+            processSale(matches[0], leftCat);
+          }
         }
 
         console.log(`[${id}] rep sales parsed — finished: ${repSales.finished.length}, feeder: ${repSales.feeder.length}, bulls: ${repSales.bulls.length}, cows: ${repSales.cows.length}`);
