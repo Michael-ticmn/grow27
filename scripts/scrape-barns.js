@@ -13,6 +13,7 @@ const path      = require('path');
 const cheerio   = require('cheerio');
 const puppeteer = require('puppeteer');
 const Tesseract = require('tesseract.js');
+const sharp      = require('sharp');
 
 const ROOT         = path.join(__dirname, '..');
 const CONFIG_PATH  = path.join(ROOT, 'data', 'barns-config.json');
@@ -49,6 +50,8 @@ function normalizePrice(raw) {
   if (raw.includes('.')) return (v >= 100 && v <= 400) ? v : null;
   // 5-digit integer (e.g. 22400 → 224.00, 40500 → 405.00)
   if (v >= 10000 && v <= 50000) return v / 100;
+  // 4-digit integer (e.g. 2300 → 230.0, 2375 → 237.5) — OCR drops trailing zero
+  if (v >= 1000 && v <= 5000) return v / 10;
   // 3-digit integer in valid range (e.g. 235 → 235.00)
   if (v >= 100 && v <= 400) return v;
   return null;
@@ -133,6 +136,10 @@ async function scrapeBarns(config) {
 
       if (!imageUrl) throw new Error('no og:image meta tag found');
       console.log(`[${id}] selected image URL: ${imageUrl}`);
+
+      // Identify additional images (market2, market3) for representative sales
+      var repImageUrls = ogImages.filter(u => u !== imageUrl);
+      console.log(`[${id}] additional images for rep sales: ${repImageUrls.length}`);
     } catch (imgErr) {
       console.error(`[${id}] IMAGE EXTRACT FAILED: ${imgErr.message}`);
       return { slaughter: null, feeder: null, source: 'fetch_failed', error: imgErr.message };
@@ -154,17 +161,74 @@ async function scrapeBarns(config) {
       return { slaughter: null, feeder: null, source: 'fetch_failed', error: dlErr.message };
     }
 
-  // ── 4. Run Tesseract OCR ──────────────────────────────────────────────
+  // ── 4. Run Tesseract OCR on main image ────────────────────────────────
+  // Normalize OCR text: force ASCII English characters — barn reports are
+  // English-only so any non-ASCII is an OCR artifact (Ñ for X, ó for o, etc.)
+  function normalizeOcr(text) {
+    return text
+      .replace(/\u00d1/g, 'X')    // Ñ → X (common OCR misread)
+      .replace(/\u00f1/g, 'x')    // ñ → x
+      .replace(/[^\x20-\x7E\n\r\t]/g, '');  // strip remaining non-ASCII
+  }
+
   let ocrText;
   try {
-    console.log(`[${id}] running Tesseract OCR...`);
+    console.log(`[${id}] running Tesseract OCR on main image...`);
     const { data } = await Tesseract.recognize(imgBuffer, 'eng');
-    ocrText = data.text;
+    ocrText = normalizeOcr(data.text);
     console.log(`[${id}] OCR complete · ${ocrText.length} chars`);
     console.log(`[${id}] OCR text preview:\n${ocrText.slice(0, 1000)}\n`);
   } catch (ocrErr) {
     console.error(`[${id}] OCR FAILED: ${ocrErr.message}`);
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: ocrErr.message };
+  }
+
+  // ── 4b. Download and OCR additional images (rep sales) ────────────────
+  // Each image has two tables side-by-side (e.g. Finished Cattle | Market Cows).
+  // OCR on the full image merges both columns, garbling the output. Instead,
+  // crop each image into left and right halves and OCR them separately to get
+  // clean single-column text per table.
+  const repOcrTexts = [];
+  for (const repUrl of repImageUrls) {
+    try {
+      console.log(`[${id}] downloading rep sales image: ${repUrl}`);
+      const page = await browser.newPage();
+      const resp = await page.goto(repUrl, { waitUntil: 'networkidle2', timeout: 15000 });
+      if (!resp.ok()) { console.warn(`[${id}] rep image HTTP ${resp.status()}`); continue; }
+      const buf = await resp.buffer();
+      console.log(`[${id}] rep image downloaded · ${buf.length} bytes`);
+
+      // Crop into left and right halves using sharp
+      const meta = await sharp(buf).metadata();
+      const w = meta.width;
+      const h = meta.height;
+      const splitL = Math.floor(w * 0.6);   // left table takes ~60% of width
+      const splitR = Math.floor(w * 0.45);  // right half starts at 45% — overlap avoids gap
+      console.log(`[${id}] rep image size: ${w}x${h} — left crop 0-${splitL}px, right crop ${splitR}-${w}px`);
+
+      const leftBuf = await sharp(buf)
+        .extract({ left: 0, top: 0, width: splitL, height: h })
+        .png().toBuffer();
+      const rightBuf = await sharp(buf)
+        .extract({ left: splitR, top: 0, width: w - splitR, height: h })
+        .png().toBuffer();
+
+      // OCR each half separately
+      const { data: leftData } = await Tesseract.recognize(leftBuf, 'eng');
+      const leftText = normalizeOcr(leftData.text);
+      console.log(`[${id}] rep LEFT OCR · ${leftText.length} chars`);
+      console.log(`[${id}] rep LEFT preview:\n${leftText.slice(0, 500)}\n`);
+      repOcrTexts.push(leftText);
+
+      const { data: rightData } = await Tesseract.recognize(rightBuf, 'eng');
+      const rightText = normalizeOcr(rightData.text);
+      console.log(`[${id}] rep RIGHT OCR · ${rightText.length} chars`);
+      console.log(`[${id}] rep RIGHT preview:\n${rightText.slice(0, 500)}\n`);
+      repOcrTexts.push(rightText);
+
+    } catch (repErr) {
+      console.warn(`[${id}] rep image OCR failed (non-fatal): ${repErr.message}`);
+    }
   }
 
   // ── 5. Parse prices from OCR text via regex ───────────────────────────
@@ -352,77 +416,95 @@ async function scrapeBarns(config) {
       throw new Error('OCR returned no usable prices — text may be unreadable');
     }
 
-    // ── 6. Parse Representative Sales HTML tables ──────────────────────────
-    // These tables have individual sale records with type, weight, and price
-    const repSales = { finished: [], feeder: [], bulls: [] };
+    // ── 6. Parse Representative Sales from OCR text ─────────────────────────
+    // Each repOcrTexts entry is a single table (left or right half of an image).
+    // Each table starts with "Representative Sales: [Category]" header, then
+    // "Location" sub-header, then data rows.
+    const repSales = { finished: [], feeder: [], bulls: [], cows: [] };
     try {
-      // Find table headers that indicate representative sales sections
-      $('td, th').each((_, el) => {
-        const text = $(el).text().trim();
-        let category = null;
-        if (/representative\s+sales:\s*finished/i.test(text)) category = 'finished';
-        else if (/representative\s+sales:\s*feeder/i.test(text)) category = 'feeder';
-        else if (/representative\s+sales:\s*bulls/i.test(text)) category = 'bulls';
-        if (!category) return;
+      const allRepText = repOcrTexts.join('\n');
+      if (allRepText.length > 0) {
+        console.log(`[${id}] parsing rep sales from ${repOcrTexts.length} OCR halves · ${allRepText.length} chars`);
 
-        // Walk up to find the table, then parse its rows
-        const table = $(el).closest('table');
-        if (!table.length) return;
+        const lines = allRepText.split('\n').map(l => l.trim()).filter(Boolean);
+        let currentCategory = null;
 
-        table.find('tr').each((_, row) => {
-          const cells = $(row).find('td');
-          if (cells.length < 4) return;
-          const cellTexts = [];
-          cells.each((_, c) => cellTexts.push($(c).text().trim()));
+        // Section header regex
+        const SECTION_RE = /Representative\s+Sales[:\s]+(.+)/i;
 
-          // Expected: Location, [Qty], Description, Weight (#), Price
-          // Some rows have qty embedded, detect by checking if cell is a small number
-          let location, qty, desc, weight, price;
-          if (cells.length >= 5) {
-            location = cellTexts[0];
-            qty = parseInt(cellTexts[1]) || 1;
-            desc = cellTexts[2];
-            weight = parseFloat(cellTexts[3]);
-            price = parseFloat(cellTexts[4]);
-          } else {
-            location = cellTexts[0];
-            qty = 1;
-            desc = cellTexts[1];
-            weight = parseFloat(cellTexts[2]);
-            price = parseFloat(cellTexts[3]);
+        // Sale row: CITY, ST  qty  DESC  weight  price
+        const SALE_ROW_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2,3})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/;
+
+        // Reject known hog/swine descriptions (OCR garbles cattle breed codes,
+        // so a positive filter misses valid entries — use negative filter instead)
+        const HOG_DESC_RE = /MKT|HOG|SOW|BOAR|GILT|PIG|PORK/i;
+
+        // Category mapper
+        function mapCategory(secText) {
+          if (/finish/i.test(secText))              return 'finished';
+          if (/feeder\s*cattle/i.test(secText))     return 'feeder';
+          if (/calve/i.test(secText))               return 'feeder';
+          if (/market\s*cow/i.test(secText))        return 'cows';
+          if (/market\s*bull/i.test(secText))       return 'bulls';
+          if (/^bull/i.test(secText))               return 'bulls';
+          return null;  // unknown — ignore
+        }
+
+        for (const line of lines) {
+          // Check for section header
+          const secMatch = line.match(SECTION_RE);
+          if (secMatch) {
+            const cat = mapCategory(secMatch[1].trim().toLowerCase());
+            if (cat) currentCategory = cat;
+            console.log(`[${id}] rep section: ${currentCategory} ("${line.slice(0, 60)}")`);
+            continue;
           }
 
-          // Skip header rows and invalid data
-          if (!desc || isNaN(weight) || isNaN(price)) return;
-          if (/location|description/i.test(location)) return;
+          // Skip header/label rows
+          if (/^location|^description|^city/i.test(line)) continue;
+          if (!currentCategory) continue;
+
+          // Match sale row
+          const m = line.match(SALE_ROW_RE);
+          if (!m) continue;
+
+          const location = m[1].trim();
+          const qty = parseInt(m[2]) || 1;
+          const desc = m[3].trim();
+          const weight = parseInt(m[4]);
+          const rawPrice = m[5];
+
+          const price = normalizePrice(rawPrice);
+          if (price === null || weight < 200 || weight > 2500) continue;
+          if (HOG_DESC_RE.test(desc)) continue;
 
           // Map description to cattle type
           const descUpper = desc.toUpperCase();
           let cattleType = 'beef';
-          if (/HOL/.test(descUpper)) cattleType = 'holstein';
-          else if (/XBRD|BKRD|BWF|RWF|CROSS/.test(descUpper)) cattleType = 'crossbred';
+          if (/HOL/i.test(descUpper)) cattleType = 'holstein';
+          else if (/XBRD|BKRD|BWF|RWF|CROSS/i.test(descUpper)) cattleType = 'crossbred';
 
-          // Map description to sex
           let sex = 'steer';
-          if (/HFR/.test(descUpper)) sex = 'heifer';
-          else if (/BULL/.test(descUpper)) sex = 'bull';
+          if (/ST\/H/.test(descUpper)) sex = 'mixed';
+          else if (/HFR/.test(descUpper)) sex = 'heifer';
+          else if (/BULL|BUL/.test(descUpper)) sex = 'bull';
           else if (/COW/.test(descUpper)) sex = 'cow';
 
-          repSales[category].push({
-            location, qty, desc, cattleType, sex, weight, price
-          });
-        });
+          repSales[currentCategory].push({ location, qty, desc, cattleType, sex, weight, price });
+        }
 
-        console.log(`[${id}] rep sales ${category}: ${repSales[category].length} records`);
-      });
+        console.log(`[${id}] rep sales parsed — finished: ${repSales.finished.length}, feeder: ${repSales.feeder.length}, bulls: ${repSales.bulls.length}, cows: ${repSales.cows.length}`);
+      } else {
+        console.log(`[${id}] no rep OCR text available — skipping rep sales parse`);
+      }
     } catch (repErr) {
-      console.warn(`[${id}] rep sales parse error (non-fatal): ${repErr.message}`);
+      console.warn(`[${id}] rep sales OCR parse error (non-fatal): ${repErr.message}`);
     }
 
     // ── 7. Build weight-class averages from representative sales ─────────
     const finishByWeight = {};  // { "1200-1299": { beef: { sum, count }, crossbred: {...}, holstein: {...} } }
     const feederByWeight = {};
-    const headCount = { finished: 0, feeder: 0, bulls: 0 };
+    const headCount = { finished: 0, feeder: 0, bulls: 0, cows: 0 };
 
     for (const sale of repSales.finished) {
       headCount.finished += sale.qty;
@@ -447,6 +529,10 @@ async function scrapeBarns(config) {
 
     for (const sale of repSales.bulls) {
       headCount.bulls += sale.qty;
+    }
+
+    for (const sale of repSales.cows) {
+      headCount.cows += sale.qty;
     }
 
     // Convert to averages
@@ -476,7 +562,7 @@ async function scrapeBarns(config) {
     }
     feederWeightAvgs.sort((a, b) => parseInt(a.range) - parseInt(b.range));
 
-    console.log(`[${id}] head count — finished: ${headCount.finished}, feeder: ${headCount.feeder}, bulls: ${headCount.bulls}`);
+    console.log(`[${id}] head count — finished: ${headCount.finished}, feeder: ${headCount.feeder}, bulls: ${headCount.bulls}, cows: ${headCount.cows}`);
     console.log(`[${id}] finish weight avgs: ${finishWeightAvgs.length} buckets`);
     console.log(`[${id}] feeder weight avgs: ${feederWeightAvgs.length} buckets`);
 
