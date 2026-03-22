@@ -96,8 +96,8 @@
           {
             "range": "1200-1299 lbs",
             "type": "crossbred",
-            "avgPrice": 257.5,
-            "head": 5
+            "avgPrice": 237.5,
+            "head": 6
           },
           {
             "range": "1300-1399 lbs",
@@ -108,26 +108,26 @@
           {
             "range": "1400-1499 lbs",
             "type": "crossbred",
-            "avgPrice": 232,
-            "head": 20
+            "avgPrice": 232.55,
+            "head": 22
           },
           {
             "range": "1400-1499 lbs",
             "type": "beef",
             "avgPrice": 235,
-            "head": 5
+            "head": 6
           },
           {
             "range": "1500-1599 lbs",
             "type": "beef",
-            "avgPrice": 239.83,
-            "head": 3
+            "avgPrice": 232.2,
+            "head": 5
           },
           {
             "range": "1500-1599 lbs",
             "type": "crossbred",
             "avgPrice": 224.5,
-            "head": 5
+            "head": 9
           },
           {
             "range": "1600-1699 lbs",
@@ -161,12 +161,6 @@
           },
           {
             "range": "1800-1899 lbs",
-            "type": "beef",
-            "avgPrice": 230.75,
-            "head": 2
-          },
-          {
-            "range": "1800-1899 lbs",
             "type": "holstein",
             "avgPrice": 204,
             "head": 1
@@ -180,17 +174,35 @@
             "head": 1
           },
           {
+            "range": "400-499 lbs",
+            "type": "holstein",
+            "avgPrice": 300,
+            "head": 1
+          },
+          {
+            "range": "500-599 lbs",
+            "type": "holstein",
+            "avgPrice": 280,
+            "head": 2
+          },
+          {
             "range": "600-699 lbs",
             "type": "beef",
-            "avgPrice": 350,
-            "head": 2
+            "avgPrice": 345,
+            "head": 4
+          },
+          {
+            "range": "700-799 lbs",
+            "type": "beef",
+            "avgPrice": 335,
+            "head": 3
           }
         ],
         "headCount": {
-          "finished": 66,
-          "feeder": 3,
-          "bulls": 7,
-          "cows": 31
+          "finished": 74,
+          "feeder": 11,
+          "bulls": 8,
+          "cows": 39
         }
       },
       "source": "scraped"

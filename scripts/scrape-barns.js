@@ -184,10 +184,10 @@ async function scrapeBarns(config) {
   }
 
   // ── 4b. Download and OCR additional images (rep sales) ────────────────
-  // Each image has two tables side-by-side (e.g. Finished Cattle | Market Cows).
-  // OCR on the full image merges both columns, garbling the output. Instead,
-  // crop each image into left and right halves and OCR them separately to get
-  // clean single-column text per table.
+  // Each image has two tables side-by-side. Each table has a header row:
+  //   "Location  Description  Weight (#)  Price"
+  // We scan a thin header strip at progressively wider crops until "Price"
+  // appears in the OCR text — that gives us the exact crop width for each table.
   const repOcrTexts = [];
   for (const repUrl of repImageUrls) {
     try {
@@ -198,30 +198,82 @@ async function scrapeBarns(config) {
       const buf = await resp.buffer();
       console.log(`[${id}] rep image downloaded · ${buf.length} bytes`);
 
-      // Crop into left and right halves using sharp
       const meta = await sharp(buf).metadata();
       const w = meta.width;
       const h = meta.height;
-      const splitL = Math.floor(w * 0.6);   // left table takes ~60% of width
-      const splitR = Math.floor(w * 0.45);  // right half starts at 45% — overlap avoids gap
-      console.log(`[${id}] rep image size: ${w}x${h} — left crop 0-${splitL}px, right crop ${splitR}-${w}px`);
+      console.log(`[${id}] rep image size: ${w}x${h}`);
 
+      // Scan a thin header strip (top 15% of image) at increasing widths
+      // to find where the left table's "Price" column ends
+      const headerH = Math.min(100, Math.floor(h * 0.2));
+      let splitL = Math.floor(w * 0.6); // fallback default
+
+      for (let pct = 45; pct <= 70; pct += 5) {
+        const testW = Math.floor(w * pct / 100);
+        const testBuf = await sharp(buf)
+          .extract({ left: 0, top: 0, width: testW, height: headerH })
+          .png().toBuffer();
+        const { data: testData } = await Tesseract.recognize(testBuf, 'eng');
+        const testText = (testData.text || '').toLowerCase();
+        if (/price/.test(testText)) {
+          // "Price" header found — add 8% padding for the actual price digits
+          splitL = Math.min(Math.floor(w * 0.75), testW + Math.floor(w * 0.08));
+          console.log(`[${id}] left table "Price" found at ${pct}% — crop with padding: ${splitL}px`);
+          break;
+        }
+      }
+
+      // Scan from right side inward to find where the right table's "Location" starts
+      let splitR = Math.max(0, splitL - Math.floor(w * 0.15)); // default: overlap 15%
+
+      for (let pct = 55; pct >= 30; pct -= 5) {
+        const startX = Math.floor(w * pct / 100);
+        const testBuf = await sharp(buf)
+          .extract({ left: startX, top: 0, width: w - startX, height: headerH })
+          .png().toBuffer();
+        const { data: testData } = await Tesseract.recognize(testBuf, 'eng');
+        const testText = (testData.text || '').toLowerCase();
+        if (/location/.test(testText) && /price/.test(testText)) {
+          // "Location" header found — subtract 5% padding to capture full table
+          splitR = Math.max(0, startX - Math.floor(w * 0.05));
+          console.log(`[${id}] right table "Location" found at ${pct}% — crop with padding from ${splitR}px`);
+          break;
+        }
+      }
+
+      console.log(`[${id}] adaptive crop — left: 0-${splitL}px, right: ${splitR}-${w}px`);
+
+      // Crop each half, then upscale 2x for better OCR accuracy on small text
       const leftBuf = await sharp(buf)
         .extract({ left: 0, top: 0, width: splitL, height: h })
+        .resize({ width: splitL * 2, height: h * 2, kernel: 'lanczos3' })
+        .sharpen()
         .png().toBuffer();
       const rightBuf = await sharp(buf)
         .extract({ left: splitR, top: 0, width: w - splitR, height: h })
+        .resize({ width: (w - splitR) * 2, height: h * 2, kernel: 'lanczos3' })
+        .sharpen()
         .png().toBuffer();
+
+      // Strip right-table bleed-through noise after the Price column.
+      // OCR lines look like: "CITY, ST  qty  DESC  weight  price  C Locatic..."
+      // Everything after the price value (digits, optionally .XX) followed by
+      // whitespace + a letter is noise from the adjacent table's columns.
+      function cleanRepLines(text) {
+        return text.split('\n').map(line =>
+          line.replace(/(\d{3,6}(?:\.\d{2})?)\s+[A-Za-z].*$/, '$1')
+        ).join('\n');
+      }
 
       // OCR each half separately
       const { data: leftData } = await Tesseract.recognize(leftBuf, 'eng');
-      const leftText = normalizeOcr(leftData.text);
+      const leftText = cleanRepLines(normalizeOcr(leftData.text));
       console.log(`[${id}] rep LEFT OCR · ${leftText.length} chars`);
       console.log(`[${id}] rep LEFT preview:\n${leftText.slice(0, 500)}\n`);
       repOcrTexts.push(leftText);
 
       const { data: rightData } = await Tesseract.recognize(rightBuf, 'eng');
-      const rightText = normalizeOcr(rightData.text);
+      const rightText = cleanRepLines(normalizeOcr(rightData.text));
       console.log(`[${id}] rep RIGHT OCR · ${rightText.length} chars`);
       console.log(`[${id}] rep RIGHT preview:\n${rightText.slice(0, 500)}\n`);
       repOcrTexts.push(rightText);
@@ -435,6 +487,10 @@ async function scrapeBarns(config) {
         // Sale row: CITY, ST  qty  DESC  weight  price
         const SALE_ROW_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2,3})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/;
 
+        // Fallback: weight is garbled (OCR reads "0", "Ei", "#0" etc.) but price is intact
+        // Matches: location  qty  desc  <anything>  price  (weight stored as null)
+        const SALE_ROW_FALLBACK_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2,3})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+\S+\s+(\d{4,6}(?:\.\d{2})?)/;
+
         // Reject known hog/swine descriptions (OCR garbles cattle breed codes,
         // so a positive filter misses valid entries — use negative filter instead)
         const HOG_DESC_RE = /MKT|HOG|SOW|BOAR|GILT|PIG|PORK/i;
@@ -464,18 +520,29 @@ async function scrapeBarns(config) {
           if (/^location|^description|^city/i.test(line)) continue;
           if (!currentCategory) continue;
 
-          // Match sale row
+          // Match sale row — try primary regex first, fallback for garbled weights
+          let location, qty, desc, weight, rawPrice;
           const m = line.match(SALE_ROW_RE);
-          if (!m) continue;
-
-          const location = m[1].trim();
-          const qty = parseInt(m[2]) || 1;
-          const desc = m[3].trim();
-          const weight = parseInt(m[4]);
-          const rawPrice = m[5];
+          if (m) {
+            location = m[1].trim();
+            qty = parseInt(m[2]) || 1;
+            desc = m[3].trim();
+            weight = parseInt(m[4]);
+            rawPrice = m[5];
+            if (weight < 200 || weight > 2500) continue;
+          } else {
+            const fb = line.match(SALE_ROW_FALLBACK_RE);
+            if (!fb) continue;
+            location = fb[1].trim();
+            qty = parseInt(fb[2]) || 1;
+            desc = fb[3].trim();
+            weight = null;  // OCR garbled the weight
+            rawPrice = fb[4];
+            console.log(`[${id}] rep fallback match (no weight): ${location} ${qty} ${desc} $${rawPrice}`);
+          }
 
           const price = normalizePrice(rawPrice);
-          if (price === null || weight < 200 || weight > 2500) continue;
+          if (price === null) continue;
           if (HOG_DESC_RE.test(desc)) continue;
 
           // Map description to cattle type
@@ -508,6 +575,7 @@ async function scrapeBarns(config) {
 
     for (const sale of repSales.finished) {
       headCount.finished += sale.qty;
+      if (sale.weight === null) continue;  // count head but skip bucketing
       // Bucket into 100lb weight classes
       const bucket = Math.floor(sale.weight / 100) * 100;
       const range = `${bucket}-${bucket + 99}`;
@@ -519,8 +587,8 @@ async function scrapeBarns(config) {
 
     for (const sale of repSales.feeder) {
       headCount.feeder += sale.qty;
-      const bucket = Math.floor(sale.weight / 100) * 100;
-      const range = `${bucket}-${bucket + 99}`;
+      const bucket = sale.weight !== null ? Math.floor(sale.weight / 100) * 100 : null;
+      const range = bucket !== null ? `${bucket}-${bucket + 99}` : 'mixed';
       if (!feederByWeight[range]) feederByWeight[range] = {};
       if (!feederByWeight[range][sale.cattleType]) feederByWeight[range][sale.cattleType] = { sum: 0, count: 0 };
       feederByWeight[range][sale.cattleType].sum += sale.price * sale.qty;
@@ -553,7 +621,7 @@ async function scrapeBarns(config) {
     for (const [range, types] of Object.entries(feederByWeight)) {
       for (const [type, data] of Object.entries(types)) {
         feederWeightAvgs.push({
-          range: range + ' lbs',
+          range: range === 'mixed' ? 'mixed wt' : range + ' lbs',
           type,
           avgPrice: parseFloat((data.sum / data.count).toFixed(2)),
           head: data.count
