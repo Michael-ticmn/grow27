@@ -64,34 +64,16 @@
         ]
       }
     ],
-    "saleDay": "Monday",
-    "liteTestNote": "lite test see Thur 3/5/26 Report",
+    "saleDay": null,
+    "liteTestNote": null,
     "repSales": {
-      "finishWeightAvgs": [
-        { "range": "1100-1199 lbs", "type": "beef", "avgPrice": 238.00, "head": 1 },
-        { "range": "1200-1299 lbs", "type": "beef", "avgPrice": 237.50, "head": 8 },
-        { "range": "1300-1399 lbs", "type": "beef", "avgPrice": 235.00, "head": 6 },
-        { "range": "1400-1499 lbs", "type": "beef", "avgPrice": 233.50, "head": 5 },
-        { "range": "1500-1599 lbs", "type": "beef", "avgPrice": 233.00, "head": 4 },
-        { "range": "1200-1299 lbs", "type": "crossbred", "avgPrice": 234.50, "head": 9 },
-        { "range": "1300-1399 lbs", "type": "crossbred", "avgPrice": 230.00, "head": 2 },
-        { "range": "1400-1499 lbs", "type": "crossbred", "avgPrice": 229.50, "head": 1 },
-        { "range": "1300-1399 lbs", "type": "holstein", "avgPrice": 207.00, "head": 3 },
-        { "range": "1500-1599 lbs", "type": "holstein", "avgPrice": 207.00, "head": 4 },
-        { "range": "1600-1699 lbs", "type": "holstein", "avgPrice": 204.00, "head": 1 },
-        { "range": "1700-1799 lbs", "type": "holstein", "avgPrice": 207.00, "head": 4 },
-        { "range": "1800-1899 lbs", "type": "holstein", "avgPrice": 204.00, "head": 1 }
-      ],
-      "feederWeightAvgs": [
-        { "range": "400-499 lbs", "type": "beef", "avgPrice": 405.00, "head": 2 },
-        { "range": "400-499 lbs", "type": "crossbred", "avgPrice": 345.00, "head": 2 },
-        { "range": "400-499 lbs", "type": "holstein", "avgPrice": 300.00, "head": 1 },
-        { "range": "600-699 lbs", "type": "beef", "avgPrice": 340.00, "head": 2 },
-        { "range": "600-699 lbs", "type": "crossbred", "avgPrice": 335.00, "head": 3 },
-        { "range": "700-799 lbs", "type": "beef", "avgPrice": 335.00, "head": 1 },
-        { "range": "500-599 lbs", "type": "holstein", "avgPrice": 280.00, "head": 2 }
-      ],
-      "headCount": { "finished": 49, "feeder": 13, "bulls": 8 }
+      "finishWeightAvgs": [],
+      "feederWeightAvgs": [],
+      "headCount": {
+        "finished": 0,
+        "feeder": 0,
+        "bulls": 0
+      }
     },
     "trend": null,
     "source": "scraped"
@@ -113,6 +95,9 @@
       "liteTest": false
     },
     "feederWeights": [],
+    "saleDay": null,
+    "liteTestNote": null,
+    "repSales": null,
     "trend": null,
     "source": "pending"
   },
@@ -133,6 +118,9 @@
       "liteTest": false
     },
     "feederWeights": [],
+    "saleDay": null,
+    "liteTestNote": null,
+    "repSales": null,
     "trend": null,
     "source": "pending"
   },
@@ -153,6 +141,9 @@
       "liteTest": false
     },
     "feederWeights": [],
+    "saleDay": null,
+    "liteTestNote": null,
+    "repSales": null,
     "trend": null,
     "source": "pending"
   },
@@ -173,6 +164,9 @@
       "liteTest": false
     },
     "feederWeights": [],
+    "saleDay": null,
+    "liteTestNote": null,
+    "repSales": null,
     "trend": null,
     "source": "pending"
   }
