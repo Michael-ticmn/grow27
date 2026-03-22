@@ -22,12 +22,15 @@ Current version in `version.json` — format `major.minor` (e.g. `1.15`). Same v
 
 **Typical workflow:**
 ```powershell
-# Edit MSG inside push-userupdates.ps1, then run:
+# Set MSG variable, then run the script — never edit PS1 files for messages
+$MSG = "fix: describe the change here"
 .\push-userupdates.ps1
 
 # When ready to go to production:
 .\push-main.ps1
 ```
+
+**When Claude provides PS1 commands** — always pass `$MSG` as a variable assignment on the line before the script call. Never tell the user to edit the PS1 file.
 
 **When Claude provides git commands** — provide raw `git add / commit / push` steps only, no version bumping. Michael runs the PS1 scripts manually. Claude must never modify `version.json` or the `sw.js` cache string.
 
@@ -57,8 +60,12 @@ Claude edits files directly in the local repo. Michael validates locally before 
 - `data/barns-config.json` — barn registry. Add a barn here only; no code changes needed.
 - `data/prices/<id>.json` — per-barn history, max 14 entries / 14 days
 - `data/prices/index.json` — latest snapshot, one entry per barn (what the PWA reads)
-- `scripts/scrape-barns.js` — Puppeteer (JS-rendered pages) + cheerio parser. Node 20. `hasTypeBreakdown: true` barns use Puppeteer; others write a `pending` null entry.
+- `scripts/scrape-barns.js` — **orchestrator**. Loops barns, fetches pages via Puppeteer, delegates parsing to barn-specific modules, writes output. Exports shared helpers (`normalizePrice`, `extractLinePrice`, regex constants) for barn parsers.
+- `scripts/barns/<id>.js` — barn-specific parser module. Exports `parse({ id, browser, html, $ })` returning `{ slaughter, feeder, feederWeights, repSales, ... }`. Currently: `central.js` (OCR + rep sales).
+- `scripts/barns/_default.js` — fallback parser for barns without custom logic (returns `pending`).
 - `.github/workflows/scrape-barns.yml` — runs on `UserUpdates`, triggers daily 7am CT (`0 12 * * *`) and via `workflow_dispatch`. Commits price files back to `UserUpdates`.
+
+**Adding a new barn parser:** Create `scripts/barns/<id>.js` matching the id in `barns-config.json`. Export `parse({ id, browser, html, $ })`. The orchestrator picks it up automatically — no changes to `scrape-barns.js` needed.
 
 **Scrape sources:**
 
