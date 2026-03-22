@@ -61,11 +61,24 @@ async function parse({ id, config, browser }) {
         await page.goto(locUrl, { waitUntil: 'networkidle2', timeout: 30000 });
         await new Promise(r => setTimeout(r, 3000));
 
-        // Read the rendered DataGrid table — displayNumber() uses document.write()
-        // so values are in the DOM after page load
+        // Read the DataGrid table. displayNumber() uses document.write() inside
+        // <script> tags but these don't execute in Puppeteer's DOM context.
+        // The raw displayNumber(value, decimals) args are in the cell textContent,
+        // so we extract the numeric value from those calls.
         const bids = await page.evaluate(() => {
           const table = document.querySelector('table.DataGrid');
           if (!table) return [];
+
+          // Extract numeric value from displayNumber() call text or plain number
+          function extractNum(text) {
+            // Try displayNumber(123.456, 4) pattern
+            const m = text.match(/displayNumber\(\s*(-?[\d.]+)/);
+            if (m) return m[1];
+            // Try plain number
+            const n = text.match(/(-?[\d.]+)/);
+            if (n) return n[1];
+            return null;
+          }
 
           const results = [];
           const rows = table.querySelectorAll('tbody tr, tr');
@@ -74,16 +87,19 @@ async function parse({ id, config, browser }) {
             const cells = row.querySelectorAll('td');
             if (cells.length < 5) continue;
 
-            const delivery    = (cells[0]?.textContent || '').trim();
-            const cash        = (cells[1]?.textContent || '').trim();
-            const basis       = (cells[2]?.textContent || '').trim();
+            const delivery     = (cells[0]?.textContent || '').trim();
+            const cashRaw      = (cells[1]?.textContent || '').trim();
+            const basisRaw     = (cells[2]?.textContent || '').trim();
             const futuresPrice = (cells[3]?.textContent || '').trim();
             const futuresMonth = (cells[4]?.textContent || '').trim();
 
             // Skip header-like rows
-            if (/delivery/i.test(delivery)) continue;
+            if (/cash price|delivery/i.test(delivery) || /cash price|delivery/i.test(cashRaw)) continue;
             // Validate: delivery should look like a date
             if (!/\d{1,2}\/\d{1,2}\/\d{2,4}/.test(delivery)) continue;
+
+            const cash = extractNum(cashRaw);
+            const basis = extractNum(basisRaw);
 
             results.push({ delivery, cash, basis, futuresPrice, futuresMonth });
           }
