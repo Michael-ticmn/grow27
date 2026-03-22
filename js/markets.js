@@ -192,6 +192,60 @@ let CURATED=Object.assign({},REGION_A.elevators,REGION_B.elevators);
 let ELEVATORS=Object.assign({},CURATED);
 let userLat=null,userLon=null;
 
+// ── GRAIN SCRAPER DATA OVERLAY ──────────────────────────────────────────────
+// Maps curated elevator keys → { source: grain-config id, location: slug in index.json }
+const GRAIN_SCRAPE_MAP = {
+  cfs:               { source: 'cfs', location: 'st-james' },
+  cfs_nfield:        { source: 'cfs', location: 'northfield' },
+  cfs_kenyon:        { source: 'cfs', location: 'kenyon' },
+  mnvg_webster:      { source: 'mvg', location: 'webster' },
+  mnvg_montgomery:   { source: 'mvg', location: 'montgomery' },
+  mnvg_lecenter:     { source: 'mvg', location: 'le-center' },
+  agpartners_gd:     { source: 'agp', location: 'goodhue' },
+  agpartners_bc:     { source: 'agp', location: 'bellechester' },
+};
+let GRAIN_SCRAPED = {}; // populated by loadGrainScrapedData()
+
+async function loadGrainScrapedData() {
+  try {
+    const r = await fetch('data/prices/grain/index.json');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const idx = await r.json();
+    // Build lookup: { sourceId: { locationSlug: { corn: [...], beans: [...] } } }
+    for (const src of idx) {
+      GRAIN_SCRAPED[src.id] = src.locations || {};
+    }
+    console.log('[grain] loaded scraped data:', Object.keys(GRAIN_SCRAPED).join(', '));
+
+    // Overlay actual basis onto ELEVATORS
+    let updated = 0;
+    for (const [elevKey, map] of Object.entries(GRAIN_SCRAPE_MAP)) {
+      const elev = ELEVATORS[elevKey];
+      if (!elev) continue;
+      const locData = GRAIN_SCRAPED[map.source]?.[map.location];
+      if (!locData) continue;
+      // Use nearby (first) corn bid basis
+      const cornNearby = locData.corn?.[0];
+      if (cornNearby && cornNearby.basis != null) {
+        elev.cornBasis = cornNearby.basis;
+        elev.cornActual = true;
+      }
+      // Use nearby (first) bean bid basis
+      const beanNearby = locData.beans?.[0];
+      if (beanNearby && beanNearby.basis != null) {
+        elev.soyBasis = beanNearby.basis;
+        elev.soyActual = true;
+      }
+      updated++;
+    }
+    console.log('[grain] overlaid actual prices on ' + updated + ' elevators');
+    buildCashTable();
+    rebuildElevatorDirectory();
+  } catch (e) {
+    console.warn('[grain] could not load scraped data:', e.message);
+  }
+}
+
 function getCuratedForRegion(k){if(k==='A')return REGION_A.elevators;if(k==='B')return REGION_B.elevators;return{...REGION_A.elevators,...REGION_B.elevators};}
 function autoDetectRegion(){if(!userLat||!userLon)return'both';const dA=distMiles(userLat,userLon,REGION_A.centerLat,REGION_A.centerLon),dB=distMiles(userLat,userLon,REGION_B.centerLat,REGION_B.centerLon);if(Math.abs(dA-dB)<25)return'both';return dA<dB?'A':'B';}
 function setRegion(k){activeRegion=k;const discovered=Object.fromEntries(Object.entries(ELEVATORS).filter(([,e])=>e.discovered));CURATED=getCuratedForRegion(k==='auto'?autoDetectRegion():k);ELEVATORS=Object.assign({},CURATED,discovered);document.querySelectorAll('.region-btn').forEach(b=>b.classList.toggle('active',b.dataset.region===k));rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();updateRegionBadge();}
@@ -201,7 +255,7 @@ function onElevChange(){const key=document.getElementById('elev-select').value;c
 function highlightTableRow(key){document.querySelectorAll('#cash-table-body tr').forEach(tr=>tr.classList.toggle('selected',tr.dataset.key===key));}
 function selectFromTable(key){document.getElementById('elev-select').value=key;onElevChange();}
 function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');if(!sel)return;const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;else if(userLat&&sorted.length){sel.value=sorted[0];onElevChange();}}
-function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(cornFut+e.cornBasis).toFixed(2);const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(2):'—';const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
+function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(cornFut+e.cornBasis).toFixed(2);const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(2):'—';const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';const cornBadge=e.cornActual?'<span class="barn-src-badge barn-src-live" style="margin-left:4px;font-size:8px;">ACTUAL</span>':'';const soyBadge=e.soyActual?'<span class="barn-src-badge barn-src-live" style="margin-left:4px;font-size:8px;">ACTUAL</span>':'';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}${cornBadge}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash+soyBadge:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
 function rebuildElevatorDirectory() {
   const col1 = document.getElementById('elev-dir-col-1');
   const col2 = document.getElementById('elev-dir-col-2');
@@ -240,15 +294,17 @@ function rebuildElevatorDirectory() {
     // Basis block
     const cornBasisStr = (e.cornBasis >= 0 ? '+' : '') + e.cornBasis.toFixed(2);
     const soyBasisStr  = e.soyBasis !== null ? (e.soyBasis >= 0 ? '+' : '') + e.soyBasis.toFixed(2) : null;
+    const cornTag = e.cornActual ? ' <span class="barn-src-badge barn-src-live" style="font-size:8px;">ACTUAL</span>' : e.curated ? '' : ' est.';
+    const soyTag  = e.soyActual  ? ' <span class="barn-src-badge barn-src-live" style="font-size:8px;">ACTUAL</span>' : e.curated ? '' : ' est.';
     const basisBlock = `<div class="elev-details-row" style="margin-top:10px;">
       <div class="elev-detail-item">CORN BASIS
-        <strong style="color:${e.curated?'var(--corn)':'var(--txt3)'}">
-          ${cornBasisStr}${e.curated?'':' est.'}
+        <strong style="color:${e.cornActual?'var(--corn)':e.curated?'var(--corn)':'var(--txt3)'}">
+          ${cornBasisStr}${cornTag}
         </strong>
       </div>
       ${soyBasisStr !== null ? `<div class="elev-detail-item">SOY BASIS
-        <strong style="color:${e.curated?'var(--soy)':'var(--txt3)'}">
-          ${soyBasisStr}${e.curated?'':' est.'}
+        <strong style="color:${e.soyActual?'var(--soy)':e.curated?'var(--soy)':'var(--txt3)'}">
+          ${soyBasisStr}${soyTag}
         </strong>
       </div>` : ''}
     </div>`;

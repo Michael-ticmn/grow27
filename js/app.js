@@ -126,7 +126,7 @@ try{
   switchSubtab('grain');
 }catch(e){}
 
-loadGrainPrices();
+loadGrainPrices().then(() => loadGrainScrapedData());
 loadCattlePrices();
 loadDairyPrices();
 loadBarnPrices();
