@@ -196,61 +196,75 @@ async function run() {
     // Load existing file
     const barnData = loadBarnFile(id, name, location);
 
-    let entry;
-    if (config.hasTypeBreakdown && config.reportUrl) {
-      // Fetch page, then delegate to barn-specific parser
-      let browser, html;
-      try {
-        ({ browser, html } = await fetchPage(id, config.reportUrl));
-      } catch (fetchErr) {
-        console.error(`[${id}] FETCH FAILED: ${fetchErr.message}`);
-        entry = nullEntry(todayStr, 'fetch_failed');
-        entry.error = fetchErr.message;
+    // Build list of reports to scrape:
+    //   - config.reports[] (new multi-report format)
+    //   - config.reportUrl (legacy single-report format)
+    //   - neither → pending
+    const reports = config.reports
+      || (config.reportUrl ? [{ day: null, url: config.reportUrl }] : []);
 
-        // Skip to save
-        barnData.history = trimHistory(barnData.history).filter(e => e.date !== todayStr);
-        barnData.history.push(entry);
-        barnData.lastUpdated = todayStr;
-        saveBarnFile(barnData);
+    if (config.hasTypeBreakdown && reports.length > 0) {
+      for (const report of reports) {
+        const tag = report.day || 'report';
+        console.log(`\n── [${id}] ${tag}: ${report.url} ──`);
 
-        indexOut.push(buildIndexRow(barnData, id, name, location));
-        continue;
-      }
+        let browser, html;
+        try {
+          ({ browser, html } = await fetchPage(id, report.url));
+        } catch (fetchErr) {
+          console.error(`[${id}:${tag}] FETCH FAILED: ${fetchErr.message}`);
+          const entry = nullEntry(todayStr, 'fetch_failed');
+          entry.saleDay = report.day;
+          entry.error = fetchErr.message;
 
-      try {
-        ensureDeps();
-        const $ = cheerio.load(html);
-        const parser = loadBarnParser(id);
-        const result = await parser.parse({ id, browser, html, $ });
+          // Dedup by date + saleDay, then append
+          barnData.history = trimHistory(barnData.history)
+            .filter(e => !(e.date === todayStr && e.saleDay === report.day));
+          barnData.history.push(entry);
+          continue;
+        }
 
-        entry = {
-          date:         todayStr,
-          slaughter:    result.slaughter ?? { beef: null, crossbred: null, holstein: null },
-          feeder:       result.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
-          feederWeights: result.feederWeights ?? [],
-          saleDay:      result.saleDay ?? null,
-          liteTestNote: result.liteTestNote ?? null,
-          repSales:     result.repSales ?? null,
-          source:       result.source,
-        };
-        if (result.error) entry.error = result.error;
-        if (result.source === 'scraped') barnData.lastSuccess = result.reportDate || todayStr;
-      } finally {
-        if (browser) await browser.close();
+        try {
+          ensureDeps();
+          const $ = cheerio.load(html);
+          const parser = loadBarnParser(id);
+          const result = await parser.parse({ id, browser, html, $ });
+
+          const entry = {
+            date:         todayStr,
+            slaughter:    result.slaughter ?? { beef: null, crossbred: null, holstein: null },
+            feeder:       result.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
+            feederWeights: result.feederWeights ?? [],
+            saleDay:      result.saleDay || report.day || null,
+            liteTestNote: result.liteTestNote ?? null,
+            repSales:     result.repSales ?? null,
+            hogs:         result.hogs ?? null,
+            source:       result.source,
+          };
+          if (result.error) entry.error = result.error;
+          if (result.source === 'scraped') barnData.lastSuccess = result.reportDate || todayStr;
+
+          console.log(`[${id}:${tag}] entry: ${JSON.stringify(entry)}`);
+
+          // Dedup by date + saleDay, then append
+          barnData.history = trimHistory(barnData.history)
+            .filter(e => !(e.date === todayStr && e.saleDay === entry.saleDay));
+          barnData.history.push(entry);
+        } finally {
+          if (browser) await browser.close();
+        }
       }
     } else {
       // No type breakdown / no report URL — write pending entry
-      entry = nullEntry(todayStr, 'pending');
+      const entry = nullEntry(todayStr, 'pending');
       console.log(`[${id}] no reportUrl or no type breakdown — writing pending entry`);
+
+      barnData.history = trimHistory(barnData.history)
+        .filter(e => !(e.date === todayStr && e.saleDay == null));
+      barnData.history.push(entry);
     }
 
-    console.log(`[${id}] entry to append: ${JSON.stringify(entry)}`);
-
-    // Trim then append — never duplicate same-date entries
-    barnData.history = trimHistory(barnData.history).filter(e => e.date !== todayStr);
-    barnData.history.push(entry);
     barnData.lastUpdated = todayStr;
-
     saveBarnFile(barnData);
 
     indexOut.push(buildIndexRow(barnData, id, name, location));
@@ -261,9 +275,32 @@ async function run() {
 }
 
 function buildIndexRow(barnData, id, name, location) {
+  // Most recent successful entry (shown in main barn table)
   const recent = [...barnData.history]
     .reverse()
     .find(e => e.source === 'scraped' || e.source === 'calculated');
+
+  // Collect the latest scraped entry per sale day (for barns with multiple sale days)
+  const byDay = {};
+  for (const e of [...barnData.history].reverse()) {
+    if (e.source !== 'scraped' && e.source !== 'calculated') continue;
+    const day = e.saleDay || '_default';
+    if (!byDay[day]) byDay[day] = e;
+  }
+  const saleDays = Object.keys(byDay).filter(k => k !== '_default').length > 0
+    ? Object.entries(byDay)
+        .filter(([k]) => k !== '_default')
+        .map(([day, e]) => ({
+          day,
+          date:         e.date,
+          slaughter:    e.slaughter,
+          feeder:       e.feeder,
+          feederWeights: e.feederWeights ?? [],
+          repSales:     e.repSales ?? null,
+          hogs:         e.hogs ?? null,
+          liteTestNote: e.liteTestNote ?? null,
+        }))
+    : null;
 
   return {
     id,
@@ -276,6 +313,7 @@ function buildIndexRow(barnData, id, name, location) {
     saleDay:      recent?.saleDay ?? null,
     liteTestNote: recent?.liteTestNote ?? null,
     repSales:     recent?.repSales ?? null,
+    saleDays,
     trend:        calcTrend(barnData.history),
     source:       recent?.source ?? 'pending',
   };

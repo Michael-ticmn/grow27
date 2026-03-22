@@ -3,8 +3,12 @@
     "id": "central",
     "name": "Central Livestock Association",
     "location": "Zumbrota MN",
-    "reportUrl": "https://centrallivestock.com/monday---cattle.html",
     "hasTypeBreakdown": true,
+    "reports": [
+      { "day": "Monday",    "url": "https://centrallivestock.com/monday---cattle.html" },
+      { "day": "Wednesday", "url": "https://www.centrallivestock.com/wednesday---cattle-hogs.html" }
+    ],
+    "reportUrl": "https://centrallivestock.com/monday---cattle.html",
     "parseRules": {
       "slaughter": {
         "beef": "Finished Beef Steers",
