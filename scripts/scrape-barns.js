@@ -2,7 +2,8 @@
 // grow27 — auction barn price scraper
 // Runs via GitHub Actions daily at 7am CT.
 // Reads data/barns-config.json, writes data/prices/<id>.json + data/prices/index.json.
-// Deps: cheerio (HTML parsing), puppeteer (JS-rendered pages).
+// Deps: cheerio (HTML parsing), puppeteer (JS-rendered pages + image download),
+//       tesseract.js (OCR).
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -11,6 +12,7 @@ const fs        = require('fs');
 const path      = require('path');
 const cheerio   = require('cheerio');
 const puppeteer = require('puppeteer');
+const Tesseract = require('tesseract.js');
 
 const ROOT         = path.join(__dirname, '..');
 const CONFIG_PATH  = path.join(ROOT, 'data', 'barns-config.json');
@@ -36,150 +38,285 @@ function trimHistory(history) {
   return history.filter(e => e.date >= cutStr).slice(-MAX_HISTORY);
 }
 
-function norm(text) {
-  return String(text).replace(/\s+/g, ' ').trim().toLowerCase();
-}
+// ── Price extraction from OCR text ──────────────────────────────────────────
 
-function midpoint(text) {
-  const range = text.match(/(\d{2,3}(?:\.\d+)?)\s*(?:[-–]|to)\s*(\d{2,3}(?:\.\d+)?)/);
-  if (range) return (parseFloat(range[1]) + parseFloat(range[2])) / 2;
-  const single = text.match(/(\d{2,3}(?:\.\d+)?)/);
-  if (single) return parseFloat(single[1]);
+// OCR often drops decimals: "224.00" → "22400", "239.00" → "23900"
+// Normalize a raw number string into a proper price (cents per cwt)
+function normalizePrice(raw) {
+  const v = parseFloat(raw);
+  if (isNaN(v)) return null;
+  // Already has a decimal → use as-is if in valid range
+  if (raw.includes('.')) return (v >= 100 && v <= 400) ? v : null;
+  // 5-digit integer (e.g. 22400 → 224.00, 40500 → 405.00)
+  if (v >= 10000 && v <= 50000) return v / 100;
+  // 3-digit integer in valid range (e.g. 235 → 235.00)
+  if (v >= 100 && v <= 400) return v;
   return null;
 }
 
-function extractPrice(text, minVal = 150, maxVal = 400) {
-  const v = midpoint(text);
-  return (v !== null && v >= minVal && v <= maxVal) ? parseFloat(v.toFixed(2)) : null;
+// Match price ranges: "224.00 - 239.00", "22400-23900", "22400 23900"
+// Also handles mixed: "22000 - 235.00"
+const RANGE_RE  = /(\d{3,5}(?:\.\d{2})?)\s*[-–]\s*(\d{3,5}(?:\.\d{2})?)/;
+// Two numbers separated by spaces (OCR drops the dash): "22400 23900"
+const SPACE_RANGE_RE = /(\d{3,5}(?:\.\d{2})?)\s+(\d{3,5}(?:\.\d{2})?)/;
+const SINGLE_RE = /(\d{3,5}(?:\.\d{2})?)/;
+
+function extractLinePrice(line) {
+  // Try range with dash/en-dash first
+  const range = line.match(RANGE_RE);
+  if (range) {
+    const a = normalizePrice(range[1]), b = normalizePrice(range[2]);
+    if (a !== null && b !== null) return parseFloat(((a + b) / 2).toFixed(2));
+    if (a !== null) return parseFloat(a.toFixed(2));
+    if (b !== null) return parseFloat(b.toFixed(2));
+  }
+  // Try two numbers separated by space (OCR artifact)
+  const spaceRange = line.match(SPACE_RANGE_RE);
+  if (spaceRange) {
+    const a = normalizePrice(spaceRange[1]), b = normalizePrice(spaceRange[2]);
+    if (a !== null && b !== null) return parseFloat(((a + b) / 2).toFixed(2));
+    if (a !== null) return parseFloat(a.toFixed(2));
+    if (b !== null) return parseFloat(b.toFixed(2));
+  }
+  // Single price
+  const single = line.match(SINGLE_RE);
+  if (single) {
+    const v = normalizePrice(single[1]);
+    if (v !== null) return parseFloat(v.toFixed(2));
+  }
+  return null;
 }
 
-// ── HTML scraper ─────────────────────────────────────────────────────────────
+// ── OCR-based scraper (for barns that publish report as PNG image) ───────────
 
 async function scrapeBarns(config) {
-  const { id, reportUrl, parseRules } = config;
+  const { id, reportUrl } = config;
 
-  // ── 1. Fetch via Puppeteer (handles JS-rendered pages) ──────────────────
-  let html;
   let browser;
   try {
-    console.log(`[${id}] launching Puppeteer for: ${reportUrl}`);
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    const page = await browser.newPage();
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
-      '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    );
-
-    const response = await page.goto(reportUrl, {
-      waitUntil: 'networkidle2',
-      timeout: 30000,
-    });
-    console.log(`[${id}] page status: ${response.status()}`);
-    if (!response.ok()) throw new Error(`HTTP ${response.status()}`);
-
-    // Wait up to 5s for at least one <td> to be populated with text
+    // ── 1. Fetch rendered HTML via Puppeteer ──────────────────────────────
+    let html;
     try {
-      await page.waitForFunction(
-        () => [...document.querySelectorAll('td')].some(td => td.innerText.trim().length > 0),
-        { timeout: 5000 }
-      );
-      console.log(`[${id}] td cells populated`);
-    } catch {
-      console.warn(`[${id}] waitForFunction timed out — proceeding with page as-is after 3s`);
+      console.log(`[${id}] launching Puppeteer for: ${reportUrl}`);
+      browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+      const page = await browser.newPage();
+      await page.goto(reportUrl, { waitUntil: 'networkidle2', timeout: 30000 });
       await new Promise(r => setTimeout(r, 3000));
+      html = await page.content();
+      console.log(`[${id}] fetch OK · ${html.length} bytes`);
+      if (html.length < 500) throw new Error('response too short — likely blocked or empty');
+    } catch (fetchErr) {
+      console.error(`[${id}] FETCH FAILED: ${fetchErr.message}`);
+      return { slaughter: null, feeder: null, source: 'fetch_failed', error: fetchErr.message };
     }
 
-    html = await page.content();
-    console.log(`[${id}] fetch OK · ${html.length} bytes`);
-    // ── 3. HTML preview (first 500 chars) ─────────────────────────────────
-    console.log(`[${id}] HTML preview:\n${html.slice(0, 500)}\n`);
-    if (html.length < 500) throw new Error('response too short — likely blocked or empty');
+    // ── 2. Extract og:image URL containing "screenshot" ──────────────────
+    let imageUrl;
+    try {
+      const $ = cheerio.load(html);
+      const ogImages = [];
+      $('meta[property="og:image"]').each((_, el) => {
+        const url = $(el).attr('content');
+        if (url) ogImages.push(url);
+      });
+      console.log(`[${id}] og:image URLs found: ${ogImages.length}`);
+      ogImages.forEach((u, i) => console.log(`[${id}]   [${i}] ${u}`));
 
-  } catch (fetchErr) {
-    // ── 2. Fetch failed ────────────────────────────────────────────────────
-    console.error(`[${id}] FETCH FAILED: ${fetchErr.message}`);
-    return { slaughter: null, feeder: null, source: 'fetch_failed', error: fetchErr.message };
-  } finally {
-    if (browser) await browser.close();
+      // Prefer URL containing "screenshot" in the filename
+      imageUrl = ogImages.find(u => /screenshot/i.test(u))
+              || ogImages.find(u => /report|market|cattle|price/i.test(u))
+              || ogImages[0];
+
+      if (!imageUrl) throw new Error('no og:image meta tag found');
+      console.log(`[${id}] selected image URL: ${imageUrl}`);
+    } catch (imgErr) {
+      console.error(`[${id}] IMAGE EXTRACT FAILED: ${imgErr.message}`);
+      return { slaughter: null, feeder: null, source: 'fetch_failed', error: imgErr.message };
+    }
+
+    // ── 3. Download PNG via Puppeteer (avoids 403 from bare fetch) ────────
+    let imgBuffer;
+    try {
+      const page = await browser.newPage();
+      const imgResponse = await page.goto(imageUrl, {
+        waitUntil: 'networkidle2',
+        timeout: 15000,
+      });
+      if (!imgResponse.ok()) throw new Error(`HTTP ${imgResponse.status()}`);
+      imgBuffer = await imgResponse.buffer();
+      console.log(`[${id}] image downloaded via Puppeteer · ${imgBuffer.length} bytes`);
+    } catch (dlErr) {
+      console.error(`[${id}] IMAGE DOWNLOAD FAILED: ${dlErr.message}`);
+      return { slaughter: null, feeder: null, source: 'fetch_failed', error: dlErr.message };
+    }
+
+  // ── 4. Run Tesseract OCR ──────────────────────────────────────────────
+  let ocrText;
+  try {
+    console.log(`[${id}] running Tesseract OCR...`);
+    const { data } = await Tesseract.recognize(imgBuffer, 'eng');
+    ocrText = data.text;
+    console.log(`[${id}] OCR complete · ${ocrText.length} chars`);
+    console.log(`[${id}] OCR text preview:\n${ocrText.slice(0, 1000)}\n`);
+  } catch (ocrErr) {
+    console.error(`[${id}] OCR FAILED: ${ocrErr.message}`);
+    return { slaughter: null, feeder: null, source: 'fetch_failed', error: ocrErr.message };
   }
 
-  // ── Parse ────────────────────────────────────────────────────────────────
+  // ── 5. Parse prices from OCR text via regex ───────────────────────────
   try {
-    const $ = cheerio.load(html);
+    const lines = ocrText.split('\n').map(l => l.trim()).filter(Boolean);
     const slaughter = { beef: null, crossbred: null, holstein: null };
     const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
+    const feederWeights = [];  // { range, price, types } per weight class
+    let reportDate = null;  // extracted from "Market Report - MM/DD/YYYY"
 
-    const cells = [];
-    $('td, th').each((i, el) => {
-      cells.push({ i, text: $(el).text().replace(/\s+/g, ' ').trim() });
-    });
-    console.log(`[${id}] total td/th cells found: ${cells.length}`);
+    // Track whether we're in the feeder section (for liteTest detection)
+    let inFeederSection = false;
+    // Track feeder sub-headers so we can grab prices from following lines
+    let feederBeefHeader = -1;
+    let feederHolsteinHeader = -1;
+    // Current feeder sub-section type(s) for weight collection
+    let currentFeederTypes = null;
 
-    if (cells.length === 0) {
-      // Page likely JS-rendered — dump the raw HTML to help diagnose
-      console.warn(`[${id}] WARNING: zero cells found — page may be JS-rendered (Wix/React)`);
-      console.log(`[${id}] full HTML (first 2000 chars):\n${html.slice(0, 2000)}`);
+    // Helper: extract the best price from a line, filtering out weight ranges
+    // Weight ranges look like "350 - 600%" or "800 - 1000%" — skip those
+    function extractPriceSkipWeights(line) {
+      // Remove weight-range patterns before price extraction
+      const cleaned = line
+        .replace(/\d{2,4}\s*[-–]\s*\d{2,4}\s*[%#]/g, '')   // "350 - 600%"
+        .replace(/under\s+\d+[#%]/gi, '')                    // "under 400#"
+        .replace(/upto\s*[-–]\s*/gi, '');                     // "upto -" prefix
+      return extractLinePrice(cleaned);
     }
 
-    function priceAfter(headerIdx, minVal = 150, maxVal = 400) {
-      for (let j = headerIdx + 1; j < Math.min(headerIdx + 12, cells.length); j++) {
-        const p = extractPrice(cells[j].text, minVal, maxVal);
-        if (p !== null) return p;
+    // Helper: extract the price specifically after "upto" keyword
+    // For two-column OCR lines like "Mixed Grading 21500-22300 owt 350 - 600% upto - 40500 cwt"
+    // we only want the number right after "upto", not the slaughter prices from the left column
+    function extractUptoPrice(line) {
+      const m = line.match(/upto\s*[-–]?\s*(\d{3,5}(?:\.\d{2})?)/i);
+      if (m) {
+        const v = normalizePrice(m[1]);
+        if (v !== null) return parseFloat(v.toFixed(2));
       }
       return null;
     }
 
-    // ── 4a. Slaughter parsing ─────────────────────────────────────────────
-    console.log(`[${id}] --- slaughter headers ---`);
-    for (const [type, label] of Object.entries(parseRules.slaughter)) {
-      const target = norm(label);
-      const headerIdx = cells.findIndex(c => norm(c.text).includes(target));
-      if (headerIdx === -1) {
-        console.warn(`[${id}] slaughter.${type}: header NOT FOUND ("${label}")`);
-        continue;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lower = line.toLowerCase();
+
+      // ── Report date extraction ─────────────────────────────────────────
+      if (!reportDate && /market\s*report/i.test(line)) {
+        const dm = line.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+        if (dm) {
+          const mm = dm[1].padStart(2, '0');
+          const dd = dm[2].padStart(2, '0');
+          const yyyy = dm[3].length === 2 ? '20' + dm[3] : dm[3];
+          reportDate = `${yyyy}-${mm}-${dd}`;
+          console.log(`[${id}] report date: ${reportDate}`);
+        }
       }
-      console.log(`[${id}] slaughter.${type}: header found at cell[${headerIdx}] = "${cells[headerIdx].text}"`);
-      // Log next 5 cells so we can see what the price scanner sees
-      const nearby = cells.slice(headerIdx + 1, headerIdx + 6).map(c => `"${c.text}"`).join(', ');
-      console.log(`[${id}] slaughter.${type}: next 5 cells = [${nearby}]`);
-      const price = priceAfter(headerIdx);
-      if (price !== null) {
-        slaughter[type] = price;
-        console.log(`[${id}] slaughter.${type} = ${price} ✓`);
-      } else {
-        console.warn(`[${id}] slaughter.${type}: NO PRICE extracted from nearby cells`);
+
+      // ── Slaughter headers ──────────────────────────────────────────────
+      if (/finished\s+beef\s+steers/i.test(line)) {
+        const price = extractPriceSkipWeights(line);
+        if (price !== null) {
+          slaughter.beef = price;
+          console.log(`[${id}] slaughter.beef = ${price} ✓`);
+        }
+      }
+      else if (/finished\s+dairy[\s-]*x/i.test(line) || /dairy[\s-]*x\s+steers/i.test(line)) {
+        const price = extractPriceSkipWeights(line);
+        if (price !== null) {
+          slaughter.crossbred = price;
+          console.log(`[${id}] slaughter.crossbred = ${price} ✓`);
+        }
+      }
+      else if (/finished\s+dairy\s+steers/i.test(line)) {
+        const price = extractPriceSkipWeights(line);
+        if (price !== null) {
+          slaughter.holstein = price;
+          console.log(`[${id}] slaughter.holstein = ${price} ✓`);
+        }
+      }
+
+      // ── Feeder section detection ───────────────────────────────────────
+      // "Feeder Cattle" marks start of feeder section
+      if (/feeder\s+cattle/i.test(line)) {
+        inFeederSection = true;
+        console.log(`[${id}] entered feeder section at line ${i}`);
+      }
+
+      // In feeder section: "Beef Steers & Bulls" is feeder-specific
+      // (OCR may merge columns: "Finished Beef Steers 22400 23900 owt Beef Steers & Bulls")
+      if (inFeederSection && /beef\s+steers\s*[&]\s*bulls/i.test(line)) {
+        feederBeefHeader = i;
+        currentFeederTypes = ['beef', 'crossbred'];
+        console.log(`[${id}] feeder beef header at line ${i}: "${line}"`);
+      }
+      // "Beef Heifers" sub-section (also beef/crossbred types)
+      else if (inFeederSection && /beef\s+heifers/i.test(line) && !/finished/i.test(line)) {
+        currentFeederTypes = ['beef', 'crossbred'];
+        console.log(`[${id}] feeder beef heifers header at line ${i}`);
+      }
+      // Fallback: "Beef Steers" without "Finished" on its own line
+      else if (inFeederSection && /beef\s+steers/i.test(line) && !/finished/i.test(line)) {
+        feederBeefHeader = i;
+        currentFeederTypes = ['beef', 'crossbred'];
+        const price = extractPriceSkipWeights(line);
+        if (price !== null) {
+          feeder.beef = price;
+          console.log(`[${id}] feeder.beef = ${price} ✓ (same line)`);
+        }
+      }
+
+      // In feeder section: "Dairy Steers" (not "Finished") → feeder.holstein
+      if (inFeederSection && /dairy\s+steers/i.test(line) && !/finished/i.test(line)) {
+        feederHolsteinHeader = i;
+        currentFeederTypes = ['holstein'];
+        const price = extractPriceSkipWeights(line);
+        if (price !== null) {
+          feeder.holstein = price;
+          console.log(`[${id}] feeder.holstein = ${price} ✓ (same line)`);
+        }
+      }
+
+      // ── Collect feeder weight ranges with upto prices ──────────────────
+      // Match lines like "350 - 600% upto - 40500 cwt" or "600 - 800% upto - 33500 cw"
+      if (inFeederSection && currentFeederTypes && /upto/i.test(line)) {
+        // Extract weight range: "350 - 600%" or "800 - 1000%"
+        const wm = line.match(/(\d{2,4})\s*[-–]\s*(\d{2,4})\s*[%#]/);
+        const price = extractUptoPrice(line);
+        if (wm && price !== null) {
+          const range = wm[1] + '–' + wm[2] + '#';
+          feederWeights.push({ range, price, types: [...currentFeederTypes] });
+          console.log(`[${id}] feederWeight: ${range} → ${price} [${currentFeederTypes}]`);
+        }
+
+        // Also set the top-end price for the first weight range per type
+        if (price !== null) {
+          if (feeder.beef === null && currentFeederTypes.includes('beef')) {
+            feeder.beef = price;
+            console.log(`[${id}] feeder.beef = ${price} ✓ (from upto line ${i})`);
+          }
+          if (feeder.holstein === null && currentFeederTypes.includes('holstein')) {
+            feeder.holstein = price;
+            console.log(`[${id}] feeder.holstein = ${price} ✓ (from upto line ${i})`);
+          }
+        }
+      }
+
+      // ── Lite test detection ────────────────────────────────────────────
+      if (inFeederSection && /lite/i.test(lower)) {
+        feeder.liteTest = true;
+        console.log(`[${id}] feeder.liteTest = true ✓`);
       }
     }
 
-    // ── 4b. Feeder parsing ────────────────────────────────────────────────
-    console.log(`[${id}] --- feeder headers ---`);
-    for (const [type, labelPrefix] of Object.entries(parseRules.feeder)) {
-      const target = norm(labelPrefix);
-      const headerIdx = cells.findIndex(c => {
-        const base = norm(c.text).replace(/\s*[-–]\s*lite\s*test.*$/, '').trim();
-        return base.startsWith(target);
-      });
-      if (headerIdx === -1) {
-        console.warn(`[${id}] feeder.${type}: header NOT FOUND (prefix "${labelPrefix}")`);
-        continue;
-      }
-      console.log(`[${id}] feeder.${type}: header found at cell[${headerIdx}] = "${cells[headerIdx].text}"`);
-      const nearby = cells.slice(headerIdx + 1, headerIdx + 6).map(c => `"${c.text}"`).join(', ');
-      console.log(`[${id}] feeder.${type}: next 5 cells = [${nearby}]`);
-      const price = priceAfter(headerIdx, 100, 500);
-      if (price !== null) {
-        if (type === 'beef')     feeder.beef    = price;
-        if (type === 'holstein') feeder.holstein = price;
-        if (norm(cells[headerIdx].text).includes('lite')) feeder.liteTest = true;
-        console.log(`[${id}] feeder.${type} = ${price} ✓${feeder.liteTest ? ' [liteTest]' : ''}`);
-      } else {
-        console.warn(`[${id}] feeder.${type}: NO PRICE extracted from nearby cells`);
-      }
-    }
-
+    // Derive crossbred feeder from beef feeder
     if (feeder.beef !== null) {
       feeder.crossbred = parseFloat(
         (feeder.beef - SLAUGHTER_DISC.crossbred * FEEDER_FACTOR).toFixed(2)
@@ -192,14 +329,18 @@ async function scrapeBarns(config) {
     console.log(`[${id}] parse result — hasSlaughter=${hasSlaughter} hasFeeder=${hasFeeder}`);
 
     if (!hasSlaughter && !hasFeeder) {
-      throw new Error('zero prices extracted — page structure may have changed');
+      throw new Error('OCR returned no usable prices — text may be unreadable');
     }
 
-    return { slaughter, feeder, source: 'scraped', error: null };
+    return { slaughter, feeder, feederWeights, reportDate, source: 'scraped', error: null };
 
   } catch (parseErr) {
     console.error(`[${id}] PARSE ERROR: ${parseErr.message}`);
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: parseErr.message };
+  }
+
+  } finally {
+    if (browser) await browser.close();
   }
 }
 
@@ -282,14 +423,15 @@ async function run() {
         date:      todayStr,
         slaughter: result.slaughter ?? { beef: null, crossbred: null, holstein: null },
         feeder:    result.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
+        feederWeights: result.feederWeights ?? [],
         source:    result.source,
       };
       if (result.error) entry.error = result.error;
-      if (result.source === 'scraped') barnData.lastSuccess = todayStr;
+      if (result.source === 'scraped') barnData.lastSuccess = result.reportDate || todayStr;
     } else {
-      // No report URL — pending null entry
+      // No type breakdown / no report URL — write pending entry
       entry = nullEntry(todayStr, 'pending');
-      console.log(`[${id}] no reportUrl — writing pending entry`);
+      console.log(`[${id}] no reportUrl or no type breakdown — writing pending entry`);
     }
 
     console.log(`[${id}] entry to append: ${JSON.stringify(entry)}`);
@@ -312,10 +454,11 @@ async function run() {
       name,
       location,
       lastSuccess: barnData.lastSuccess,
-      slaughter:  recent?.slaughter ?? { beef: null, crossbred: null, holstein: null },
-      feeder:     recent?.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
-      trend:      calcTrend(barnData.history),
-      source:     recent?.source ?? 'pending',
+      slaughter:    recent?.slaughter ?? { beef: null, crossbred: null, holstein: null },
+      feeder:       recent?.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
+      feederWeights: recent?.feederWeights ?? [],
+      trend:        calcTrend(barnData.history),
+      source:       recent?.source ?? 'pending',
     });
   }
 

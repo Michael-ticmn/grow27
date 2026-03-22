@@ -3,20 +3,69 @@
     "id": "central",
     "name": "Central Livestock Association",
     "location": "Zumbrota MN",
-    "lastSuccess": null,
+    "lastSuccess": "2026-03-09",
     "slaughter": {
-      "beef": null,
-      "crossbred": null,
-      "holstein": null
+      "beef": 231.5,
+      "crossbred": 227.5,
+      "holstein": 205.5
     },
     "feeder": {
-      "beef": null,
-      "crossbred": null,
-      "holstein": null,
-      "liteTest": false
+      "beef": 405,
+      "crossbred": 401.2,
+      "holstein": 203,
+      "liteTest": true
     },
+    "feederWeights": [
+      {
+        "range": "350–600#",
+        "price": 405,
+        "types": [
+          "beef",
+          "crossbred"
+        ]
+      },
+      {
+        "range": "600–800#",
+        "price": 335,
+        "types": [
+          "beef",
+          "crossbred"
+        ]
+      },
+      {
+        "range": "800–1000#",
+        "price": 255,
+        "types": [
+          "beef",
+          "crossbred"
+        ]
+      },
+      {
+        "range": "600–800#",
+        "price": 350,
+        "types": [
+          "beef",
+          "crossbred"
+        ]
+      },
+      {
+        "range": "800–1000#",
+        "price": 240,
+        "types": [
+          "beef",
+          "crossbred"
+        ]
+      },
+      {
+        "range": "400–600#",
+        "price": 300,
+        "types": [
+          "holstein"
+        ]
+      }
+    ],
     "trend": null,
-    "source": "pending"
+    "source": "scraped"
   },
   {
     "id": "lanesboro",
@@ -34,6 +83,7 @@
       "holstein": null,
       "liteTest": false
     },
+    "feederWeights": [],
     "trend": null,
     "source": "pending"
   },
@@ -53,6 +103,7 @@
       "holstein": null,
       "liteTest": false
     },
+    "feederWeights": [],
     "trend": null,
     "source": "pending"
   },
@@ -72,6 +123,7 @@
       "holstein": null,
       "liteTest": false
     },
+    "feederWeights": [],
     "trend": null,
     "source": "pending"
   },
@@ -91,6 +143,7 @@
       "holstein": null,
       "liteTest": false
     },
+    "feederWeights": [],
     "trend": null,
     "source": "pending"
   }
