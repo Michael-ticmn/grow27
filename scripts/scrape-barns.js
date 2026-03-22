@@ -202,22 +202,26 @@ async function scrapeBarns(config) {
       const imgH = meta.height;
       console.log(`[${id}] rep image size: ${imgW}x${imgH}`);
 
-      // Step 1: Full-image OCR to get word bounding boxes
-      // tesseract.js nests words inside blocks → paragraphs → lines → words
+      // Step 1: Full-image OCR to get word bounding boxes via TSV output
+      // TSV columns: level page_num block_num par_num line_num word_num left top width height conf text
+      // Level 5 = individual word
       const { data: fullData } = await Tesseract.recognize(buf, 'eng');
       const allWords = [];
-      for (const block of (fullData.blocks || [])) {
-        for (const para of (block.paragraphs || [])) {
-          for (const line of (para.lines || [])) {
-            for (const word of (line.words || [])) {
-              allWords.push({
-                text: word.text, x0: word.bbox.x0, y0: word.bbox.y0, x1: word.bbox.x1, y1: word.bbox.y1
-              });
-            }
+      if (fullData.tsv) {
+        for (const row of fullData.tsv.split('\n')) {
+          const cols = row.split('\t');
+          if (cols.length >= 12 && cols[0] === '5') {
+            const text = cols[11].trim();
+            if (!text) continue;
+            const left = parseInt(cols[6]);
+            const top = parseInt(cols[7]);
+            const w = parseInt(cols[8]);
+            const h = parseInt(cols[9]);
+            allWords.push({ text, x0: left, y0: top, x1: left + w, y1: top + h });
           }
         }
       }
-      console.log(`[${id}] full OCR: ${allWords.length} words`);
+      console.log(`[${id}] full OCR: ${allWords.length} words (via TSV)`);
 
       // Step 2: Find "Location" and "Price" column header words
       const locWords = allWords.filter(w => /^location$/i.test(w.text));
