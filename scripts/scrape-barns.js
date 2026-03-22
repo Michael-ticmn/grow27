@@ -202,12 +202,65 @@ async function scrapeBarns(config) {
       const imgH = meta.height;
       console.log(`[${id}] rep image size: ${imgW}x${imgH}`);
 
-      // Step 1: Full-image OCR to get word bounding boxes via TSV output
-      // TSV columns: level page_num block_num par_num line_num word_num left top width height conf text
-      // Level 5 = individual word
+      // Step 1: Full-image OCR to get word bounding boxes
       const { data: fullData } = await Tesseract.recognize(buf, 'eng');
-      const allWords = [];
+
+      // Debug: log what properties tesseract.js returns
+      console.log(`[${id}] fullData keys: ${Object.keys(fullData).join(', ')}`);
+      console.log(`[${id}] fullData.text length: ${(fullData.text || '').length}`);
+      console.log(`[${id}] fullData.tsv type: ${typeof fullData.tsv}, length: ${(fullData.tsv || '').length}`);
+      console.log(`[${id}] fullData.blocks type: ${typeof fullData.blocks}, isArray: ${Array.isArray(fullData.blocks)}, length: ${(fullData.blocks || []).length}`);
+      console.log(`[${id}] fullData.words type: ${typeof fullData.words}, isArray: ${Array.isArray(fullData.words)}, length: ${(fullData.words || []).length}`);
+      if (fullData.blocks && fullData.blocks[0]) {
+        const b0 = fullData.blocks[0];
+        console.log(`[${id}] block[0] keys: ${Object.keys(b0).join(', ')}`);
+        if (b0.paragraphs && b0.paragraphs[0]) {
+          const p0 = b0.paragraphs[0];
+          console.log(`[${id}] para[0] keys: ${Object.keys(p0).join(', ')}`);
+          if (p0.lines && p0.lines[0]) {
+            const l0 = p0.lines[0];
+            console.log(`[${id}] line[0] keys: ${Object.keys(l0).join(', ')}`);
+            if (l0.words && l0.words[0]) {
+              const w0 = l0.words[0];
+              console.log(`[${id}] word[0]: ${JSON.stringify(w0).slice(0, 200)}`);
+            }
+          }
+        }
+      }
       if (fullData.tsv) {
+        const tsvLines = fullData.tsv.split('\n').slice(0, 5);
+        console.log(`[${id}] TSV sample:\n${tsvLines.join('\n')}`);
+      }
+
+      // Try all possible word extraction methods
+      const allWords = [];
+
+      // Method A: nested blocks → paragraphs → lines → words
+      if (fullData.blocks) {
+        for (const block of fullData.blocks) {
+          for (const para of (block.paragraphs || [])) {
+            for (const line of (para.lines || [])) {
+              for (const word of (line.words || [])) {
+                if (word.bbox) {
+                  allWords.push({ text: word.text, x0: word.bbox.x0, y0: word.bbox.y0, x1: word.bbox.x1, y1: word.bbox.y1 });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Method B: flat words array
+      if (allWords.length === 0 && fullData.words) {
+        for (const word of fullData.words) {
+          if (word.bbox) {
+            allWords.push({ text: word.text, x0: word.bbox.x0, y0: word.bbox.y0, x1: word.bbox.x1, y1: word.bbox.y1 });
+          }
+        }
+      }
+
+      // Method C: TSV parsing
+      if (allWords.length === 0 && fullData.tsv) {
         for (const row of fullData.tsv.split('\n')) {
           const cols = row.split('\t');
           if (cols.length >= 12 && cols[0] === '5') {
@@ -215,13 +268,14 @@ async function scrapeBarns(config) {
             if (!text) continue;
             const left = parseInt(cols[6]);
             const top = parseInt(cols[7]);
-            const w = parseInt(cols[8]);
-            const h = parseInt(cols[9]);
-            allWords.push({ text, x0: left, y0: top, x1: left + w, y1: top + h });
+            const cw = parseInt(cols[8]);
+            const ch = parseInt(cols[9]);
+            allWords.push({ text, x0: left, y0: top, x1: left + cw, y1: top + ch });
           }
         }
       }
-      console.log(`[${id}] full OCR: ${allWords.length} words (via TSV)`);
+
+      console.log(`[${id}] full OCR: ${allWords.length} words extracted`);
 
       // Step 2: Find "Location" and "Price" column header words
       const locWords = allWords.filter(w => /^location$/i.test(w.text));
