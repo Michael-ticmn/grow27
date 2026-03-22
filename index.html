@@ -34,7 +34,7 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.36%0A%0AFeedback%3A%0A">Feedback</a>
+    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.39%0A%0AFeedback%3A%0A">Feedback</a>
     <div class="clock-bar">
       <span><span class="status-dot"></span><span id="status-txt">Loading...</span></span>
       <div style="font-size:12px;color:var(--txt3);" id="last-updated-txt">—</div>
@@ -447,8 +447,8 @@
         <div class="section-divider">Auction Barn Avg Prices</div>
         <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
           <div class="table-scroll"><table class="cash-table">
-            <thead><tr><th>Barn</th><th>Slaughter avg</th><th>Feeder avg</th><th>Type adj</th><th>Date</th></tr></thead>
-            <tbody id="barn-table-body"><tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody>
+            <thead><tr><th>Barn</th><th>Slaughter avg</th><th>Feeder avg</th><th>Type adj</th></tr></thead>
+            <tbody id="barn-table-body"><tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody>
           </table></div>
           <div id="barn-price-source" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;"></div>
         </div>
@@ -1047,7 +1047,7 @@
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:24px;font-size:12px;color:var(--txt3);letter-spacing:1px;">
-      grow27 · southern Minnesota · <span class="app-version">v1.36</span> · © 2026
+      grow27 · southern Minnesota · <span class="app-version">v1.39</span> · © 2026
     </div>
 
   </div>
@@ -1057,7 +1057,7 @@
 <footer class="g27-footer">
   <div class="g27-footer-wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="24" style="display:inline-block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg></div>
   <div class="g27-footer-tagline">#27 — worth more than its weight</div>
-  <div class="g27-footer-copy"><span class="app-version">v1.36</span> · © 2026 grow27 · All rights reserved</div>
+  <div class="g27-footer-copy"><span class="app-version">v1.39</span> · © 2026 grow27 · All rights reserved</div>
 </footer>
 
 <!-- ── BOTTOM NAV ── -->
@@ -1085,7 +1085,7 @@
 </nav>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/markets.js?v=1.36"></script>
+<script src="js/markets.js?v=1.39"></script>
 <script>
 // Load pre-scraped barn data from GitHub Actions bot (inline to bypass JS cache)
 // Self-executing: loads data immediately AND patches the CORS scraper to skip
@@ -1131,9 +1131,25 @@
       if (entry.saleDay) b.saleDay = entry.saleDay;
       if (entry.liteTestNote) b.liteTestNote = entry.liteTestNote;
       if (entry.repSales) b.repSales = entry.repSales;
-      if (entry.lastSuccess) {
-        const d = new Date(entry.lastSuccess + 'T12:00:00');
+      // Per-category sale day and date (slaughter/feeder may come from different days)
+      if (entry.slaughterSaleDay) b.slaughterSaleDay = entry.slaughterSaleDay;
+      if (entry.slaughterDate) b.slaughterDate = entry.slaughterDate;
+      if (entry.feederSaleDay) b.feederSaleDay = entry.feederSaleDay;
+      if (entry.feederDate) b.feederDate = entry.feederDate;
+      // Report date: use slaughter date, then feeder date, then lastSuccess
+      var dateStr = entry.slaughterDate || entry.feederDate || entry.lastSuccess;
+      if (dateStr) {
+        const d = new Date(dateStr + 'T12:00:00');
         b.reportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+      // Per-category formatted dates for display
+      if (entry.slaughterDate) {
+        const d = new Date(entry.slaughterDate + 'T12:00:00');
+        b.slaughterReportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }
+      if (entry.feederDate) {
+        const d = new Date(entry.feederDate + 'T12:00:00');
+        b.feederReportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }
     }
     buildBarnTable();
@@ -1164,6 +1180,7 @@ buildBarnTable = function() {
     var b = BARNS_DATA[key];
     if (!b._feederScraped && !(b.feederWeights && b.feederWeights.length)) return;
     var feederPrice = null;
+    var feederSrc = 'live'; // track actual source
 
     // BEST: head-weighted average from rep sales feeder data
     if (b.repSales && b.repSales.feederWeightAvgs && b.repSales.feederWeightAvgs.length) {
@@ -1173,7 +1190,7 @@ buildBarnTable = function() {
       if (totalHead > 0) feederPrice = weightedSum / totalHead;
     }
 
-    // FALLBACK: simple average of feederWeights summary prices
+    // FALLBACK: simple average of feederWeights summary prices (barn-posted, not live sales)
     if (feederPrice === null && b.feederWeights && b.feederWeights.length) {
       var sum = 0, count = 0;
       b.feederWeights.forEach(function(fw) {
@@ -1182,28 +1199,33 @@ buildBarnTable = function() {
           count++;
         }
       });
-      if (count > 0) feederPrice = sum / count;
+      if (count > 0) { feederPrice = sum / count; feederSrc = 'barn'; }
     }
 
     // LAST RESORT: scraped feeder price
-    if (feederPrice === null && b._feederScraped) feederPrice = b._feederScraped[type];
+    if (feederPrice === null && b._feederScraped) { feederPrice = b._feederScraped[type]; feederSrc = 'barn'; }
     if (feederPrice == null) return;
     // Find the barn row and update its feeder cell
     var row = document.querySelector('tr.barn-row[data-key="' + key + '"]');
     if (!row) return;
     var cells = row.querySelectorAll('td.cash-price-cell');
     if (cells.length >= 2) {
-      cells[1].innerHTML = feederPrice.toFixed(2) + '&cent; <span class="barn-src-badge barn-src-live">LIVE</span>';
+      var dateStr = b.feederReportDate ? ' <span style="font-size:10px;color:var(--txt3);white-space:nowrap;">' + b.feederReportDate + (b.feederSaleDay ? ' ' + b.feederSaleDay.slice(0,3) : '') + '</span>' : '';
+      var badgeClass = feederSrc === 'live' ? 'barn-src-live' : 'barn-src-barn';
+      cells[1].innerHTML = feederPrice.toFixed(2) + '&cent; <span class="barn-src-badge ' + badgeClass + '">' + feederSrc.toUpperCase() + '</span>' + dateStr;
     }
   });
 };
 </script>
-<script src="js/app.js?v=1.36"></script>
+<script src="js/app.js?v=1.39"></script>
 
 <!-- ── MOBILE FEEDBACK FAB ── -->
-<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.36%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
+<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.39%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
 </body>
 </html>
+
+
+
 
 
 

@@ -274,16 +274,52 @@ async function run() {
   console.log('\n=== index.json updated ===');
 }
 
+// Merge rep sales from two entries — picks the best data for each sub-field.
+// Slaughter entry typically has finishWeightAvgs, bullsWeightAvgs, cowsWeightAvgs.
+// Feeder entry typically has feederWeightAvgs. Head counts are summed.
+function mergeRepSales(slaughterRep, feederRep) {
+  if (!slaughterRep && !feederRep) return null;
+  if (!slaughterRep) return feederRep;
+  if (!feederRep) return slaughterRep;
+
+  // Pick the array with more data for each field
+  const pick = (a, b) => (a && a.length > 0) ? a : (b || []);
+
+  const merged = {
+    finishWeightAvgs: pick(slaughterRep.finishWeightAvgs, feederRep.finishWeightAvgs),
+    feederWeightAvgs: pick(feederRep.feederWeightAvgs, slaughterRep.feederWeightAvgs),
+    bullsWeightAvgs:  pick(slaughterRep.bullsWeightAvgs, feederRep.bullsWeightAvgs),
+    cowsWeightAvgs:   pick(slaughterRep.cowsWeightAvgs, feederRep.cowsWeightAvgs),
+    headCount: {
+      finished: (slaughterRep.headCount?.finished || 0) + (feederRep.headCount?.finished || 0),
+      feeder:   (slaughterRep.headCount?.feeder || 0) + (feederRep.headCount?.feeder || 0),
+      bulls:    (slaughterRep.headCount?.bulls || 0) + (feederRep.headCount?.bulls || 0),
+      cows:     (slaughterRep.headCount?.cows || 0) + (feederRep.headCount?.cows || 0),
+    },
+  };
+
+  // If both entries are the same object, don't double-count heads
+  if (slaughterRep === feederRep) return slaughterRep;
+
+  return merged;
+}
+
 function buildIndexRow(barnData, id, name, location) {
-  // Most recent successful entry (shown in main barn table)
-  const recent = [...barnData.history]
+  const scraped = [...barnData.history]
     .reverse()
-    .find(e => e.source === 'scraped' || e.source === 'calculated');
+    .filter(e => e.source === 'scraped' || e.source === 'calculated');
+
+  // Pick best entry for each category independently (most recent with data)
+  const slaughterEntry = scraped.find(e => e.slaughter && Object.values(e.slaughter).some(v => v != null));
+  const feederEntry    = scraped.find(e =>
+    (e.feeder && Object.values(e.feeder).some(v => v != null && v !== false))
+    || (e.feederWeights && e.feederWeights.length > 0)
+  );
+  const recent = slaughterEntry || feederEntry || scraped[0];
 
   // Collect the latest scraped entry per sale day (for barns with multiple sale days)
   const byDay = {};
-  for (const e of [...barnData.history].reverse()) {
-    if (e.source !== 'scraped' && e.source !== 'calculated') continue;
+  for (const e of scraped) {
     const day = e.saleDay || '_default';
     if (!byDay[day]) byDay[day] = e;
   }
@@ -307,12 +343,19 @@ function buildIndexRow(barnData, id, name, location) {
     name,
     location,
     lastSuccess:  barnData.lastSuccess,
-    slaughter:    recent?.slaughter ?? { beef: null, crossbred: null, holstein: null },
-    feeder:       recent?.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
-    feederWeights: recent?.feederWeights ?? [],
+    // Slaughter: from best slaughter entry
+    slaughter:        slaughterEntry?.slaughter ?? { beef: null, crossbred: null, holstein: null },
+    slaughterSaleDay: slaughterEntry?.saleDay ?? null,
+    slaughterDate:    slaughterEntry?.date ?? null,
+    // Feeder: from best feeder entry (may be a different sale day)
+    feeder:           feederEntry?.feeder ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
+    feederWeights:    feederEntry?.feederWeights ?? [],
+    feederSaleDay:    feederEntry?.saleDay ?? null,
+    feederDate:       feederEntry?.date ?? null,
+    // Rep sales: merge from both entries — slaughter has finish/bulls/cows, feeder has feeder data
+    repSales:     mergeRepSales(slaughterEntry?.repSales, feederEntry?.repSales),
     saleDay:      recent?.saleDay ?? null,
-    liteTestNote: recent?.liteTestNote ?? null,
-    repSales:     recent?.repSales ?? null,
+    liteTestNote: feederEntry?.liteTestNote ?? slaughterEntry?.liteTestNote ?? null,
     saleDays,
     trend:        calcTrend(barnData.history),
     source:       recent?.source ?? 'pending',

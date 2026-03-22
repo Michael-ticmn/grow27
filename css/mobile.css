@@ -54,12 +54,10 @@
   /* Auction barns + meat lockers: single column */
   .barn-grid{grid-template-columns:1fr;}
 
-  /* Barn auction table: hide Type Adj + Date columns, fit to screen */
+  /* Barn auction table: hide Type Adj column on mobile, fit to screen */
   .table-scroll .cash-table{min-width:0;}
   #barn-table-body tr td:nth-child(4),
-  #barn-table-body tr td:nth-child(5),
-  table:has(#barn-table-body) thead th:nth-child(4),
-  table:has(#barn-table-body) thead th:nth-child(5){display:none;}
+  table:has(#barn-table-body) thead th:nth-child(4){display:none;}
 
 
   /* Barn detail panel: stack mini tables vertically on small screens */
