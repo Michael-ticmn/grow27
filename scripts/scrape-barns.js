@@ -2,7 +2,8 @@
 // grow27 — auction barn price scraper
 // Runs via GitHub Actions daily at 7am CT.
 // Reads data/barns-config.json, writes data/prices/<id>.json + data/prices/index.json.
-// Deps: cheerio (HTML parsing), puppeteer (JS-rendered pages), @anthropic-ai/sdk (vision).
+// Deps: cheerio (HTML parsing), puppeteer (JS-rendered pages),
+//       tesseract.js (OCR), node-fetch (image download).
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -11,7 +12,8 @@ const fs        = require('fs');
 const path      = require('path');
 const cheerio   = require('cheerio');
 const puppeteer = require('puppeteer');
-const Anthropic = require('@anthropic-ai/sdk');
+const Tesseract = require('tesseract.js');
+const fetch     = require('node-fetch');
 
 const ROOT         = path.join(__dirname, '..');
 const CONFIG_PATH  = path.join(ROOT, 'data', 'barns-config.json');
@@ -24,8 +26,6 @@ const MAX_AGE_DAYS = 14;
 const SLAUGHTER_DISC = { beef: 0, crossbred: 9.50, holstein: 30.00 };
 const FEEDER_FACTOR  = 0.40;
 
-const anthropic = new Anthropic();   // reads ANTHROPIC_API_KEY from env
-
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function today() {
@@ -37,6 +37,19 @@ function trimHistory(history) {
   cutoff.setDate(cutoff.getDate() - MAX_AGE_DAYS);
   const cutStr = cutoff.toISOString().slice(0, 10);
   return history.filter(e => e.date >= cutStr).slice(-MAX_HISTORY);
+}
+
+// ── Price extraction from OCR text ──────────────────────────────────────────
+
+const RANGE_RE  = /(\d{2,3}\.\d{2})\s*[-–]\s*(\d{2,3}\.\d{2})/;
+const SINGLE_RE = /(\d{2,3}\.\d{2})/;
+
+function extractLinePrice(line) {
+  const range = line.match(RANGE_RE);
+  if (range) return parseFloat(((parseFloat(range[1]) + parseFloat(range[2])) / 2).toFixed(2));
+  const single = line.match(SINGLE_RE);
+  if (single) return parseFloat(single[1]);
+  return null;
 }
 
 // ── Puppeteer fetch (handles JS-rendered pages) ─────────────────────────────
@@ -53,22 +66,7 @@ async function fetchRenderedHtml(url) {
   return html;
 }
 
-// ── Vision-based scraper (for barns that publish report as PNG image) ────────
-
-const VISION_PROMPT = `Extract cattle price data from this market report image. Return JSON only, no other text:
-{
-  "slaughter": {
-    "beef": <midpoint of Finished Beef Steers range as number, or null>,
-    "crossbred": <midpoint of Finished Dairy-X Steers & Heifers range as number, or null>,
-    "holstein": <midpoint of Finished Dairy Steers range as number, or null>
-  },
-  "feeder": {
-    "beef": <midpoint of Feeder Cattle (any variant of this header) range as number, or null>,
-    "holstein": <midpoint of Dairy Steers (any variant) range as number, or null>,
-    "liteTest": <true if "lite test" appears anywhere near feeder headers, false otherwise>
-  }
-}
-Return null for any value not found in the image. Numbers should be in cents per cwt (e.g. 231.50).`;
+// ── OCR-based scraper (for barns that publish report as PNG image) ───────────
 
 async function scrapeBarns(config) {
   const { id, reportUrl } = config;
@@ -85,7 +83,7 @@ async function scrapeBarns(config) {
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: fetchErr.message };
   }
 
-  // ── 2. Extract og:image URL containing the market report PNG ──────────
+  // ── 2. Extract og:image URL containing "screenshot" ────────────────────
   let imageUrl;
   try {
     const $ = cheerio.load(html);
@@ -97,7 +95,7 @@ async function scrapeBarns(config) {
     console.log(`[${id}] og:image URLs found: ${ogImages.length}`);
     ogImages.forEach((u, i) => console.log(`[${id}]   [${i}] ${u}`));
 
-    // Prefer URL containing "screenshot" or typical report-image patterns
+    // Prefer URL containing "screenshot" in the filename
     imageUrl = ogImages.find(u => /screenshot/i.test(u))
             || ogImages.find(u => /report|market|cattle|price/i.test(u))
             || ogImages[0];
@@ -109,67 +107,91 @@ async function scrapeBarns(config) {
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: imgErr.message };
   }
 
-  // ── 3. Download PNG as base64 ─────────────────────────────────────────
-  let imageBase64;
-  let mediaType = 'image/png';
+  // ── 3. Download PNG as buffer via node-fetch ───────────────────────────
+  let imgBuffer;
   try {
     const imgRes = await fetch(imageUrl);
     if (!imgRes.ok) throw new Error(`HTTP ${imgRes.status}`);
-    const contentType = imgRes.headers.get('content-type') || 'image/png';
-    if (contentType.includes('jpeg') || contentType.includes('jpg')) mediaType = 'image/jpeg';
-    else if (contentType.includes('webp')) mediaType = 'image/webp';
-    else if (contentType.includes('gif')) mediaType = 'image/gif';
-    const buf = Buffer.from(await imgRes.arrayBuffer());
-    imageBase64 = buf.toString('base64');
-    console.log(`[${id}] image downloaded · ${buf.length} bytes · ${mediaType}`);
+    imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+    console.log(`[${id}] image downloaded · ${imgBuffer.length} bytes`);
   } catch (dlErr) {
     console.error(`[${id}] IMAGE DOWNLOAD FAILED: ${dlErr.message}`);
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: dlErr.message };
   }
 
-  // ── 4. Send to Claude vision API for price extraction ─────────────────
+  // ── 4. Run Tesseract OCR ──────────────────────────────────────────────
+  let ocrText;
   try {
-    console.log(`[${id}] sending image to Claude API (claude-sonnet-4-20250514)...`);
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: mediaType,
-              data: imageBase64,
-            },
-          },
-          {
-            type: 'text',
-            text: VISION_PROMPT,
-          },
-        ],
-      }],
-    });
+    console.log(`[${id}] running Tesseract OCR...`);
+    const { data } = await Tesseract.recognize(imgBuffer, 'eng');
+    ocrText = data.text;
+    console.log(`[${id}] OCR complete · ${ocrText.length} chars`);
+    console.log(`[${id}] OCR text preview:\n${ocrText.slice(0, 1000)}\n`);
+  } catch (ocrErr) {
+    console.error(`[${id}] OCR FAILED: ${ocrErr.message}`);
+    return { slaughter: null, feeder: null, source: 'fetch_failed', error: ocrErr.message };
+  }
 
-    const rawText = response.content[0].text.trim();
-    console.log(`[${id}] Claude response:\n${rawText}`);
+  // ── 5. Parse prices from OCR text via regex ───────────────────────────
+  try {
+    const lines = ocrText.split('\n').map(l => l.trim()).filter(Boolean);
+    const slaughter = { beef: null, crossbred: null, holstein: null };
+    const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
 
-    // Strip markdown fences if present
-    const jsonStr = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    const parsed = JSON.parse(jsonStr);
+    // Track whether we're in the feeder section (for liteTest detection)
+    let inFeederSection = false;
 
-    const slaughter = {
-      beef:      typeof parsed.slaughter?.beef      === 'number' ? parsed.slaughter.beef      : null,
-      crossbred: typeof parsed.slaughter?.crossbred === 'number' ? parsed.slaughter.crossbred : null,
-      holstein:  typeof parsed.slaughter?.holstein  === 'number' ? parsed.slaughter.holstein  : null,
-    };
-    const feeder = {
-      beef:      typeof parsed.feeder?.beef      === 'number' ? parsed.feeder.beef      : null,
-      crossbred: null,
-      holstein:  typeof parsed.feeder?.holstein  === 'number' ? parsed.feeder.holstein  : null,
-      liteTest:  !!parsed.feeder?.liteTest,
-    };
+    for (const line of lines) {
+      const lower = line.toLowerCase();
+
+      // ── Slaughter headers ──────────────────────────────────────────────
+      if (/finished\s+beef\s+steers/i.test(line)) {
+        const price = extractLinePrice(line);
+        if (price !== null) {
+          slaughter.beef = price;
+          console.log(`[${id}] slaughter.beef = ${price} ✓`);
+        }
+      }
+      else if (/finished\s+dairy[\s-]*x/i.test(line) || /dairy[\s-]*x\s+steers/i.test(line)) {
+        const price = extractLinePrice(line);
+        if (price !== null) {
+          slaughter.crossbred = price;
+          console.log(`[${id}] slaughter.crossbred = ${price} ✓`);
+        }
+      }
+      else if (/finished\s+dairy\s+steers/i.test(line)) {
+        const price = extractLinePrice(line);
+        if (price !== null) {
+          slaughter.holstein = price;
+          console.log(`[${id}] slaughter.holstein = ${price} ✓`);
+        }
+      }
+
+      // ── Feeder headers ─────────────────────────────────────────────────
+      if (/^feeder\s+cattle/i.test(lower) || /feeder\s+cattle/i.test(line)) {
+        inFeederSection = true;
+        const price = extractLinePrice(line);
+        if (price !== null) {
+          feeder.beef = price;
+          console.log(`[${id}] feeder.beef = ${price} ✓`);
+        }
+      }
+      // "Dairy Steers" in feeder context — must NOT be "Finished Dairy Steers"
+      else if (/^dairy\s+steers/i.test(lower) && !/finished/i.test(line)) {
+        inFeederSection = true;
+        const price = extractLinePrice(line);
+        if (price !== null) {
+          feeder.holstein = price;
+          console.log(`[${id}] feeder.holstein = ${price} ✓`);
+        }
+      }
+
+      // ── Lite test detection ────────────────────────────────────────────
+      if (inFeederSection && /lite/i.test(lower)) {
+        feeder.liteTest = true;
+        console.log(`[${id}] feeder.liteTest = true ✓`);
+      }
+    }
 
     // Derive crossbred feeder from beef feeder
     if (feeder.beef !== null) {
@@ -184,14 +206,14 @@ async function scrapeBarns(config) {
     console.log(`[${id}] parse result — hasSlaughter=${hasSlaughter} hasFeeder=${hasFeeder}`);
 
     if (!hasSlaughter && !hasFeeder) {
-      throw new Error('Claude returned no usable prices');
+      throw new Error('OCR returned no usable prices — text may be unreadable');
     }
 
     return { slaughter, feeder, source: 'scraped', error: null };
 
-  } catch (apiErr) {
-    console.error(`[${id}] CLAUDE API ERROR: ${apiErr.message}`);
-    return { slaughter: null, feeder: null, source: 'fetch_failed', error: apiErr.message };
+  } catch (parseErr) {
+    console.error(`[${id}] PARSE ERROR: ${parseErr.message}`);
+    return { slaughter: null, feeder: null, source: 'fetch_failed', error: parseErr.message };
   }
 }
 

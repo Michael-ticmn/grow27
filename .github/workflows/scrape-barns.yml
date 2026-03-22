@@ -23,11 +23,9 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install cheerio puppeteer @anthropic-ai/sdk
+        run: npm install cheerio puppeteer tesseract.js node-fetch
 
       - name: Run barn scraper
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node scripts/scrape-barns.js
 
       - name: Show git status
