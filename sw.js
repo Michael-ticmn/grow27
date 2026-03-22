@@ -1,4 +1,4 @@
-const CACHE = 'grow27-v1.32';
+const CACHE = 'grow27-v1.34';
 
 // Core files to precache for offline use
 const PRECACHE = [
@@ -33,11 +33,20 @@ self.addEventListener('activate', e => {
   );
 });
 
+// Lazily purge stale caches on every fetch — catches leftovers that the
+// activate event missed (e.g. when a tab stayed open across SW updates).
+function purgeOldCaches() {
+  caches.keys().then(keys =>
+    keys.filter(k => k !== CACHE).forEach(k => caches.delete(k))
+  );
+}
+
 // Fetch strategy:
 // - HTML pages: network first, fall back to cache (so refreshes get fresh data)
 // - External APIs (prices, weather): network only, no caching (always want live data)
 // - Static assets (JS, CSS, icons): cache first, fall back to network
 self.addEventListener('fetch', e => {
+  purgeOldCaches();
   const url = new URL(e.request.url);
 
   // Never cache API calls — always go to network
@@ -80,6 +89,8 @@ self.addEventListener('fetch', e => {
     })
   );
 });
+
+
 
 
 

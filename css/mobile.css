@@ -28,6 +28,9 @@
   .subtabs::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none;}
   .subtab,.tab{padding:10px 12px;font-size:11px;white-space:nowrap;}
 
+  /* Barn detail panel: 2x2 grid on tablet */
+  .barn-detail-inner{grid-template-columns:1fr 1fr;}
+
   /* Elevator bar: stack selector and toggles vertically */
   .elevator-bar{flex-direction:column;align-items:flex-start;gap:10px;padding:12px 14px;}
   .elevator-select{min-width:0;width:100%;}
@@ -51,8 +54,23 @@
   /* Auction barns + meat lockers: single column */
   .barn-grid{grid-template-columns:1fr;}
 
+  /* Barn auction table: hide Type Adj + Date columns, fit to screen */
+  .table-scroll .cash-table{min-width:0;}
+  #barn-table-body tr td:nth-child(4),
+  #barn-table-body tr td:nth-child(5),
+  table:has(#barn-table-body) thead th:nth-child(4),
+  table:has(#barn-table-body) thead th:nth-child(5){display:none;}
+
+
   /* Barn detail panel: stack mini tables vertically on small screens */
-  .barn-detail-inner{grid-template-columns:1fr;gap:8px;padding:8px;}
+  .barn-detail-inner{grid-template-columns:1fr;gap:8px;padding:8px;max-width:100%;overflow:hidden;}
+  .barn-drawer-mini{max-width:100%;overflow:hidden;}
+  .barn-drawer-mini table{table-layout:fixed;word-wrap:break-word;}
+  /* Force readable font sizes on mobile barn detail */
+  .barn-drawer-mini th,.barn-drawer-mini td{font-size:12px!important;}
+  .barn-drawer-mini-header{font-size:12px!important;}
+  .barn-drawer-mini-foot{font-size:11px!important;}
+  .barn-drawer-mini div{word-wrap:break-word;overflow-wrap:break-word;}
 
   /* Dairy plant stat boxes: smaller value text, ensure no overflow */
   .plant-stat-val{font-size:13px;}

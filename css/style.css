@@ -1,7 +1,7 @@
   :root {
     --bg0:#111214; --bg1:#181a1d; --bg2:#22272e; --bg3:#2a3038;
     --border:#454c58; --border2:#5a6272;
-    --txt1:#f2f4f6; --txt2:#d8dce4; --txt3:#c0c8d4;
+    --txt1:#ffffff; --txt2:#ffffff; --txt3:#ffffff;
     --corn:#d4a027; --corn-dim:rgba(212,160,39,.15); --corn-border:rgba(212,160,39,.3);
     --dairy:#4a9fd4; --dairy-dim:rgba(74,159,212,.15);
     --soy:#3ea8aa; --soy-dim:rgba(62,168,170,.13); --soy-border:rgba(62,168,170,.28);
@@ -235,7 +235,7 @@
   .cash-table tr.selected td{background:rgba(212,160,39,.05);}
   .cash-table tr:hover td{background:var(--bg3);cursor:pointer;}
   .elev-name-cell{color:var(--txt1);font-size:14px;}
-  .elev-loc-cell{color:var(--txt3);font-size:11px;}
+  .elev-loc-cell{color:var(--txt1);font-size:13px;}
   .basis-pos{color:var(--up);}
   .basis-neg{color:var(--down);}
   .cash-price-cell{color:var(--corn);font-size:14px;font-weight:700;}
@@ -244,14 +244,14 @@
   .elev-card:hover{border-color:var(--border2);}
   .elev-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:9px;}
   .elev-card-name{font-size:16px;color:var(--txt1);font-weight:700;}
-  .elev-card-loc{font-size:11px;color:var(--txt3);margin-top:2px;}
+  .elev-card-loc{font-size:12px;color:var(--txt3);margin-top:2px;}
   .elev-card-dist{font-size:11px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;}
   .elev-crops{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
   .elev-crop-tag{font-size:9px;letter-spacing:2px;padding:2px 9px;border-radius:2px;text-transform:uppercase;font-weight:700;}
   .elev-crop-tag.corn{background:var(--corn-dim);color:var(--corn);}
   .elev-crop-tag.soy{background:var(--soy-dim);color:var(--soy);}
   .elev-details-row{display:flex;gap:20px;flex-wrap:wrap;}
-  .elev-detail-item{font-size:11px;color:var(--txt3);}
+  .elev-detail-item{font-size:12px;color:var(--txt3);}
   .elev-detail-item strong{display:block;color:var(--txt2);font-size:12px;margin-top:1px;}
   .elev-link{font-size:11px;color:var(--soy);text-decoration:none;border:1px solid var(--soy-border);padding:3px 9px;border-radius:3px;transition:all .12s;display:inline-block;}
   .elev-link:hover{background:var(--soy-dim);}
@@ -279,11 +279,11 @@
   .barn-drawer{display:none;}
   .barn-drawer--open{display:table-row;}
   .barn-drawer > td{padding:0;background:var(--bg2);border-bottom:2px solid var(--border);}
-  .barn-detail-inner{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:10px;}
+  .barn-detail-inner{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;padding:10px;}
   .barn-drawer-mini{background:var(--bg1);border-radius:5px;overflow:hidden;border:1px solid var(--border);}
-  .barn-drawer-mini-header{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);padding:6px 8px;border-bottom:1px solid var(--border);background:var(--bg2);}
+  .barn-drawer-mini-header{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);padding:6px 8px;border-bottom:1px solid var(--border);background:var(--bg2);}
   .barn-drawer-mini table{width:100%;border-collapse:collapse;}
-  .barn-drawer-mini-foot{font-size:9px;color:var(--txt3);padding:3px 8px;border-top:1px solid var(--border);font-style:italic;}
+  .barn-drawer-mini-foot{font-size:11px;color:var(--txt3);padding:3px 8px;border-top:1px solid var(--border);font-style:italic;}
 
   /* ── STUB MODULES ── */
   .stub-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:40px;text-align:center;}
