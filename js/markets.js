@@ -886,8 +886,8 @@ function buildBarnTable() {
   // Badge helper
   function makeBadge(src) {
     if(!src) return '';
-    const cls = src === 'live' ? 'barn-src-live' : src === 'barn' ? 'barn-src-barn' : src === 'usda' ? 'barn-src-usda' : 'barn-src-cme';
-    const lbl = src.toUpperCase();
+    const cls = (src === 'live' || src === 'actual') ? 'barn-src-live' : src === 'barn' ? 'barn-src-barn' : src === 'usda' ? 'barn-src-usda' : 'barn-src-cme';
+    const lbl = (src === 'live') ? 'ACTUAL' : src.toUpperCase();
     return `<span class="barn-src-badge ${cls}">${lbl}</span>`;
   }
 
