@@ -274,6 +274,36 @@ async function run() {
   console.log('\n=== index.json updated ===');
 }
 
+// Merge rep sales from two entries — picks the best data for each sub-field.
+// Slaughter entry typically has finishWeightAvgs, bullsWeightAvgs, cowsWeightAvgs.
+// Feeder entry typically has feederWeightAvgs. Head counts are summed.
+function mergeRepSales(slaughterRep, feederRep) {
+  if (!slaughterRep && !feederRep) return null;
+  if (!slaughterRep) return feederRep;
+  if (!feederRep) return slaughterRep;
+
+  // Pick the array with more data for each field
+  const pick = (a, b) => (a && a.length > 0) ? a : (b || []);
+
+  const merged = {
+    finishWeightAvgs: pick(slaughterRep.finishWeightAvgs, feederRep.finishWeightAvgs),
+    feederWeightAvgs: pick(feederRep.feederWeightAvgs, slaughterRep.feederWeightAvgs),
+    bullsWeightAvgs:  pick(slaughterRep.bullsWeightAvgs, feederRep.bullsWeightAvgs),
+    cowsWeightAvgs:   pick(slaughterRep.cowsWeightAvgs, feederRep.cowsWeightAvgs),
+    headCount: {
+      finished: (slaughterRep.headCount?.finished || 0) + (feederRep.headCount?.finished || 0),
+      feeder:   (slaughterRep.headCount?.feeder || 0) + (feederRep.headCount?.feeder || 0),
+      bulls:    (slaughterRep.headCount?.bulls || 0) + (feederRep.headCount?.bulls || 0),
+      cows:     (slaughterRep.headCount?.cows || 0) + (feederRep.headCount?.cows || 0),
+    },
+  };
+
+  // If both entries are the same object, don't double-count heads
+  if (slaughterRep === feederRep) return slaughterRep;
+
+  return merged;
+}
+
 function buildIndexRow(barnData, id, name, location) {
   const scraped = [...barnData.history]
     .reverse()
@@ -322,8 +352,8 @@ function buildIndexRow(barnData, id, name, location) {
     feederWeights:    feederEntry?.feederWeights ?? [],
     feederSaleDay:    feederEntry?.saleDay ?? null,
     feederDate:       feederEntry?.date ?? null,
-    // Rep sales from whichever entry had them (slaughter entry usually has the fullest data)
-    repSales:     slaughterEntry?.repSales ?? feederEntry?.repSales ?? null,
+    // Rep sales: merge from both entries — slaughter has finish/bulls/cows, feeder has feeder data
+    repSales:     mergeRepSales(slaughterEntry?.repSales, feederEntry?.repSales),
     saleDay:      recent?.saleDay ?? null,
     liteTestNote: feederEntry?.liteTestNote ?? slaughterEntry?.liteTestNote ?? null,
     saleDays,

@@ -9,15 +9,65 @@
       "crossbred": 233.5,
       "holstein": 228.5
     },
+    "slaughterSaleDay": "Wednesday",
+    "slaughterDate": "2026-03-22",
     "feeder": {
-      "beef": null,
-      "crossbred": null,
-      "holstein": null,
-      "liteTest": false
+      "beef": 405,
+      "crossbred": 401.2,
+      "holstein": 203,
+      "liteTest": true
     },
-    "feederWeights": [],
-    "saleDay": "Wednesday",
-    "liteTestNote": null,
+    "feederWeights": [
+      {
+        "range": "350–600#",
+        "price": 405,
+        "types": [
+          "beef",
+          "crossbred"
+        ]
+      },
+      {
+        "range": "600–800#",
+        "price": 335,
+        "types": [
+          "beef",
+          "crossbred"
+        ]
+      },
+      {
+        "range": "800–1000#",
+        "price": 255,
+        "types": [
+          "beef",
+          "crossbred"
+        ]
+      },
+      {
+        "range": "600–800#",
+        "price": 350,
+        "types": [
+          "beef",
+          "crossbred"
+        ]
+      },
+      {
+        "range": "800–1000#",
+        "price": 240,
+        "types": [
+          "beef",
+          "crossbred"
+        ]
+      },
+      {
+        "range": "400–600#",
+        "price": 300,
+        "types": [
+          "holstein"
+        ]
+      }
+    ],
+    "feederSaleDay": "Monday",
+    "feederDate": "2026-03-22",
     "repSales": {
       "finishWeightAvgs": [
         {
@@ -63,7 +113,38 @@
           "head": 2
         }
       ],
-      "feederWeightAvgs": [],
+      "feederWeightAvgs": [
+        {
+          "range": "400-499 lbs",
+          "type": "beef",
+          "avgPrice": 385,
+          "head": 3
+        },
+        {
+          "range": "400-499 lbs",
+          "type": "holstein",
+          "avgPrice": 300,
+          "head": 1
+        },
+        {
+          "range": "500-599 lbs",
+          "type": "holstein",
+          "avgPrice": 280,
+          "head": 2
+        },
+        {
+          "range": "600-699 lbs",
+          "type": "beef",
+          "avgPrice": 345,
+          "head": 4
+        },
+        {
+          "range": "700-799 lbs",
+          "type": "beef",
+          "avgPrice": 335,
+          "head": 3
+        }
+      ],
       "bullsWeightAvgs": [
         {
           "range": "1700-1799 lbs",
@@ -124,12 +205,14 @@
         }
       ],
       "headCount": {
-        "finished": 27,
-        "feeder": 0,
-        "bulls": 4,
-        "cows": 19
+        "finished": 67,
+        "feeder": 13,
+        "bulls": 15,
+        "cows": 40
       }
     },
+    "saleDay": "Wednesday",
+    "liteTestNote": null,
     "saleDays": [
       {
         "day": "Wednesday",
@@ -502,6 +585,8 @@
       "crossbred": null,
       "holstein": null
     },
+    "slaughterSaleDay": null,
+    "slaughterDate": null,
     "feeder": {
       "beef": null,
       "crossbred": null,
@@ -509,9 +594,11 @@
       "liteTest": false
     },
     "feederWeights": [],
+    "feederSaleDay": null,
+    "feederDate": null,
+    "repSales": null,
     "saleDay": null,
     "liteTestNote": null,
-    "repSales": null,
     "saleDays": null,
     "trend": null,
     "source": "pending"
@@ -526,6 +613,8 @@
       "crossbred": null,
       "holstein": null
     },
+    "slaughterSaleDay": null,
+    "slaughterDate": null,
     "feeder": {
       "beef": null,
       "crossbred": null,
@@ -533,9 +622,11 @@
       "liteTest": false
     },
     "feederWeights": [],
+    "feederSaleDay": null,
+    "feederDate": null,
+    "repSales": null,
     "saleDay": null,
     "liteTestNote": null,
-    "repSales": null,
     "saleDays": null,
     "trend": null,
     "source": "pending"
@@ -550,6 +641,8 @@
       "crossbred": null,
       "holstein": null
     },
+    "slaughterSaleDay": null,
+    "slaughterDate": null,
     "feeder": {
       "beef": null,
       "crossbred": null,
@@ -557,9 +650,11 @@
       "liteTest": false
     },
     "feederWeights": [],
+    "feederSaleDay": null,
+    "feederDate": null,
+    "repSales": null,
     "saleDay": null,
     "liteTestNote": null,
-    "repSales": null,
     "saleDays": null,
     "trend": null,
     "source": "pending"
@@ -574,6 +669,8 @@
       "crossbred": null,
       "holstein": null
     },
+    "slaughterSaleDay": null,
+    "slaughterDate": null,
     "feeder": {
       "beef": null,
       "crossbred": null,
@@ -581,9 +678,11 @@
       "liteTest": false
     },
     "feederWeights": [],
+    "feederSaleDay": null,
+    "feederDate": null,
+    "repSales": null,
     "saleDay": null,
     "liteTestNote": null,
-    "repSales": null,
     "saleDays": null,
     "trend": null,
     "source": "pending"
