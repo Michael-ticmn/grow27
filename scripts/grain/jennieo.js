@@ -93,12 +93,27 @@ async function parse({ id, config, browser }) {
         console.log(`[${id}:${slug}] found ${bids.length} bid rows`);
 
         if (bids.length === 0) {
-          const info = await page.evaluate(() => ({
-            title: document.title,
-            tableCount: document.querySelectorAll('table').length,
-            dataGridCount: document.querySelectorAll('table.DataGrid').length,
-            bodyLength: document.body?.innerHTML?.length || 0,
-          }));
+          const info = await page.evaluate(() => {
+            const table = document.querySelector('table.DataGrid');
+            const rows = table ? table.querySelectorAll('tr') : [];
+            const sample = [];
+            for (let i = 0; i < Math.min(rows.length, 3); i++) {
+              const cells = rows[i].querySelectorAll('td, th');
+              sample.push({
+                cellCount: cells.length,
+                texts: Array.from(cells).slice(0, 5).map(c => c.textContent.trim().substring(0, 40)),
+                htmls: Array.from(cells).slice(0, 2).map(c => c.innerHTML.substring(0, 80)),
+              });
+            }
+            return {
+              title: document.title,
+              tableCount: document.querySelectorAll('table').length,
+              dataGridCount: document.querySelectorAll('table.DataGrid').length,
+              bodyLength: document.body?.innerHTML?.length || 0,
+              rowCount: rows.length,
+              sampleRows: sample,
+            };
+          });
           console.warn(`[${id}:${slug}] no bids found — page info: ${JSON.stringify(info)}`);
           continue;
         }
