@@ -128,8 +128,8 @@
           {
             "range": "400-499 lbs",
             "type": "beef",
-            "avgPrice": 345,
-            "head": 1
+            "avgPrice": 385,
+            "head": 3
           },
           {
             "range": "400-499 lbs",
@@ -156,9 +156,88 @@
             "head": 3
           }
         ],
+        "bullsWeightAvgs": [
+          {
+            "range": "1200-1299 lbs",
+            "avgPrice": 179,
+            "head": 1
+          },
+          {
+            "range": "1500-1599 lbs",
+            "avgPrice": 183,
+            "head": 1
+          },
+          {
+            "range": "1700-1799 lbs",
+            "avgPrice": 189,
+            "head": 2
+          },
+          {
+            "range": "1800-1899 lbs",
+            "avgPrice": 184,
+            "head": 3
+          },
+          {
+            "range": "1900-1999 lbs",
+            "avgPrice": 191,
+            "head": 2
+          },
+          {
+            "range": "2000-2099 lbs",
+            "avgPrice": 198,
+            "head": 2
+          }
+        ],
+        "cowsWeightAvgs": [
+          {
+            "range": "1100-1199 lbs",
+            "avgPrice": 156,
+            "head": 2
+          },
+          {
+            "range": "1200-1299 lbs",
+            "avgPrice": 163,
+            "head": 1
+          },
+          {
+            "range": "1300-1399 lbs",
+            "avgPrice": 151.7,
+            "head": 5
+          },
+          {
+            "range": "1400-1499 lbs",
+            "avgPrice": 152.1,
+            "head": 5
+          },
+          {
+            "range": "1500-1599 lbs",
+            "avgPrice": 157.25,
+            "head": 2
+          },
+          {
+            "range": "1600-1699 lbs",
+            "avgPrice": 140,
+            "head": 3
+          },
+          {
+            "range": "1700-1799 lbs",
+            "avgPrice": 134,
+            "head": 1
+          },
+          {
+            "range": "1800-1899 lbs",
+            "avgPrice": 142.5,
+            "head": 1
+          },
+          {
+            "range": "1900-1999 lbs",
+            "avgPrice": 160,
+            "head": 1
+          }
+        ],
         "headCount": {
           "finished": 40,
-          "feeder": 11,
+          "feeder": 13,
           "bulls": 11,
           "cows": 21
         }
