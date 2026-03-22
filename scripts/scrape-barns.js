@@ -255,15 +255,25 @@ async function scrapeBarns(config) {
         .sharpen()
         .png().toBuffer();
 
+      // Strip right-table bleed-through noise after the Price column.
+      // OCR lines look like: "CITY, ST  qty  DESC  weight  price  C Locatic..."
+      // Everything after the price value (digits, optionally .XX) followed by
+      // whitespace + a letter is noise from the adjacent table's columns.
+      function cleanRepLines(text) {
+        return text.split('\n').map(line =>
+          line.replace(/(\d{3,6}(?:\.\d{2})?)\s+[A-Za-z].*$/, '$1')
+        ).join('\n');
+      }
+
       // OCR each half separately
       const { data: leftData } = await Tesseract.recognize(leftBuf, 'eng');
-      const leftText = normalizeOcr(leftData.text);
+      const leftText = cleanRepLines(normalizeOcr(leftData.text));
       console.log(`[${id}] rep LEFT OCR · ${leftText.length} chars`);
       console.log(`[${id}] rep LEFT preview:\n${leftText.slice(0, 500)}\n`);
       repOcrTexts.push(leftText);
 
       const { data: rightData } = await Tesseract.recognize(rightBuf, 'eng');
-      const rightText = normalizeOcr(rightData.text);
+      const rightText = cleanRepLines(normalizeOcr(rightData.text));
       console.log(`[${id}] rep RIGHT OCR · ${rightText.length} chars`);
       console.log(`[${id}] rep RIGHT preview:\n${rightText.slice(0, 500)}\n`);
       repOcrTexts.push(rightText);
