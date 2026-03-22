@@ -64,5 +64,15 @@
       { "name": "Perham Feed Mill", "locId": "7" }
     ],
     "commodities": ["corn"]
+  },
+  {
+    "id": "chs",
+    "name": "CHS",
+    "url": "https://chsag.com/grain/cash-bids/",
+    "locations": [
+      { "name": "Fairmont" },
+      { "name": "Kasson" }
+    ],
+    "commodities": ["corn", "beans"]
   }
 ]
