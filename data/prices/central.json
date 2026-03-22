@@ -90,8 +90,8 @@
           {
             "range": "1300-1399 lbs",
             "type": "beef",
-            "avgPrice": 235.44,
-            "head": 8
+            "avgPrice": 236,
+            "head": 11
           },
           {
             "range": "1500-1599 lbs",
@@ -114,8 +114,8 @@
           {
             "range": "1600-1699 lbs",
             "type": "holstein",
-            "avgPrice": 211.48,
-            "head": 13
+            "avgPrice": 211.54,
+            "head": 17
           },
           {
             "range": "1800-1899 lbs",
@@ -126,22 +126,40 @@
         ],
         "feederWeightAvgs": [
           {
-            "range": "mixed wt",
+            "range": "400-499 lbs",
             "type": "beef",
-            "avgPrice": 405,
+            "avgPrice": 345,
+            "head": 1
+          },
+          {
+            "range": "400-499 lbs",
+            "type": "holstein",
+            "avgPrice": 300,
+            "head": 1
+          },
+          {
+            "range": "500-599 lbs",
+            "type": "holstein",
+            "avgPrice": 280,
             "head": 2
           },
           {
-            "range": "mixed wt",
-            "type": "holstein",
-            "avgPrice": 273.33,
+            "range": "600-699 lbs",
+            "type": "beef",
+            "avgPrice": 345,
+            "head": 4
+          },
+          {
+            "range": "700-799 lbs",
+            "type": "beef",
+            "avgPrice": 335,
             "head": 3
           }
         ],
         "headCount": {
-          "finished": 33,
-          "feeder": 5,
-          "bulls": 8,
+          "finished": 40,
+          "feeder": 11,
+          "bulls": 11,
           "cows": 21
         }
       },
