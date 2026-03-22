@@ -170,12 +170,15 @@ async function scrapeBarns(config) {
     const lines = ocrText.split('\n').map(l => l.trim()).filter(Boolean);
     const slaughter = { beef: null, crossbred: null, holstein: null };
     const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
+    const feederWeights = [];  // { range, price, types } per weight class
 
     // Track whether we're in the feeder section (for liteTest detection)
     let inFeederSection = false;
     // Track feeder sub-headers so we can grab prices from following lines
     let feederBeefHeader = -1;
     let feederHolsteinHeader = -1;
+    // Current feeder sub-section type(s) for weight collection
+    let currentFeederTypes = null;
 
     // Helper: extract the best price from a line, filtering out weight ranges
     // Weight ranges look like "350 - 600%" or "800 - 1000%" — skip those
@@ -238,11 +241,18 @@ async function scrapeBarns(config) {
       // (OCR may merge columns: "Finished Beef Steers 22400 23900 owt Beef Steers & Bulls")
       if (inFeederSection && /beef\s+steers\s*[&]\s*bulls/i.test(line)) {
         feederBeefHeader = i;
+        currentFeederTypes = ['beef', 'crossbred'];
         console.log(`[${id}] feeder beef header at line ${i}: "${line}"`);
+      }
+      // "Beef Heifers" sub-section (also beef/crossbred types)
+      else if (inFeederSection && /beef\s+heifers/i.test(line) && !/finished/i.test(line)) {
+        currentFeederTypes = ['beef', 'crossbred'];
+        console.log(`[${id}] feeder beef heifers header at line ${i}`);
       }
       // Fallback: "Beef Steers" without "Finished" on its own line
       else if (inFeederSection && /beef\s+steers/i.test(line) && !/finished/i.test(line)) {
         feederBeefHeader = i;
+        currentFeederTypes = ['beef', 'crossbred'];
         const price = extractPriceSkipWeights(line);
         if (price !== null) {
           feeder.beef = price;
@@ -251,9 +261,9 @@ async function scrapeBarns(config) {
       }
 
       // In feeder section: "Dairy Steers" (not "Finished") → feeder.holstein
-      // Also match if OCR merged columns (line has "Finished" but also "Dairy Steers lite test")
       if (inFeederSection && /dairy\s+steers/i.test(line) && !/finished/i.test(line)) {
         feederHolsteinHeader = i;
+        currentFeederTypes = ['holstein'];
         const price = extractPriceSkipWeights(line);
         if (price !== null) {
           feeder.holstein = price;
@@ -261,22 +271,25 @@ async function scrapeBarns(config) {
         }
       }
 
-      // Look-ahead: if we're on a line right after a feeder header,
-      // grab the first "upto" price (extracts number after "upto" keyword
-      // to avoid matching slaughter prices from the left column)
-      if (feeder.beef === null && feederBeefHeader >= 0 && i >= feederBeefHeader && i <= feederBeefHeader + 6) {
-        if (/upto/i.test(line)) {
-          const price = extractUptoPrice(line);
-          if (price !== null) {
+      // ── Collect feeder weight ranges with upto prices ──────────────────
+      // Match lines like "350 - 600% upto - 40500 cwt" or "600 - 800% upto - 33500 cw"
+      if (inFeederSection && currentFeederTypes && /upto/i.test(line)) {
+        // Extract weight range: "350 - 600%" or "800 - 1000%"
+        const wm = line.match(/(\d{2,4})\s*[-–]\s*(\d{2,4})\s*[%#]/);
+        const price = extractUptoPrice(line);
+        if (wm && price !== null) {
+          const range = wm[1] + '–' + wm[2] + '#';
+          feederWeights.push({ range, price, types: [...currentFeederTypes] });
+          console.log(`[${id}] feederWeight: ${range} → ${price} [${currentFeederTypes}]`);
+        }
+
+        // Also set the top-end price for the first weight range per type
+        if (price !== null) {
+          if (feeder.beef === null && currentFeederTypes.includes('beef')) {
             feeder.beef = price;
             console.log(`[${id}] feeder.beef = ${price} ✓ (from upto line ${i})`);
           }
-        }
-      }
-      if (feeder.holstein === null && feederHolsteinHeader >= 0 && i >= feederHolsteinHeader && i <= feederHolsteinHeader + 6) {
-        if (/upto/i.test(line)) {
-          const price = extractUptoPrice(line);
-          if (price !== null) {
+          if (feeder.holstein === null && currentFeederTypes.includes('holstein')) {
             feeder.holstein = price;
             console.log(`[${id}] feeder.holstein = ${price} ✓ (from upto line ${i})`);
           }
@@ -306,7 +319,7 @@ async function scrapeBarns(config) {
       throw new Error('OCR returned no usable prices — text may be unreadable');
     }
 
-    return { slaughter, feeder, source: 'scraped', error: null };
+    return { slaughter, feeder, feederWeights, source: 'scraped', error: null };
 
   } catch (parseErr) {
     console.error(`[${id}] PARSE ERROR: ${parseErr.message}`);
@@ -397,6 +410,7 @@ async function run() {
         date:      todayStr,
         slaughter: result.slaughter ?? { beef: null, crossbred: null, holstein: null },
         feeder:    result.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
+        feederWeights: result.feederWeights ?? [],
         source:    result.source,
       };
       if (result.error) entry.error = result.error;
@@ -427,10 +441,11 @@ async function run() {
       name,
       location,
       lastSuccess: barnData.lastSuccess,
-      slaughter:  recent?.slaughter ?? { beef: null, crossbred: null, holstein: null },
-      feeder:     recent?.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
-      trend:      calcTrend(barnData.history),
-      source:     recent?.source ?? 'pending',
+      slaughter:    recent?.slaughter ?? { beef: null, crossbred: null, holstein: null },
+      feeder:       recent?.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
+      feederWeights: recent?.feederWeights ?? [],
+      trend:        calcTrend(barnData.history),
+      source:       recent?.source ?? 'pending',
     });
   }
 

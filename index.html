@@ -1101,6 +1101,15 @@
         b.finishPrices = { beef: entry.slaughter.beef, crossbred: entry.slaughter.crossbred, holstein: entry.slaughter.holstein };
         if (entry.slaughter.beef != null) b.basePrice = entry.slaughter.beef;
       }
+      // Store scraped feeder prices per type
+      if (entry.feeder) {
+        b._feederScraped = { beef: entry.feeder.beef, crossbred: entry.feeder.crossbred, holstein: entry.feeder.holstein };
+      }
+      // Load feeder weight ranges into b.feederWeights (used by drawer detail table)
+      if (entry.feederWeights && entry.feederWeights.length) {
+        b.feederWeights = entry.feederWeights;
+        console.log('[barn-data] loaded ' + entry.feederWeights.length + ' feeder weight ranges for ' + entry.id);
+      }
       b.dataSource = 'live';
       b._scrapeError = null;
       if (entry.lastSuccess) {
@@ -1114,6 +1123,7 @@
     console.warn('[barn-data] could not load index.json:', e.message);
   }
 })();
+
 // Patch: replace CORS scraper so it skips when pre-scraped data is loaded
 var _origLoadCentral = loadCentralLivestockData;
 loadCentralLivestockData = async function() {
@@ -1122,6 +1132,28 @@ loadCentralLivestockData = async function() {
     return;
   }
   return _origLoadCentral();
+};
+
+// Patch: after buildBarnTable renders, update feeder cells for barns with scraped feeder data
+var _origBuildBarnTable = buildBarnTable;
+buildBarnTable = function() {
+  _origBuildBarnTable();
+  // Now patch feeder avg cells for barns with scraped feeder prices
+  var type = typeof cattleType !== 'undefined' ? cattleType : 'beef';
+  var keys = Object.keys(BARNS_DATA);
+  keys.forEach(function(key) {
+    var b = BARNS_DATA[key];
+    if (!b._feederScraped) return;
+    var feederPrice = b._feederScraped[type];
+    if (feederPrice == null) return;
+    // Find the barn row and update its feeder cell
+    var row = document.querySelector('tr.barn-row[data-key="' + key + '"]');
+    if (!row) return;
+    var cells = row.querySelectorAll('td.cash-price-cell');
+    if (cells.length >= 2) {
+      cells[1].innerHTML = feederPrice.toFixed(2) + '&cent; <span class="barn-src-badge barn-src-live">LIVE</span>';
+    }
+  });
 };
 </script>
 <script src="js/app.js?v=1.16"></script>
