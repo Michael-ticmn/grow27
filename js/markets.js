@@ -515,12 +515,27 @@ async function loadScrapedBarnData() {
       if (entry.saleDay) b.saleDay = entry.saleDay;
       if (entry.liteTestNote) b.liteTestNote = entry.liteTestNote;
 
+      // Per-category sale day and date
+      if (entry.slaughterSaleDay) b.slaughterSaleDay = entry.slaughterSaleDay;
+      if (entry.slaughterDate) b.slaughterDate = entry.slaughterDate;
+      if (entry.feederSaleDay) b.feederSaleDay = entry.feederSaleDay;
+      if (entry.feederDate) b.feederDate = entry.feederDate;
+
       b.dataSource = 'live';
 
-      // Report date from lastSuccess
-      if (entry.lastSuccess) {
-        const d = new Date(entry.lastSuccess + 'T12:00:00');
+      // Report date: prefer slaughter date, then feeder, then lastSuccess
+      const dateStr = entry.slaughterDate || entry.feederDate || entry.lastSuccess;
+      if (dateStr) {
+        const d = new Date(dateStr + 'T12:00:00');
         b.reportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+      if (entry.slaughterDate) {
+        const d = new Date(entry.slaughterDate + 'T12:00:00');
+        b.slaughterReportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }
+      if (entry.feederDate) {
+        const d = new Date(entry.feederDate + 'T12:00:00');
+        b.feederReportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }
     }
 
@@ -1015,8 +1030,10 @@ function buildBarnTable() {
           <div class="barn-drawer-mini">
             <div class="barn-drawer-mini-header">Market Summary</div>
             <div style="padding:6px 8px;font-size:11px;color:var(--txt2);line-height:1.6;">
-              ${b.saleDay ? `<div><span style="color:var(--txt3);">Sale Day:</span> ${b.saleDay}</div>` : ''}
-              ${b.reportDate ? `<div><span style="color:var(--txt3);">Report Date:</span> ${b.reportDate}</div>` : ''}
+              ${(b.slaughterSaleDay && b.feederSaleDay && b.slaughterSaleDay !== b.feederSaleDay)
+                ? `<div><span style="color:var(--txt3);">Slaughter:</span> ${b.slaughterSaleDay} ${b.slaughterReportDate || ''}</div><div><span style="color:var(--txt3);">Feeder:</span> ${b.feederSaleDay} ${b.feederReportDate || ''}</div>`
+                : `${b.saleDay ? `<div><span style="color:var(--txt3);">Sale Day:</span> ${b.saleDay}</div>` : ''}${b.reportDate ? `<div><span style="color:var(--txt3);">Report Date:</span> ${b.reportDate}</div>` : ''}`
+              }
               ${b.repSales && b.repSales.headCount ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Rep. Sales:</span> ${b.repSales.headCount.finished + b.repSales.headCount.feeder + b.repSales.headCount.bulls + (b.repSales.headCount.cows || 0)} hd reported</div><div style="padding-left:8px;font-size:10px;color:var(--txt3);">${b.repSales.headCount.finished} finished · ${b.repSales.headCount.feeder} feeder · ${b.repSales.headCount.bulls} bulls · ${b.repSales.headCount.cows || 0} cows</div>` : ''}
               ${scraped ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Slaughter:</span> ${b.finishPrices.beef != null ? b.finishPrices.beef.toFixed(2) + '¢ beef' : '—'}${b.finishPrices.crossbred != null ? ' · ' + b.finishPrices.crossbred.toFixed(2) + '¢ cross' : ''}${b.finishPrices.holstein != null ? ' · ' + b.finishPrices.holstein.toFixed(2) + '¢ holstein' : ''}</div>` : ''}
               ${b.liteTestNote ? `<div style="margin-top:4px;color:var(--corn);font-style:italic;">${b.liteTestNote}</div>` : ''}
@@ -1069,7 +1086,12 @@ function buildBarnTable() {
       <td class="cash-price-cell">${adjPrice}¢ ${slaughterBadge}</td>
       <td class="cash-price-cell">${barnFeederAvg} ${feederBadge}</td>
       <td>${discStr}</td>
-      <td style="font-size:11px;color:var(--txt3);">${b.reportDate}${b._scrapeError ? ` <span title="${b._scrapeError}" style="font-size:9px;color:var(--down);border:1px solid var(--down);border-radius:2px;padding:1px 4px;cursor:help;">FETCH ERR</span>` : ''}</td>
+      <td style="font-size:11px;color:var(--txt3);">${
+        // Show per-category dates if slaughter and feeder come from different sale days
+        (b.slaughterSaleDay && b.feederSaleDay && b.slaughterSaleDay !== b.feederSaleDay)
+          ? `<div>${b.slaughterReportDate || ''} <span style="font-size:9px;opacity:.7;">${b.slaughterSaleDay.slice(0,3)}</span></div><div>${b.feederReportDate || ''} <span style="font-size:9px;opacity:.7;">${b.feederSaleDay.slice(0,3)}</span></div>`
+          : b.reportDate
+      }${b._scrapeError ? ` <span title="${b._scrapeError}" style="font-size:9px;color:var(--down);border:1px solid var(--down);border-radius:2px;padding:1px 4px;cursor:help;">FETCH ERR</span>` : ''}</td>
     </tr>${drawerHtml}`;
   });
 
