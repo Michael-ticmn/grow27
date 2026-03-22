@@ -830,7 +830,7 @@ function buildBarnTable() {
   // Badge helper
   function makeBadge(src) {
     if(!src) return '';
-    const cls = src === 'live' ? 'barn-src-live' : src === 'usda' ? 'barn-src-usda' : 'barn-src-cme';
+    const cls = src === 'live' ? 'barn-src-live' : src === 'barn' ? 'barn-src-barn' : src === 'usda' ? 'barn-src-usda' : 'barn-src-cme';
     const lbl = src.toUpperCase();
     return `<span class="barn-src-badge ${cls}">${lbl}</span>`;
   }
@@ -877,22 +877,30 @@ function buildBarnTable() {
     // ── Feeder avg: weighted average from rep sales if available ──
     const repFeederAll = b.repSales && b.repSales.feederWeightAvgs;
     let barnFeederAvg;
+    let barnFeederSrc;
     if (repFeederAll && repFeederAll.length) {
       const typeRows = repFeederAll.filter(r => r.type === cattleType);
       const totalHead = typeRows.reduce((s, r) => s + r.head, 0);
       const weightedSum = typeRows.reduce((s, r) => s + r.avgPrice * r.head, 0);
-      barnFeederAvg = totalHead > 0 ? (weightedSum / totalHead).toFixed(2) + '¢' : feederAvg;
+      if (totalHead > 0) {
+        barnFeederAvg = (weightedSum / totalHead).toFixed(2) + '¢';
+        barnFeederSrc = 'live';
+      } else {
+        barnFeederAvg = feederAvg;
+        barnFeederSrc = (b.feederWeights && b.feederWeights.length) ? 'barn' : feederDataSource;
+      }
+    } else if (b.feederWeights && b.feederWeights.length) {
+      barnFeederAvg = feederAvg;
+      barnFeederSrc = 'barn';
     } else {
       barnFeederAvg = feederAvg;
+      barnFeederSrc = feederDataSource;
     }
 
     // ── Per-column source badges ──
     // Slaughter: LIVE if barn has scraped finishPrices, else barn's dataSource (usda/cme)
     const slaughterSrc = b.finishPrices ? 'live' : b.dataSource;
     const slaughterBadge = makeBadge(slaughterSrc);
-    // Feeder: LIVE if barn has rep sales feeder data or scraped feederWeights, else shared source
-    const barnFeederSrc = (repFeederAll && repFeederAll.length) ? 'live'
-      : (b.feederWeights && b.feederWeights.length) ? 'live' : feederDataSource;
     const feederBadge = makeBadge(barnFeederSrc);
 
     // ── Finish weight rows ──
@@ -1025,7 +1033,7 @@ function buildBarnTable() {
     }
 
     const drawerHtml = `<tr class="barn-drawer" id="drawer-${key}">
-      <td colspan="5">
+      <td colspan="4">
         <div class="barn-detail-inner">
           <div class="barn-drawer-mini">
             <div class="barn-drawer-mini-header">Market Summary</div>
@@ -1083,15 +1091,9 @@ function buildBarnTable() {
         <div class="elev-name-cell">${b.name} <span class="barn-chevron" id="chevron-${key}">›</span></div>
         <div class="elev-loc-cell">${b.loc} · ${b.freq}</div>
       </td>
-      <td class="cash-price-cell">${adjPrice}¢ ${slaughterBadge}</td>
-      <td class="cash-price-cell">${barnFeederAvg} ${feederBadge}</td>
+      <td class="cash-price-cell">${adjPrice}¢ ${slaughterBadge} <span style="font-size:10px;color:var(--txt3);white-space:nowrap;">${b.slaughterReportDate ? b.slaughterReportDate + (b.slaughterSaleDay ? ' ' + b.slaughterSaleDay.slice(0,3) : '') : (b.reportDate || '')}</span>${b._scrapeError ? ` <span title="${b._scrapeError}" style="font-size:9px;color:var(--down);border:1px solid var(--down);border-radius:2px;padding:1px 4px;cursor:help;">ERR</span>` : ''}</td>
+      <td class="cash-price-cell">${barnFeederAvg} ${feederBadge} <span style="font-size:10px;color:var(--txt3);white-space:nowrap;">${b.feederReportDate ? b.feederReportDate + (b.feederSaleDay ? ' ' + b.feederSaleDay.slice(0,3) : '') : (b.reportDate || '')}</span></td>
       <td>${discStr}</td>
-      <td style="font-size:11px;color:var(--txt3);">${
-        // Show per-category dates if slaughter and feeder come from different sale days
-        (b.slaughterSaleDay && b.feederSaleDay && b.slaughterSaleDay !== b.feederSaleDay)
-          ? `<div>${b.slaughterReportDate || ''} <span style="font-size:9px;opacity:.7;">${b.slaughterSaleDay.slice(0,3)}</span></div><div>${b.feederReportDate || ''} <span style="font-size:9px;opacity:.7;">${b.feederSaleDay.slice(0,3)}</span></div>`
-          : b.reportDate
-      }${b._scrapeError ? ` <span title="${b._scrapeError}" style="font-size:9px;color:var(--down);border:1px solid var(--down);border-radius:2px;padding:1px 4px;cursor:help;">FETCH ERR</span>` : ''}</td>
     </tr>${drawerHtml}`;
   });
 

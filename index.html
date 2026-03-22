@@ -447,8 +447,8 @@
         <div class="section-divider">Auction Barn Avg Prices</div>
         <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
           <div class="table-scroll"><table class="cash-table">
-            <thead><tr><th>Barn</th><th>Slaughter avg</th><th>Feeder avg</th><th>Type adj</th><th>Date</th></tr></thead>
-            <tbody id="barn-table-body"><tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody>
+            <thead><tr><th>Barn</th><th>Slaughter avg</th><th>Feeder avg</th><th>Type adj</th></tr></thead>
+            <tbody id="barn-table-body"><tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody>
           </table></div>
           <div id="barn-price-source" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;"></div>
         </div>
@@ -1180,6 +1180,7 @@ buildBarnTable = function() {
     var b = BARNS_DATA[key];
     if (!b._feederScraped && !(b.feederWeights && b.feederWeights.length)) return;
     var feederPrice = null;
+    var feederSrc = 'live'; // track actual source
 
     // BEST: head-weighted average from rep sales feeder data
     if (b.repSales && b.repSales.feederWeightAvgs && b.repSales.feederWeightAvgs.length) {
@@ -1189,7 +1190,7 @@ buildBarnTable = function() {
       if (totalHead > 0) feederPrice = weightedSum / totalHead;
     }
 
-    // FALLBACK: simple average of feederWeights summary prices
+    // FALLBACK: simple average of feederWeights summary prices (barn-posted, not live sales)
     if (feederPrice === null && b.feederWeights && b.feederWeights.length) {
       var sum = 0, count = 0;
       b.feederWeights.forEach(function(fw) {
@@ -1198,18 +1199,20 @@ buildBarnTable = function() {
           count++;
         }
       });
-      if (count > 0) feederPrice = sum / count;
+      if (count > 0) { feederPrice = sum / count; feederSrc = 'barn'; }
     }
 
     // LAST RESORT: scraped feeder price
-    if (feederPrice === null && b._feederScraped) feederPrice = b._feederScraped[type];
+    if (feederPrice === null && b._feederScraped) { feederPrice = b._feederScraped[type]; feederSrc = 'barn'; }
     if (feederPrice == null) return;
     // Find the barn row and update its feeder cell
     var row = document.querySelector('tr.barn-row[data-key="' + key + '"]');
     if (!row) return;
     var cells = row.querySelectorAll('td.cash-price-cell');
     if (cells.length >= 2) {
-      cells[1].innerHTML = feederPrice.toFixed(2) + '&cent; <span class="barn-src-badge barn-src-live">LIVE</span>';
+      var dateStr = b.feederReportDate ? ' <span style="font-size:10px;color:var(--txt3);white-space:nowrap;">' + b.feederReportDate + (b.feederSaleDay ? ' ' + b.feederSaleDay.slice(0,3) : '') + '</span>' : '';
+      var badgeClass = feederSrc === 'live' ? 'barn-src-live' : 'barn-src-barn';
+      cells[1].innerHTML = feederPrice.toFixed(2) + '&cent; <span class="barn-src-badge ' + badgeClass + '">' + feederSrc.toUpperCase() + '</span>' + dateStr;
     }
   });
 };
