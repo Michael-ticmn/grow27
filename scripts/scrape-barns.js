@@ -40,14 +40,50 @@ function trimHistory(history) {
 
 // ── Price extraction from OCR text ──────────────────────────────────────────
 
-const RANGE_RE  = /(\d{2,3}\.\d{2})\s*[-–]\s*(\d{2,3}\.\d{2})/;
-const SINGLE_RE = /(\d{2,3}\.\d{2})/;
+// OCR often drops decimals: "224.00" → "22400", "239.00" → "23900"
+// Normalize a raw number string into a proper price (cents per cwt)
+function normalizePrice(raw) {
+  const v = parseFloat(raw);
+  if (isNaN(v)) return null;
+  // Already has a decimal → use as-is if in valid range
+  if (raw.includes('.')) return (v >= 100 && v <= 400) ? v : null;
+  // 5-digit integer (e.g. 22400 → 224.00, 40500 → 405.00)
+  if (v >= 10000 && v <= 50000) return v / 100;
+  // 3-digit integer in valid range (e.g. 235 → 235.00)
+  if (v >= 100 && v <= 400) return v;
+  return null;
+}
+
+// Match price ranges: "224.00 - 239.00", "22400-23900", "22400 23900"
+// Also handles mixed: "22000 - 235.00"
+const RANGE_RE  = /(\d{3,5}(?:\.\d{2})?)\s*[-–]\s*(\d{3,5}(?:\.\d{2})?)/;
+// Two numbers separated by spaces (OCR drops the dash): "22400 23900"
+const SPACE_RANGE_RE = /(\d{3,5}(?:\.\d{2})?)\s+(\d{3,5}(?:\.\d{2})?)/;
+const SINGLE_RE = /(\d{3,5}(?:\.\d{2})?)/;
 
 function extractLinePrice(line) {
+  // Try range with dash/en-dash first
   const range = line.match(RANGE_RE);
-  if (range) return parseFloat(((parseFloat(range[1]) + parseFloat(range[2])) / 2).toFixed(2));
+  if (range) {
+    const a = normalizePrice(range[1]), b = normalizePrice(range[2]);
+    if (a !== null && b !== null) return parseFloat(((a + b) / 2).toFixed(2));
+    if (a !== null) return parseFloat(a.toFixed(2));
+    if (b !== null) return parseFloat(b.toFixed(2));
+  }
+  // Try two numbers separated by space (OCR artifact)
+  const spaceRange = line.match(SPACE_RANGE_RE);
+  if (spaceRange) {
+    const a = normalizePrice(spaceRange[1]), b = normalizePrice(spaceRange[2]);
+    if (a !== null && b !== null) return parseFloat(((a + b) / 2).toFixed(2));
+    if (a !== null) return parseFloat(a.toFixed(2));
+    if (b !== null) return parseFloat(b.toFixed(2));
+  }
+  // Single price
   const single = line.match(SINGLE_RE);
-  if (single) return parseFloat(single[1]);
+  if (single) {
+    const v = normalizePrice(single[1]);
+    if (v !== null) return parseFloat(v.toFixed(2));
+  }
   return null;
 }
 
@@ -137,49 +173,93 @@ async function scrapeBarns(config) {
 
     // Track whether we're in the feeder section (for liteTest detection)
     let inFeederSection = false;
+    // Track feeder sub-headers so we can grab prices from following lines
+    let feederBeefHeader = -1;
+    let feederHolsteinHeader = -1;
 
-    for (const line of lines) {
+    // Helper: extract the best price from a line, filtering out weight ranges
+    // Weight ranges look like "350 - 600%" or "800 - 1000%" — skip those
+    function extractPriceSkipWeights(line) {
+      // Remove weight-range patterns before price extraction
+      const cleaned = line
+        .replace(/\d{2,4}\s*[-–]\s*\d{2,4}\s*[%#]/g, '')   // "350 - 600%"
+        .replace(/under\s+\d+[#%]/gi, '')                    // "under 400#"
+        .replace(/upto\s*[-–]\s*/gi, '');                     // "upto -" prefix
+      return extractLinePrice(cleaned);
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       const lower = line.toLowerCase();
 
       // ── Slaughter headers ──────────────────────────────────────────────
       if (/finished\s+beef\s+steers/i.test(line)) {
-        const price = extractLinePrice(line);
+        const price = extractPriceSkipWeights(line);
         if (price !== null) {
           slaughter.beef = price;
           console.log(`[${id}] slaughter.beef = ${price} ✓`);
         }
       }
       else if (/finished\s+dairy[\s-]*x/i.test(line) || /dairy[\s-]*x\s+steers/i.test(line)) {
-        const price = extractLinePrice(line);
+        const price = extractPriceSkipWeights(line);
         if (price !== null) {
           slaughter.crossbred = price;
           console.log(`[${id}] slaughter.crossbred = ${price} ✓`);
         }
       }
       else if (/finished\s+dairy\s+steers/i.test(line)) {
-        const price = extractLinePrice(line);
+        const price = extractPriceSkipWeights(line);
         if (price !== null) {
           slaughter.holstein = price;
           console.log(`[${id}] slaughter.holstein = ${price} ✓`);
         }
       }
 
-      // ── Feeder headers ─────────────────────────────────────────────────
-      if (/^feeder\s+cattle/i.test(lower) || /feeder\s+cattle/i.test(line)) {
+      // ── Feeder section detection ───────────────────────────────────────
+      // "Feeder Cattle" marks start of feeder section
+      if (/feeder\s+cattle/i.test(line)) {
         inFeederSection = true;
-        const price = extractLinePrice(line);
+        console.log(`[${id}] entered feeder section at line ${i}`);
+      }
+
+      // In feeder section: "Beef Steers" (not "Finished") → feeder.beef
+      if (inFeederSection && /beef\s+steers/i.test(line) && !/finished/i.test(line)) {
+        feederBeefHeader = i;
+        const price = extractPriceSkipWeights(line);
         if (price !== null) {
           feeder.beef = price;
-          console.log(`[${id}] feeder.beef = ${price} ✓`);
+          console.log(`[${id}] feeder.beef = ${price} ✓ (same line)`);
         }
       }
-      // "Dairy Steers" in feeder context — must NOT be "Finished Dairy Steers"
-      else if (/^dairy\s+steers/i.test(lower) && !/finished/i.test(line)) {
-        inFeederSection = true;
-        const price = extractLinePrice(line);
+
+      // In feeder section: "Dairy Steers" (not "Finished") → feeder.holstein
+      if (inFeederSection && /dairy\s+steers/i.test(line) && !/finished/i.test(line)) {
+        feederHolsteinHeader = i;
+        const price = extractPriceSkipWeights(line);
         if (price !== null) {
           feeder.holstein = price;
-          console.log(`[${id}] feeder.holstein = ${price} ✓`);
+          console.log(`[${id}] feeder.holstein = ${price} ✓ (same line)`);
+        }
+      }
+
+      // Look-ahead: if we're on a line right after a feeder header,
+      // try to grab the highest "upto" price as the top-end estimate
+      if (feeder.beef === null && feederBeefHeader >= 0 && i > feederBeefHeader && i <= feederBeefHeader + 6) {
+        if (/upto/i.test(line)) {
+          const price = extractPriceSkipWeights(line);
+          if (price !== null) {
+            feeder.beef = price;
+            console.log(`[${id}] feeder.beef = ${price} ✓ (from upto line ${i})`);
+          }
+        }
+      }
+      if (feeder.holstein === null && feederHolsteinHeader >= 0 && i > feederHolsteinHeader && i <= feederHolsteinHeader + 6) {
+        if (/upto/i.test(line)) {
+          const price = extractPriceSkipWeights(line);
+          if (price !== null) {
+            feeder.holstein = price;
+            console.log(`[${id}] feeder.holstein = ${price} ✓ (from upto line ${i})`);
+          }
         }
       }
 
