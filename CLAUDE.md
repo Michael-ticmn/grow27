@@ -111,5 +111,13 @@ Claude edits files directly in the local repo. Michael validates locally before 
 
 ---
 
+## Billing & API Usage
+Never use API credits or pay-as-you-go billing under any circumstances.
+All usage must stay within the included Max plan allocation only.
+If a usage limit is reached, stop and notify Michael — do not offer or switch to API credits.
+Do not set, use, or reference any ANTHROPIC_API_KEY environment variable.
+
+---
+
 ## Never touch directly
 Never edit files directly on main. All changes to index.html, js/, and css/ must be made on UserUpdates and promoted to main via push-main.ps1

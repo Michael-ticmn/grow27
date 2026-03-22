@@ -1,4 +1,4 @@
-const CACHE = 'grow27-v1.46';
+const CACHE = 'grow27-v1.47';
 
 // Core files to precache for offline use
 const PRECACHE = [
@@ -61,6 +61,21 @@ self.addEventListener('fetch', e => {
     return;
   }
 
+  // Data files (prices JSON) — network first so updates show immediately
+  const isData = url.pathname.includes('/data/prices/');
+  if (isData) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
   // HTML pages — network first
   if (e.request.mode === 'navigate') {
     e.respondWith(
@@ -89,6 +104,7 @@ self.addEventListener('fetch', e => {
     })
   );
 });
+
 
 
 
