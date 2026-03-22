@@ -411,19 +411,28 @@ async function scrapeBarns(config) {
         const SALE_ROW_RE = /^([A-Z][A-Z\s.]+,\s*[A-Z]{2})\s+(\d{1,3})\s+([A-Z][A-Z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)\s*$/;
         const SALE_ROW_LOOSE_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/;
 
+        // Cattle breed/sex filter — must contain at least one cattle keyword.
+        // Prevents hog rows from leaking in when OCR interleaves two columns.
+        const CATTLE_DESC_RE = /STR|HFR|COW|BULL|BUL|CALF|CLF/i;
+
         for (const frag of fragments) {
           // Check for section header
           const secMatch = frag.match(SECTION_RE);
           if (secMatch) {
             const secText = secMatch[1].trim().toLowerCase();
+            // Map section name to category — keep current category for irrelevant
+            // sections (hogs, etc.) because two-column OCR interleaves headers
+            // from both columns. A cattle breed filter below prevents hog rows
+            // from leaking into cattle categories.
             if (/finish/i.test(secText))            currentCategory = 'finished';
             else if (/feeder\s*cattle/i.test(secText)) currentCategory = 'feeder';
-            else if (/calve/i.test(secText))         currentCategory = 'feeder';  // calves are young feeders
+            else if (/calve/i.test(secText))         currentCategory = 'feeder';
             else if (/market\s*cow/i.test(secText))  currentCategory = 'cows';
             else if (/market\s*bull/i.test(secText))  currentCategory = 'bulls';
             else if (/^bull/i.test(secText))          currentCategory = 'bulls';
-            else if (/hog/i.test(secText))           currentCategory = null;  // skip hogs
-            else                                      currentCategory = null;  // unknown, skip
+            // hogs and unknown sections: do NOT reset currentCategory — the
+            // interleaved cattle data that follows still belongs to the
+            // previous category. Non-cattle rows are filtered by CATTLE_DESC_RE.
             console.log(`[${id}] rep sales section: ${currentCategory} ("${frag.slice(0, 60)}")`);
             continue;
           }
@@ -445,6 +454,9 @@ async function scrapeBarns(config) {
           // Normalize price (OCR may drop decimal: "23800" → 238.00)
           const price = normalizePrice(rawPrice);
           if (price === null || weight < 200 || weight > 2500) continue;
+
+          // Filter: must be cattle (not hogs etc. from interleaved columns)
+          if (!CATTLE_DESC_RE.test(desc)) continue;
 
           // Map description to cattle type
           const descUpper = desc.toUpperCase();
