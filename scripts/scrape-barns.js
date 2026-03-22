@@ -216,8 +216,9 @@ async function scrapeBarns(config) {
         const { data: testData } = await Tesseract.recognize(testBuf, 'eng');
         const testText = (testData.text || '').toLowerCase();
         if (/price/.test(testText)) {
-          splitL = testW;
-          console.log(`[${id}] left table "Price" found at ${pct}% width (${testW}px)`);
+          // "Price" header found — add 8% padding for the actual price digits
+          splitL = Math.min(Math.floor(w * 0.75), testW + Math.floor(w * 0.08));
+          console.log(`[${id}] left table "Price" found at ${pct}% — crop with padding: ${splitL}px`);
           break;
         }
       }
@@ -233,8 +234,9 @@ async function scrapeBarns(config) {
         const { data: testData } = await Tesseract.recognize(testBuf, 'eng');
         const testText = (testData.text || '').toLowerCase();
         if (/location/.test(testText) && /price/.test(testText)) {
-          splitR = startX;
-          console.log(`[${id}] right table "Location" found starting at ${pct}% (${startX}px)`);
+          // "Location" header found — subtract 5% padding to capture full table
+          splitR = Math.max(0, startX - Math.floor(w * 0.05));
+          console.log(`[${id}] right table "Location" found at ${pct}% — crop with padding from ${splitR}px`);
           break;
         }
       }
