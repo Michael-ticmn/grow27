@@ -435,6 +435,10 @@ async function scrapeBarns(config) {
         // Sale row: CITY, ST  qty  DESC  weight  price
         const SALE_ROW_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2,3})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/;
 
+        // Fallback: weight is garbled (OCR reads "0", "Ei", "#0" etc.) but price is intact
+        // Matches: location  qty  desc  <anything>  price  (weight stored as null)
+        const SALE_ROW_FALLBACK_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2,3})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+\S+\s+(\d{4,6}(?:\.\d{2})?)/;
+
         // Reject known hog/swine descriptions (OCR garbles cattle breed codes,
         // so a positive filter misses valid entries — use negative filter instead)
         const HOG_DESC_RE = /MKT|HOG|SOW|BOAR|GILT|PIG|PORK/i;
@@ -464,18 +468,29 @@ async function scrapeBarns(config) {
           if (/^location|^description|^city/i.test(line)) continue;
           if (!currentCategory) continue;
 
-          // Match sale row
+          // Match sale row — try primary regex first, fallback for garbled weights
+          let location, qty, desc, weight, rawPrice;
           const m = line.match(SALE_ROW_RE);
-          if (!m) continue;
-
-          const location = m[1].trim();
-          const qty = parseInt(m[2]) || 1;
-          const desc = m[3].trim();
-          const weight = parseInt(m[4]);
-          const rawPrice = m[5];
+          if (m) {
+            location = m[1].trim();
+            qty = parseInt(m[2]) || 1;
+            desc = m[3].trim();
+            weight = parseInt(m[4]);
+            rawPrice = m[5];
+            if (weight < 200 || weight > 2500) continue;
+          } else {
+            const fb = line.match(SALE_ROW_FALLBACK_RE);
+            if (!fb) continue;
+            location = fb[1].trim();
+            qty = parseInt(fb[2]) || 1;
+            desc = fb[3].trim();
+            weight = null;  // OCR garbled the weight
+            rawPrice = fb[4];
+            console.log(`[${id}] rep fallback match (no weight): ${location} ${qty} ${desc} $${rawPrice}`);
+          }
 
           const price = normalizePrice(rawPrice);
-          if (price === null || weight < 200 || weight > 2500) continue;
+          if (price === null) continue;
           if (HOG_DESC_RE.test(desc)) continue;
 
           // Map description to cattle type
@@ -508,6 +523,7 @@ async function scrapeBarns(config) {
 
     for (const sale of repSales.finished) {
       headCount.finished += sale.qty;
+      if (sale.weight === null) continue;  // count head but skip bucketing
       // Bucket into 100lb weight classes
       const bucket = Math.floor(sale.weight / 100) * 100;
       const range = `${bucket}-${bucket + 99}`;
@@ -519,6 +535,7 @@ async function scrapeBarns(config) {
 
     for (const sale of repSales.feeder) {
       headCount.feeder += sale.qty;
+      if (sale.weight === null) continue;  // count head but skip bucketing
       const bucket = Math.floor(sale.weight / 100) * 100;
       const range = `${bucket}-${bucket + 99}`;
       if (!feederByWeight[range]) feederByWeight[range] = {};
