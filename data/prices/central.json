@@ -3,7 +3,7 @@
   "name": "Central Livestock Association",
   "location": "Zumbrota MN",
   "lastUpdated": "2026-03-22",
-  "lastSuccess": null,
+  "lastSuccess": "2026-03-22",
   "history": [
     {
       "date": "2026-03-21",
@@ -25,17 +25,16 @@
       "date": "2026-03-22",
       "slaughter": {
         "beef": null,
-        "crossbred": null,
+        "crossbred": 235,
         "holstein": null
       },
       "feeder": {
         "beef": null,
         "crossbred": null,
         "holstein": null,
-        "liteTest": false
+        "liteTest": true
       },
-      "source": "fetch_failed",
-      "error": "HTTP 403"
+      "source": "scraped"
     }
   ]
 }
