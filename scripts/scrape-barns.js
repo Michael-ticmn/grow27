@@ -133,6 +133,10 @@ async function scrapeBarns(config) {
 
       if (!imageUrl) throw new Error('no og:image meta tag found');
       console.log(`[${id}] selected image URL: ${imageUrl}`);
+
+      // Identify additional images (market2, market3) for representative sales
+      var repImageUrls = ogImages.filter(u => u !== imageUrl);
+      console.log(`[${id}] additional images for rep sales: ${repImageUrls.length}`);
     } catch (imgErr) {
       console.error(`[${id}] IMAGE EXTRACT FAILED: ${imgErr.message}`);
       return { slaughter: null, feeder: null, source: 'fetch_failed', error: imgErr.message };
@@ -154,10 +158,10 @@ async function scrapeBarns(config) {
       return { slaughter: null, feeder: null, source: 'fetch_failed', error: dlErr.message };
     }
 
-  // ── 4. Run Tesseract OCR ──────────────────────────────────────────────
+  // ── 4. Run Tesseract OCR on main image ────────────────────────────────
   let ocrText;
   try {
-    console.log(`[${id}] running Tesseract OCR...`);
+    console.log(`[${id}] running Tesseract OCR on main image...`);
     const { data } = await Tesseract.recognize(imgBuffer, 'eng');
     ocrText = data.text;
     console.log(`[${id}] OCR complete · ${ocrText.length} chars`);
@@ -165,6 +169,25 @@ async function scrapeBarns(config) {
   } catch (ocrErr) {
     console.error(`[${id}] OCR FAILED: ${ocrErr.message}`);
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: ocrErr.message };
+  }
+
+  // ── 4b. Download and OCR additional images (rep sales) ────────────────
+  const repOcrTexts = [];
+  for (const repUrl of repImageUrls) {
+    try {
+      console.log(`[${id}] downloading rep sales image: ${repUrl}`);
+      const page = await browser.newPage();
+      const resp = await page.goto(repUrl, { waitUntil: 'networkidle2', timeout: 15000 });
+      if (!resp.ok()) { console.warn(`[${id}] rep image HTTP ${resp.status()}`); continue; }
+      const buf = await resp.buffer();
+      console.log(`[${id}] rep image downloaded · ${buf.length} bytes`);
+      const { data } = await Tesseract.recognize(buf, 'eng');
+      repOcrTexts.push(data.text);
+      console.log(`[${id}] rep OCR complete · ${data.text.length} chars`);
+      console.log(`[${id}] rep OCR preview:\n${data.text.slice(0, 500)}\n`);
+    } catch (repErr) {
+      console.warn(`[${id}] rep image OCR failed (non-fatal): ${repErr.message}`);
+    }
   }
 
   // ── 5. Parse prices from OCR text via regex ───────────────────────────
@@ -352,49 +375,59 @@ async function scrapeBarns(config) {
       throw new Error('OCR returned no usable prices — text may be unreadable');
     }
 
-    // ── 6. Parse Representative Sales HTML tables ──────────────────────────
-    // These tables have individual sale records with type, weight, and price
+    // ── 6. Parse Representative Sales from OCR text (images 2 & 3) ─────────
+    // The rep sales tables are PNG images, not HTML — parse from repOcrTexts[]
     const repSales = { finished: [], feeder: [], bulls: [] };
     try {
-      // Find table headers that indicate representative sales sections
-      $('td, th').each((_, el) => {
-        const text = $(el).text().trim();
-        let category = null;
-        if (/representative\s+sales:\s*finished/i.test(text)) category = 'finished';
-        else if (/representative\s+sales:\s*feeder/i.test(text)) category = 'feeder';
-        else if (/representative\s+sales:\s*bulls/i.test(text)) category = 'bulls';
-        if (!category) return;
+      // Combine all rep OCR texts for parsing
+      const allRepText = repOcrTexts.join('\n');
+      if (allRepText.length > 0) {
+        console.log(`[${id}] parsing rep sales from ${repOcrTexts.length} OCR images · ${allRepText.length} chars`);
 
-        // Walk up to find the table, then parse its rows
-        const table = $(el).closest('table');
-        if (!table.length) return;
+        const repLines = allRepText.split('\n').map(l => l.trim()).filter(Boolean);
+        let currentCategory = null;
 
-        table.find('tr').each((_, row) => {
-          const cells = $(row).find('td');
-          if (cells.length < 4) return;
-          const cellTexts = [];
-          cells.each((_, c) => cellTexts.push($(c).text().trim()));
+        // Regex for section headers
+        const SECTION_RE = /representative\s+sales[:\s]*(\w+)/i;
+        // Regex for sale rows: LOCATION, ST  [qty]  DESC DESC  weight  price
+        // OCR may vary — flexible pattern:
+        //   "ALBERT LEA, MN    1  BLK STR    1195    239.00"
+        //   "MAZEPPA, MN       2  XBRD HFR   1417    238.00"
+        //   "DODGE CENTER, MN  1  BLK STR    1345    23800"
+        // Pattern: city + state, then qty, then 1-3 word description, then weight, then price
+        const SALE_ROW_RE = /^([A-Z][A-Z\s.]+,\s*[A-Z]{2})\s+(\d{1,3})\s+([A-Z][A-Z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)\s*$/;
+        // Looser fallback: allow lowercase OCR errors, no strict start anchor
+        const SALE_ROW_LOOSE_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/;
 
-          // Expected: Location, [Qty], Description, Weight (#), Price
-          // Some rows have qty embedded, detect by checking if cell is a small number
-          let location, qty, desc, weight, price;
-          if (cells.length >= 5) {
-            location = cellTexts[0];
-            qty = parseInt(cellTexts[1]) || 1;
-            desc = cellTexts[2];
-            weight = parseFloat(cellTexts[3]);
-            price = parseFloat(cellTexts[4]);
-          } else {
-            location = cellTexts[0];
-            qty = 1;
-            desc = cellTexts[1];
-            weight = parseFloat(cellTexts[2]);
-            price = parseFloat(cellTexts[3]);
+        for (const line of repLines) {
+          // Check for section headers
+          const secMatch = line.match(SECTION_RE);
+          if (secMatch) {
+            const secWord = secMatch[1].toLowerCase();
+            if (/finish/i.test(secWord)) currentCategory = 'finished';
+            else if (/feeder/i.test(secWord)) currentCategory = 'feeder';
+            else if (/bull/i.test(secWord)) currentCategory = 'bulls';
+            console.log(`[${id}] rep sales section: ${currentCategory} ("${line.slice(0, 60)}")`);
+            continue;
           }
 
-          // Skip header rows and invalid data
-          if (!desc || isNaN(weight) || isNaN(price)) return;
-          if (/location|description/i.test(location)) return;
+          // Skip header/label rows
+          if (/location|description|weight|price|city|state/i.test(line) && !/[A-Z]{2,}\s+\d/.test(line)) continue;
+          if (!currentCategory) continue;
+
+          // Try strict match first, then loose
+          const m = line.match(SALE_ROW_RE) || line.match(SALE_ROW_LOOSE_RE);
+          if (!m) continue;
+
+          const location = m[1].trim();
+          const qty = parseInt(m[2]) || 1;
+          const desc = m[3].trim();
+          const weight = parseInt(m[4]);
+          const rawPrice = m[5];
+
+          // Normalize price (OCR may drop decimal: "23800" → 238.00)
+          const price = normalizePrice(rawPrice);
+          if (price === null || weight < 200 || weight > 2500) continue;
 
           // Map description to cattle type
           const descUpper = desc.toUpperCase();
@@ -408,15 +441,17 @@ async function scrapeBarns(config) {
           else if (/BULL/.test(descUpper)) sex = 'bull';
           else if (/COW/.test(descUpper)) sex = 'cow';
 
-          repSales[category].push({
+          repSales[currentCategory].push({
             location, qty, desc, cattleType, sex, weight, price
           });
-        });
+        }
 
-        console.log(`[${id}] rep sales ${category}: ${repSales[category].length} records`);
-      });
+        console.log(`[${id}] rep sales parsed — finished: ${repSales.finished.length}, feeder: ${repSales.feeder.length}, bulls: ${repSales.bulls.length}`);
+      } else {
+        console.log(`[${id}] no rep OCR text available — skipping rep sales parse`);
+      }
     } catch (repErr) {
-      console.warn(`[${id}] rep sales parse error (non-fatal): ${repErr.message}`);
+      console.warn(`[${id}] rep sales OCR parse error (non-fatal): ${repErr.message}`);
     }
 
     // ── 7. Build weight-class averages from representative sales ─────────
