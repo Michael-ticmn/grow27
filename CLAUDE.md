@@ -85,5 +85,31 @@ Claude edits files directly in the local repo. Michael validates locally before 
 
 ---
 
+## Grain data pipeline
+- `data/grain-config.json` — grain source registry. Each entry has `id`, `name`, `url`, `locations[]`, `commodities[]`.
+- `data/prices/grain/<id>.json` — per-source history, max 14 entries / 14 days
+- `data/prices/grain/index.json` — latest snapshot, one entry per source (what the PWA will read)
+- `scripts/scrape-grain.js` — **orchestrator**. Loops grain sources, launches Puppeteer, delegates parsing to source-specific modules, writes output.
+- `scripts/grain/<id>.js` — source-specific parser module. Exports `parse({ id, config, browser })` returning `{ locations: { [slug]: { name, corn: [...], beans: [...] } }, source, error }`.
+- `scripts/grain/_default.js` — fallback parser (returns `pending`).
+- `.github/workflows/scrape-grain.yml` — runs on `UserUpdates`, triggers Mon–Fri 7am CT (`0 12 * * 1-5`) and via `workflow_dispatch`. Commits to `UserUpdates`.
+
+**Currently configured:** CFS (Central Farm Service) — 13 locations across southern MN. Uses DTN Cashbid widget; parser selects each location from dropdown and reads `<table id="dtn-bids">`.
+
+**Adding a new grain source:** Create `scripts/grain/<id>.js` matching the id in `grain-config.json`. Export `parse({ id, config, browser })`. The orchestrator picks it up automatically.
+
+**Grain bid data shape per location:**
+```json
+{
+  "name": "St. James",
+  "corn": [
+    { "delivery": "Mar26", "cash": 4.155, "futuresMonth": "@C6K", "basis": -0.5, "change": "-4'2", "cbot": "465'4s" }
+  ],
+  "beans": [ ... ]
+}
+```
+
+---
+
 ## Never touch directly
 Never edit files directly on main. All changes to index.html, js/, and css/ must be made on UserUpdates and promoted to main via push-main.ps1
