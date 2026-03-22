@@ -1,12 +1,17 @@
-const CACHE = 'farm-market-v1';
+const CACHE = 'grow27-v1.15';
 
-// Files to cache for offline use
+// Core files to precache for offline use
 const PRECACHE = [
-  '/grain-dashboard.html',
-  '/farm-dashboard.html',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  '/grow27/',
+  '/grow27/manifest.json',
+  '/grow27/version.json',
+  '/grow27/css/style.css',
+  '/grow27/css/mobile.css',
+  '/grow27/js/markets.js',
+  '/grow27/js/app.js',
+  '/grow27/icons/icon-32.png',
+  '/grow27/icons/icon-192.png',
+  '/grow27/icons/icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js'
 ];
 
@@ -31,7 +36,7 @@ self.addEventListener('activate', e => {
 // Fetch strategy:
 // - HTML pages: network first, fall back to cache (so refreshes get fresh data)
 // - External APIs (prices, weather): network only, no caching (always want live data)
-// - Static assets (JS libs, icons): cache first, fall back to network
+// - Static assets (JS, CSS, icons): cache first, fall back to network
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
@@ -61,7 +66,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Everything else — cache first
+  // Everything else — cache first, fall back to network
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
@@ -75,3 +80,6 @@ self.addEventListener('fetch', e => {
     })
   );
 });
+
+
+

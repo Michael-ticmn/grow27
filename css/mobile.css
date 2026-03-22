@@ -1,0 +1,164 @@
+/* ══════════════════════════════════════════════════
+   GROW27 — MOBILE / RESPONSIVE
+   Loaded after css/style.css.
+   Augments the two base breakpoints (900px, 500px)
+   already in style.css with targeted phone/tablet fixes.
+
+   Breakpoints used here:
+     768px  — tablet / large phone
+     600px  — standard phone landscape / large phone portrait
+     480px  — standard phone portrait
+     375px  — compact phone (iPhone SE, Galaxy A-series)
+══════════════════════════════════════════════════ */
+
+
+/* ── ALL SIZES: table horizontal scroll wrapper ── */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.table-scroll .cash-table{min-width:480px;}
+
+
+/* ── 768px: tablet / large phone ── */
+@media(max-width:768px){
+
+  /* Topbar: reduce horizontal padding */
+  .topbar{padding-left:14px;padding-right:14px;}
+
+  /* Subtabs + inner tabs: horizontal scroll, no wrap */
+  .subtabs,.tabs{padding:0 8px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;}
+  .subtabs::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none;}
+  .subtab,.tab{padding:10px 12px;font-size:11px;white-space:nowrap;}
+
+  /* Elevator bar: stack selector and toggles vertically */
+  .elevator-bar{flex-direction:column;align-items:flex-start;gap:10px;padding:12px 14px;}
+  .elevator-select{min-width:0;width:100%;}
+  .region-toggle{width:100%;}
+  .region-btn{flex:1;text-align:center;}
+  .elev-detail{margin-left:0;}
+
+  /* Cash tables: slightly tighter */
+  .cash-table{font-size:12px;}
+  .cash-table th,.cash-table td{padding:8px 9px;}
+
+  /* Footer: center-stack */
+  .g27-footer{flex-direction:column;align-items:center;padding:14px 20px;text-align:center;gap:8px;}
+  .g27-footer-wordmark,.g27-footer-tagline,.g27-footer-copy{flex:unset;justify-content:center;text-align:center;padding-left:0;}
+}
+
+
+/* ── 600px: standard phone ── */
+@media(max-width:600px){
+
+  /* Auction barns + meat lockers: single column */
+  .barn-grid{grid-template-columns:1fr;}
+
+  /* Barn detail panel: stack mini tables vertically on small screens */
+  .barn-detail-inner{grid-template-columns:1fr;gap:8px;padding:8px;}
+
+  /* Dairy plant stat boxes: smaller value text, ensure no overflow */
+  .plant-stat-val{font-size:13px;}
+  .plant-stat-box{min-width:80px;}
+
+  /* Topbar */
+  .topbar{padding-left:12px;padding-right:12px;}
+
+  /* Content padding */
+  .content{padding:12px;}
+
+  /* Price card headline */
+  .card-price{font-size:28px;}
+
+  /* Calc inputs: single column on phone */
+  .calc-grid{grid-template-columns:1fr;}
+  .calc-section-label{padding-top:8px;}
+
+  /* Calc / news toggles: full width equal-split buttons */
+  .calc-toggle,.news-toggle{width:100%;}
+  .calc-btn,.news-mode-btn{flex:1;text-align:center;padding:8px 10px;}
+
+  /* Source link rows: tighter */
+  .source-link{padding:11px 13px;gap:10px;}
+  .source-link-icon{width:28px;height:28px;font-size:14px;}
+
+  /* Brief items */
+  .brief-item{padding:13px 14px;}
+
+  /* Insight strip */
+  .insight-strip{padding:10px 14px;}
+
+  /* Result box */
+  .result-box{padding:12px;}
+
+  /* Hist controls: allow wrap */
+  .hist-controls{flex-wrap:wrap;}
+}
+
+
+/* ── 480px: standard phone portrait ── */
+@media(max-width:480px){
+
+  /* Brand: hide italic subtitle (keeps logo + module name) */
+  .brand-subtitle{display:none!important;}
+
+  /* Hide topbar feedback button, show FAB instead */
+  .feedback-btn{display:none;}
+  .feedback-fab{display:flex;align-items:center;justify-content:center;position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 14px);right:16px;width:42px;height:42px;border-radius:50%;background:var(--bg2);border:1px solid var(--border2);color:var(--txt2);font-size:18px;text-decoration:none;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.4);transition:all .12s;}
+  .feedback-fab:hover{border-color:var(--corn);color:var(--corn);}
+
+  /* Topbar clock: drop the last-updated line, keep status dot */
+  #last-updated-txt{display:none;}
+
+  /* Bottom nav items: tighter */
+  .nav-item{padding:5px 8px;}
+  .nav-label{font-size:9px;letter-spacing:.5px;}
+
+  /* Cards */
+  .card{padding:12px;}
+  .card-price{font-size:24px;}
+
+  /* Cash tables: compact text */
+  .cash-table{font-size:11px;}
+  .cash-table th,.cash-table td{padding:6px 7px;}
+
+  /* Panels */
+  .panel{padding:14px;}
+  .panel-title{font-size:11px;margin-bottom:10px;}
+
+  /* Stat values */
+  .stat-val{font-size:18px;}
+
+  /* Elevator: compact */
+  .elevator-bar{padding:10px 12px;}
+
+  /* Source link arrow: hide at this size to save width */
+  .source-link-arrow{display:none;}
+
+  /* WIP banner: tighter */
+  .brief-wip{padding:11px 12px;gap:10px;}
+  .brief-wip-icon{font-size:17px;}
+}
+
+
+/* ── 375px: compact phone (iPhone SE, Galaxy A-series) ── */
+@media(max-width:375px){
+
+  /* Content */
+  .content{padding:10px;}
+
+  /* Nav: hide labels entirely, icons only */
+  .nav-label{display:none;}
+  .nav-item{padding:4px 6px;max-width:54px;}
+
+  /* Subtabs / inner tabs */
+  .subtab,.tab{padding:9px 10px;font-size:10px;}
+
+  /* Price cards */
+  .card-price{font-size:20px;}
+  .card{padding:10px;}
+
+  /* Cash tables */
+  .cash-table{font-size:10px;}
+  .cash-table th,.cash-table td{padding:5px;}
+
+  /* Calc section labels */
+  .calc-section-label{font-size:9px;letter-spacing:2px;}
+}

@@ -12,274 +12,39 @@
 <meta name="author" content="grow27">
 <meta name="copyright" content="© 2026 grow27">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<title>#27Markets</title>
-<style>
-  :root {
-    --bg0:#111214; --bg1:#181a1d; --bg2:#22272e; --bg3:#2a3038;
-    --border:#454c58; --border2:#5a6272;
-    --txt1:#f2f4f6; --txt2:#d8dce4; --txt3:#c0c8d4;
-    --corn:#d4a027; --corn-dim:rgba(212,160,39,.15); --corn-border:rgba(212,160,39,.3);
-    --soy:#3ea8aa; --soy-dim:rgba(62,168,170,.13); --soy-border:rgba(62,168,170,.28);
-    --cattle:#c46a40; --cattle-dim:rgba(196,106,64,.14);
-    --up:#3cb96a; --up-dim:rgba(60,185,106,.18);
-    --down:#e05050; --down-dim:rgba(224,80,80,.16);
-    --flat:#7a8898; --flat-dim:rgba(122,136,152,.14);
-    --markets:#d4a027; --herd:#3cb96a; --fields:#3ea8aa; --finance:#7b68c8; --about:#8a9099;
-    --nav-h:64px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Courier New',Courier,monospace;background:var(--bg0);color:var(--txt1);min-height:100vh;font-size:15px;line-height:1.6;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));}
-
-  /* ── TOPBAR ── */
-  .topbar{background:var(--bg1);border-bottom:1px solid var(--border);padding:13px max(20px,env(safe-area-inset-right)) 13px max(20px,env(safe-area-inset-left));padding-top:calc(13px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;}
-  .brand{display:flex;align-items:center;gap:14px;}
-  .brand-title{font-size:15px;font-weight:700;letter-spacing:3px;color:var(--txt1);text-transform:uppercase;}
-  .brand-subtitle{font-size:10px;letter-spacing:2px;color:var(--txt3);font-style:italic;margin-top:2px;}
-  .clock-bar{font-size:11px;color:var(--txt3);display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
-  .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--up);margin-right:6px;animation:pulse 2.5s infinite;}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-
-  /* ── BOTTOM NAV ── */
-  .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);padding-bottom:env(safe-area-inset-bottom);background:var(--bg1);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;z-index:100;}
-  .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:6px 12px;border-radius:6px;transition:background .12s;flex:1;max-width:80px;user-select:none;}
-  .nav-item:hover{background:var(--bg2);}
-  .nav-icon{width:22px;height:22px;opacity:0.4;transition:opacity .12s;}
-  .nav-label{font-size:10px;letter-spacing:1px;color:var(--txt3);text-transform:uppercase;transition:color .12s;}
-  .nav-item.active .nav-icon{opacity:1;}
-  .nav-item[data-mod="markets"].active .nav-label{color:var(--markets);}
-  .nav-item[data-mod="herd"].active    .nav-label{color:var(--herd);}
-  .nav-item[data-mod="fields"].active  .nav-label{color:var(--fields);}
-  .nav-item[data-mod="finance"].active .nav-label{color:var(--finance);}
-  .nav-item[data-mod="about"].active   .nav-label{color:var(--txt2);}
-  .nav-item.stub{opacity:0.4;}
-
-  /* ── MODULE ACCENT BAR ── */
-  .module-bar{height:2px;width:100%;transition:background .2s;}
-  .module-bar[data-mod="markets"]{background:var(--markets);}
-  .module-bar[data-mod="herd"]   {background:var(--herd);}
-  .module-bar[data-mod="fields"] {background:var(--fields);}
-  .module-bar[data-mod="finance"]{background:var(--finance);}
-  .module-bar[data-mod="about"]   {background:var(--border2);}
-
-  /* ── MODULE CONTAINERS ── */
-  .module{display:none;}
-  .module.active{display:block;}
-
-  /* ── SUB-TAB BAR (Markets: Grain / Cattle) ── */
-  .subtabs{display:flex;background:var(--bg1);border-bottom:1px solid var(--border);padding:0 20px;}
-  .subtab{padding:10px 18px;font-size:12px;letter-spacing:2px;color:var(--txt3);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;transition:color .12s,border-color .12s;user-select:none;}
-  .subtab.active{color:var(--txt1);border-bottom-color:var(--corn);}
-  .subtab:hover:not(.active){color:var(--txt2);}
-  .submodule{display:none;}
-  .submodule.active{display:block;}
-
-  /* ── INNER TABS (within each submodule) ── */
-  .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg1);padding:0 20px;flex-wrap:wrap;}
-  .tab{padding:11px 18px;font-size:12px;letter-spacing:2px;color:var(--txt3);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;transition:color .12s,border-color .12s;user-select:none;}
-  .tab.active{color:var(--txt1);border-bottom-color:var(--corn);}
-  .tab:hover:not(.active){color:var(--txt2);}
-  .content{padding:20px;}
-  .section{display:none;}
-  .section.active{display:block;}
-
-  /* ── SHARED COMPONENTS ── */
-  .insight-strip{background:var(--bg2);border:1px solid var(--border2);border-left:3px solid var(--corn);border-radius:0 4px 4px 0;padding:12px 18px;margin-bottom:18px;font-size:13px;color:var(--txt2);line-height:1.7;}
-  .insight-strip strong{color:var(--txt1);}
-  .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px;}
-  .card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;position:relative;overflow:hidden;}
-  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
-  .card.cn::before{background:var(--corn);}
-  .card.cn2::before{background:rgba(212,160,39,.5);}
-  .card.sb::before{background:var(--soy);}
-  .card.sb2::before{background:rgba(62,168,170,.5);}
-  .card.lc::before{background:var(--cattle);}
-  .card.fc::before{background:var(--corn);}
-  .card-label{font-size:12px;letter-spacing:2px;color:var(--txt2);margin-bottom:4px;}
-  .card-name{font-size:13px;color:var(--txt1);margin-bottom:8px;font-style:italic;}
-  .card-price{font-size:36px;font-weight:700;line-height:1;color:var(--txt1);letter-spacing:-1px;}
-  .card-unit{font-size:12px;color:var(--txt2);margin:5px 0 9px;}
-  .badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 9px;border-radius:3px;}
-  .badge.up{background:var(--up-dim);color:var(--up);}
-  .badge.down{background:var(--down-dim);color:var(--down);}
-  .badge.flat{background:var(--flat-dim);color:var(--flat);}
-  .card-meta{display:flex;justify-content:space-between;margin-top:11px;padding-top:11px;border-top:1px solid var(--border);}
-  .meta-item{font-size:12px;color:var(--txt2);}
-  .meta-item strong{display:block;color:var(--txt1);font-size:12px;margin-top:1px;}
-  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
-  .panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:18px;}
-  .panel.full{grid-column:1/-1;}
-  .panel-title{font-size:12px;letter-spacing:2px;color:var(--txt2);font-weight:600;margin-bottom:14px;text-transform:uppercase;}
-  .section-divider{font-size:12px;letter-spacing:2px;color:var(--txt2);font-weight:600;text-transform:uppercase;margin:20px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--border);}
-  .weather-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
-  .wx-item{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:10px 6px;text-align:center;}
-  .wx-city{font-size:12px;color:var(--txt2);letter-spacing:2px;margin-bottom:4px;}
-  .wx-temp{font-size:20px;color:var(--txt1);font-weight:700;margin-bottom:2px;}
-  .wx-cond{font-size:12px;color:var(--txt1);}
-  .wx-note{font-size:12px;color:var(--txt2);margin-top:5px;padding-top:5px;border-top:1px solid var(--border);}
-  .cal-item{display:flex;gap:16px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--border);}
-  .cal-item:last-child{border-bottom:none;}
-  .cal-date{font-size:12px;color:var(--txt3);min-width:72px;padding-top:2px;}
-  .cal-tag{font-size:10px;letter-spacing:2px;padding:2px 7px;border-radius:2px;flex-shrink:0;display:inline-block;margin-bottom:4px;}
-  .cal-tag.usda{background:var(--up-dim);color:var(--up);}
-  .cal-tag.cme{background:var(--corn-dim);color:var(--corn);}
-  .cal-text{font-size:14px;color:var(--txt1);line-height:1.5;}
-  .cal-sub{font-size:12px;color:var(--txt3);margin-top:3px;line-height:1.5;}
-  .field{margin-bottom:16px;}
-  .field label{font-size:12px;color:var(--txt2);display:flex;justify-content:space-between;margin-bottom:5px;}
-  .field-val{color:var(--corn);}
-  .field input[type=range]{width:100%;accent-color:var(--corn);cursor:pointer;}
-  .field input[type=number]{background:var(--bg0);border:1px solid var(--border2);border-radius:3px;color:var(--corn);font-family:inherit;font-size:14px;padding:5px 10px;width:120px;}
-  .result-box{background:var(--bg1);border:1px solid var(--border);border-radius:4px;padding:16px;margin-top:16px;}
-  .result-row{display:flex;justify-content:space-between;font-size:13px;color:var(--txt2);padding:6px 0;border-bottom:1px solid var(--border);}
-  .result-row:last-child{border-bottom:none;}
-  .result-row.total{color:var(--txt1);font-size:15px;padding-top:10px;font-weight:700;}
-  .result-row.profit{color:var(--up);}
-  .result-row.loss{color:var(--down);}
-  .verdict{text-align:center;padding:14px;margin-top:14px;border-radius:4px;font-size:13px;line-height:1.7;}
-  .verdict.strong-sell,.verdict.feed-steer{background:var(--up-dim);border:1px solid rgba(60,185,106,.3);color:var(--up);}
-  .verdict.hold,.verdict.sell-corn{background:var(--corn-dim);border:1px solid var(--corn-border);color:var(--corn);}
-  .verdict.neutral{background:var(--bg3);border:1px solid var(--border);color:var(--txt2);}
-  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-  .stat-box{background:var(--bg1);border:1px solid var(--border);border-radius:3px;padding:12px;}
-  .stat-label{font-size:10px;letter-spacing:2px;color:var(--txt3);margin-bottom:5px;}
-  .stat-val{font-size:22px;color:var(--corn);font-weight:700;}
-  .stat-sub{font-size:11px;color:var(--txt3);margin-top:3px;}
-  .herd-input{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
-  .herd-input label{font-size:12px;color:var(--txt2);}
-  .herd-input input[type=number]{background:var(--bg1);border:1px solid var(--border2);border-radius:3px;color:var(--corn);font-family:inherit;font-size:16px;padding:5px 10px;width:100px;}
-  .calc-toggle,.news-toggle{display:flex;margin-bottom:18px;border:1px solid var(--border2);border-radius:3px;overflow:hidden;width:fit-content;}
-  .calc-btn,.news-mode-btn{font-size:12px;letter-spacing:2px;padding:8px 20px;background:transparent;color:var(--txt3);cursor:pointer;border:none;text-transform:uppercase;transition:all .12s;font-family:inherit;}
-  .calc-btn.active,.news-mode-btn.active{background:var(--corn);color:#0f0f0f;font-weight:700;}
-  .calc-btn:not(.active):hover,.news-mode-btn:not(.active):hover{background:var(--bg3);color:var(--txt2);}
-  .calc-panel,.news-panel{display:none;}
-  .calc-panel.active,.news-panel.active{display:block;}
-  .hist-controls{display:flex;gap:8px;margin-bottom:16px;}
-  .hist-btn{font-size:12px;padding:6px 14px;border:1px solid var(--border2);border-radius:3px;background:transparent;color:var(--txt3);cursor:pointer;transition:all .12s;font-family:inherit;}
-  .hist-btn.active{border-color:var(--corn);color:var(--corn);background:var(--corn-dim);}
-  .hist-btn:hover:not(.active){color:var(--txt2);background:var(--bg3);}
-  .brief-grid{display:grid;gap:10px;}
-  .brief-item{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;}
-  .brief-tag{font-size:9px;letter-spacing:2px;padding:3px 8px;border-radius:2px;flex-shrink:0;margin-top:3px;text-transform:uppercase;font-weight:700;}
-  .brief-tag.cattle{background:var(--cattle-dim);color:var(--cattle);}
-  .brief-tag.corn{background:var(--soy-dim);color:var(--soy);}
-  .brief-tag.market{background:var(--bg3);color:var(--txt2);border:1px solid var(--border2);}
-  .brief-tag.soy{background:var(--soy-dim);color:var(--soy);}
-  .brief-headline{font-size:15px;color:var(--txt1);line-height:1.5;margin-bottom:4px;}
-  .brief-meta{font-size:11px;color:var(--txt3);margin-bottom:7px;}
-  .brief-note{font-size:12px;color:var(--txt2);padding:9px 12px;background:var(--bg1);border-left:2px solid var(--border2);border-radius:0 3px 3px 0;line-height:1.6;}
-  .brief-note strong{color:var(--txt1);}
-  .source-intro{font-size:12px;color:var(--txt3);margin-bottom:18px;line-height:1.7;border:1px solid var(--border);border-radius:4px;padding:12px 16px;background:var(--bg2);}
-  .source-section{margin-bottom:26px;}
-  .source-section-title{font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border);}
-  .source-links{display:grid;gap:8px;}
-  .source-link{display:flex;align-items:center;gap:14px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:14px 18px;text-decoration:none;color:inherit;transition:border-color .12s;}
-  .source-link:hover{border-color:var(--border2);}
-  .source-link:hover .source-link-title{color:var(--corn);}
-  .source-link-icon{width:34px;height:34px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:var(--bg3);}
-  .source-link-body{flex:1;}
-  .source-link-title{font-size:14px;color:var(--txt1);font-weight:600;margin-bottom:2px;transition:color .12s;}
-  .source-link-desc{font-size:11px;color:var(--txt3);line-height:1.5;}
-  .source-link-tag{font-size:9px;letter-spacing:2px;padding:2px 7px;border-radius:2px;margin-left:auto;flex-shrink:0;align-self:center;}
-  .source-link-tag.free{background:var(--up-dim);color:var(--up);}
-  .source-link-tag.gov{background:var(--soy-dim);color:var(--soy);}
-  .source-link-arrow{font-size:16px;color:var(--txt3);margin-left:6px;}
-  .auction-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:10px;}
-  .auction-name{font-size:15px;color:var(--txt1);font-weight:700;}
-  .auction-freq{font-size:10px;color:var(--corn);background:var(--corn-dim);padding:2px 9px;border-radius:3px;white-space:nowrap;flex-shrink:0;letter-spacing:1px;}
-  .auction-detail{font-size:12px;color:var(--txt3);margin-bottom:3px;line-height:1.5;}
-  .auction-links{display:flex;gap:8px;margin-top:8px;}
-  .auction-link{font-size:11px;color:var(--soy);text-decoration:none;border:1px solid var(--soy-dim);padding:3px 9px;border-radius:3px;transition:all .12s;}
-  .auction-link:hover{background:var(--soy-dim);}
-  .dist-highlight{color:var(--corn);}
-  .guide-section{margin-bottom:12px;}
-  .guide-heading{font-size:10px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--border);}
-  .guide-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;font-size:12px;color:var(--txt2);line-height:1.5;}
-  .guide-badge{font-size:10px;padding:2px 7px;border-radius:2px;flex-shrink:0;white-space:nowrap;}
-  .guide-badge.up-ex{background:var(--up-dim);color:var(--up);}
-  .guide-badge.down-ex{background:var(--down-dim);color:var(--down);}
-  .guide-badge.flat-ex{background:var(--flat-dim);color:var(--flat);}
-  .guide-label{font-size:11px;color:var(--corn);flex-shrink:0;min-width:90px;padding-top:1px;}
-  .guide-desc{font-size:12px;color:var(--txt2);line-height:1.5;}
-
-  /* ── ELEVATOR / LOCAL BUYERS ── */
-  .elevator-bar{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
-  .elevator-label{font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;white-space:nowrap;}
-  .elevator-select{background:var(--bg0);border:1px solid var(--border2);border-radius:3px;color:var(--txt1);font-family:inherit;font-size:13px;padding:6px 32px 6px 12px;cursor:pointer;min-width:260px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath fill='%235e6369' d='M0 0l6 7 6-7z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;transition:border-color .12s;}
-  .elevator-select:focus{outline:none;border-color:var(--corn);}
-  .elevator-select option{background:var(--bg1);}
-  .elev-detail{font-size:12px;color:var(--txt3);margin-left:auto;}
-  .elev-basis{font-size:13px;color:var(--txt2);}
-  .region-toggle{display:flex;border:1px solid var(--border2);border-radius:3px;overflow:hidden;flex-shrink:0;}
-  .region-btn{font-family:inherit;font-size:11px;letter-spacing:1px;padding:6px 13px;background:transparent;color:var(--txt3);cursor:pointer;border:none;border-right:1px solid var(--border);text-transform:uppercase;transition:all .12s;white-space:nowrap;}
-  .region-btn:last-child{border-right:none;}
-  .region-btn.active{background:var(--corn);color:#0f0f0f;font-weight:700;}
-  .region-btn:not(.active):hover{background:var(--bg3);color:var(--txt2);}
-  .region-badge-a{font-size:9px;letter-spacing:2px;padding:2px 7px;border-radius:2px;text-transform:uppercase;font-weight:700;background:var(--corn-dim);color:var(--corn);}
-  .region-badge-b{font-size:9px;letter-spacing:2px;padding:2px 7px;border-radius:2px;text-transform:uppercase;font-weight:700;background:var(--soy-dim);color:var(--soy);}
-  .cash-table{width:100%;border-collapse:collapse;font-size:13px;}
-  .cash-table th{color:var(--txt3);font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:7px 12px;border-bottom:1px solid var(--border2);text-align:left;}
-  .cash-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--txt2);vertical-align:middle;}
-  .cash-table tr:last-child td{border-bottom:none;}
-  .cash-table tr.selected td{background:rgba(212,160,39,.05);}
-  .cash-table tr:hover td{background:var(--bg3);cursor:pointer;}
-  .elev-name-cell{color:var(--txt1);font-size:14px;}
-  .elev-loc-cell{color:var(--txt3);font-size:11px;}
-  .basis-pos{color:var(--up);}
-  .basis-neg{color:var(--down);}
-  .cash-price-cell{color:var(--corn);font-size:14px;font-weight:700;}
-  .cash-price-cell.soy{color:var(--soy);}
-  .elev-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px 18px;margin-bottom:10px;}
-  .elev-card:hover{border-color:var(--border2);}
-  .elev-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:9px;}
-  .elev-card-name{font-size:16px;color:var(--txt1);font-weight:700;}
-  .elev-card-loc{font-size:11px;color:var(--txt3);margin-top:2px;}
-  .elev-card-dist{font-size:11px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;}
-  .elev-crops{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-  .elev-crop-tag{font-size:9px;letter-spacing:2px;padding:2px 9px;border-radius:2px;text-transform:uppercase;font-weight:700;}
-  .elev-crop-tag.corn{background:var(--corn-dim);color:var(--corn);}
-  .elev-crop-tag.soy{background:var(--soy-dim);color:var(--soy);}
-  .elev-details-row{display:flex;gap:20px;flex-wrap:wrap;}
-  .elev-detail-item{font-size:11px;color:var(--txt3);}
-  .elev-detail-item strong{display:block;color:var(--txt2);font-size:12px;margin-top:1px;}
-  .elev-link{font-size:11px;color:var(--soy);text-decoration:none;border:1px solid var(--soy-border);padding:3px 9px;border-radius:3px;transition:all .12s;display:inline-block;}
-  .elev-link:hover{background:var(--soy-dim);}
-
-  /* ── STUB MODULES ── */
-  .stub-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:40px;}
-  .stub-mark{font-size:48px;font-weight:700;letter-spacing:-2px;}
-  .stub-name{font-size:18px;letter-spacing:3px;text-transform:uppercase;font-weight:700;}
-  .stub-sub{font-size:13px;color:var(--txt3);letter-spacing:1px;}
-
-  /* ── FOOTER ── */
-  .g27-footer{background:var(--bg1);border-top:1px solid var(--border);padding:14px 40px;margin-top:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
-  .g27-footer-wordmark{flex:1;display:flex;align-items:center;padding-left:12px;}
-  .g27-footer-tagline{flex:2;display:flex;justify-content:center;font-size:12px;color:var(--txt2);letter-spacing:1px;font-style:normal;}
-  .g27-footer-copy{flex:1;font-size:11px;color:var(--txt3);letter-spacing:1px;text-align:right;}
-
-  @media(max-width:900px){.cards{grid-template-columns:1fr 1fr;}.two-col,.weather-row{grid-template-columns:1fr;}.panel.full{grid-column:1;}}
-  @media(max-width:500px){.cards{grid-template-columns:1fr;}.content{padding:14px;}}
-</style>
+<title>Markets</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/mobile.css">
 </head>
 <body>
 
 <!-- ── TOPBAR ── -->
+<div class="sticky-header">
 <div class="topbar">
   <div class="brand">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="28" style="display:block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg>
     <div style="display:flex;flex-direction:column;">
-      <span class="brand-title" id="header-module-name">Markets</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="brand-title" id="header-module-name">Markets</span>
+        <span class="beta-badge">BETA</span>
+      </div>
       <span class="brand-subtitle" id="header-module-sub" style="display:none;">watching the boards...</span>
     </div>
   </div>
-  <div class="clock-bar">
-    <span><span class="status-dot"></span><span id="status-txt">Loading...</span></span>
-    <div style="font-size:12px;color:var(--txt3);" id="last-updated-txt">—</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.9%0A%0AFeedback%3A%0A">Feedback</a>
+    <div class="clock-bar">
+      <span><span class="status-dot"></span><span id="status-txt">Loading...</span></span>
+      <div style="font-size:12px;color:var(--txt3);" id="last-updated-txt">—</div>
+    </div>
   </div>
 </div>
 
 <!-- ── MODULE ACCENT BAR ── -->
 <div class="module-bar" id="module-bar" data-mod="markets"></div>
+</div><!-- /sticky-header -->
 
 <!-- ══════════════════════════════════════════════════
      MODULE: MARKETS
@@ -290,6 +55,7 @@
   <div class="subtabs">
     <div class="subtab active" id="subtab-grain" onclick="switchSubtab('grain')">Grain</div>
     <div class="subtab" id="subtab-cattle" onclick="switchSubtab('cattle')">Cattle</div>
+    <div class="subtab" id="subtab-dairy" onclick="switchSubtab('dairy')">Dairy</div>
   </div>
 
   <!-- ── GRAIN SUBMODULE ── -->
@@ -298,7 +64,7 @@
       <div class="tab active" onclick="switchTab('grain','prices',this)">Prices</div>
       <div class="tab" onclick="switchTab('grain','buyers',this)">Local Buyers</div>
       <div class="tab" onclick="switchTab('grain','margin',this)">Margin Calc</div>
-      <div class="tab" onclick="switchTab('grain','calendar',this)">Calendar</div>
+      <div class="tab" onclick="switchTab('grain','calendar',this)">Market Events</div>
       <div class="tab" onclick="switchTab('grain','news',this)">Market News</div>
     </div>
     <div class="content">
@@ -335,7 +101,7 @@
 
         <div class="section-divider">Local Cash Prices — All Buyers</div>
         <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
-          <table class="cash-table"><thead><tr><th>Local Buyer</th><th>Corn Cash</th><th>Corn Basis</th><th>Soy Cash</th><th>Soy Basis</th><th>Distance</th></tr></thead><tbody id="cash-table-body"><tr><td colspan="6" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody></table>
+          <div class="table-scroll"><table class="cash-table"><thead><tr><th>Local Buyer</th><th>Corn Cash</th><th>Corn Basis</th><th>Soy Cash</th><th>Soy Basis</th><th>Distance</th></tr></thead><tbody id="cash-table-body"><tr><td colspan="6" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody></table></div>
         </div>
 
         <div class="two-col">
@@ -347,7 +113,7 @@
       <!-- GRAIN LOCAL BUYERS -->
       <div class="section" id="grain-buyers">
         <div class="insight-strip">Curated grain buyers plus any additional grain buyers found within ~50 miles of your location. Basis on discovered buyers is estimated — verify with the buyer directly. <span id="discovery-status-dir" style="color:var(--corn);"></span></div>
-        <div id="elev-directory"><div style="text-align:center;padding:40px;color:var(--txt3);font-size:13px;">Locating nearby grain buyers…</div></div>
+        <div class="barn-grid"><div id="elev-dir-col-1" style="display:flex;flex-direction:column;gap:14px;"><div style="text-align:center;padding:40px;color:var(--txt3);font-size:13px;">Locating nearby grain buyers…</div></div><div id="elev-dir-col-2" style="display:flex;flex-direction:column;gap:14px;"></div></div>
       </div>
 
       <!-- GRAIN MARGIN CALC -->
@@ -360,15 +126,54 @@
           <div class="two-col">
             <div class="panel">
               <div class="panel-title">Corn Production Inputs</div>
-              <div class="field"><label>Expected yield (bu/ac) <span class="field-val" id="cv-yield">180</span></label><input type="range" id="c-yield" min="100" max="260" value="180" oninput="document.getElementById('cv-yield').textContent=this.value;calcGrain()"></div>
-              <div class="field"><label>Seed cost ($/ac) <span class="field-val" id="cv-seed">$110</span></label><input type="range" id="c-seed" min="60" max="250" value="110" oninput="document.getElementById('cv-seed').textContent='$'+this.value;calcGrain()"></div>
-              <div class="field"><label>Fertilizer ($/ac) <span class="field-val" id="cv-fert">$180</span></label><input type="range" id="c-fert" min="60" max="400" value="180" oninput="document.getElementById('cv-fert').textContent='$'+this.value;calcGrain()"></div>
-              <div class="field"><label>Chemical ($/ac) <span class="field-val" id="cv-chem">$60</span></label><input type="range" id="c-chem" min="20" max="200" value="60" oninput="document.getElementById('cv-chem').textContent='$'+this.value;calcGrain()"></div>
-              <div class="field"><label>Land / cash rent ($/ac) <span class="field-val" id="cv-land">$220</span></label><input type="range" id="c-land" min="50" max="500" value="220" oninput="document.getElementById('cv-land').textContent='$'+this.value;calcGrain()"></div>
-              <div class="field"><label>Machinery / labor ($/ac) <span class="field-val" id="cv-mach">$85</span></label><input type="range" id="c-mach" min="30" max="200" value="85" oninput="document.getElementById('cv-mach').textContent='$'+this.value;calcGrain()"></div>
-              <div class="field"><label>Drying ($/bu) <span class="field-val" id="cv-dry">$0.10</span></label><input type="range" id="c-dry" min="0" max="60" value="10" oninput="document.getElementById('cv-dry').textContent='$'+(this.value/100).toFixed(2);calcGrain()"></div>
-              <div class="field"><label>Target sale price ($/bu) <span class="field-val" id="cv-sale">—</span></label><input type="range" id="c-sale" min="300" max="800" value="430" oninput="document.getElementById('cv-sale').textContent='$'+(this.value/100).toFixed(2);calcGrain()"></div>
-              <div class="field"><label>Acres</label><input type="number" id="c-acres" value="400" min="1" max="5000" oninput="calcGrain()" style="margin-top:4px;"></div>
+              <div class="calc-grid">
+                <div class="calc-section-label">Production Costs (per acre)</div>
+                <div class="calc-field">
+                  <label>Expected yield <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-yield">180</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">bu/ac</span></span></label>
+                  <input type="range" id="c-yield" min="100" max="260" value="180" oninput="document.getElementById('c-yield-n').value=this.value;document.getElementById('cv-yield').textContent=this.value;calcGrain()">
+                  <input type="number" min="100" max="260" value="180" step="1" id="c-yield-n" oninput="document.getElementById('c-yield').value=this.value;document.getElementById('cv-yield').textContent=this.value;calcGrain()">
+                </div>
+                <div class="calc-field">
+                  <label>Seed cost <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-seed">$110</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
+                  <input type="range" id="c-seed" min="60" max="250" value="110" oninput="document.getElementById('c-seed-n').value=this.value;document.getElementById('cv-seed').textContent='$'+this.value;calcGrain()">
+                  <input type="number" min="60" max="250" value="110" step="1" id="c-seed-n" oninput="document.getElementById('c-seed').value=this.value;document.getElementById('cv-seed').textContent='$'+this.value;calcGrain()">
+                </div>
+                <div class="calc-field">
+                  <label>Fertilizer <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-fert">$180</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
+                  <input type="range" id="c-fert" min="60" max="400" value="180" oninput="document.getElementById('c-fert-n').value=this.value;document.getElementById('cv-fert').textContent='$'+this.value;calcGrain()">
+                  <input type="number" min="60" max="400" value="180" step="1" id="c-fert-n" oninput="document.getElementById('c-fert').value=this.value;document.getElementById('cv-fert').textContent='$'+this.value;calcGrain()">
+                </div>
+                <div class="calc-field">
+                  <label>Chemicals <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-chem">$60</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
+                  <input type="range" id="c-chem" min="20" max="200" value="60" oninput="document.getElementById('c-chem-n').value=this.value;document.getElementById('cv-chem').textContent='$'+this.value;calcGrain()">
+                  <input type="number" min="20" max="200" value="60" step="1" id="c-chem-n" oninput="document.getElementById('c-chem').value=this.value;document.getElementById('cv-chem').textContent='$'+this.value;calcGrain()">
+                </div>
+                <div class="calc-field">
+                  <label>Land / cash rent <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-land">$220</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
+                  <input type="range" id="c-land" min="50" max="500" value="220" oninput="document.getElementById('c-land-n').value=this.value;document.getElementById('cv-land').textContent='$'+this.value;calcGrain()">
+                  <input type="number" min="50" max="500" value="220" step="1" id="c-land-n" oninput="document.getElementById('c-land').value=this.value;document.getElementById('cv-land').textContent='$'+this.value;calcGrain()">
+                </div>
+                <div class="calc-field">
+                  <label>Machinery / labor <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-mach">$85</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
+                  <input type="range" id="c-mach" min="30" max="200" value="85" oninput="document.getElementById('c-mach-n').value=this.value;document.getElementById('cv-mach').textContent='$'+this.value;calcGrain()">
+                  <input type="number" min="30" max="200" value="85" step="1" id="c-mach-n" oninput="document.getElementById('c-mach').value=this.value;document.getElementById('cv-mach').textContent='$'+this.value;calcGrain()">
+                </div>
+                <div class="calc-section-label">Sale</div>
+                <div class="calc-field">
+                  <label>Drying <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-dry">$0.10</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/bu</span></span></label>
+                  <input type="range" id="c-dry" min="0" max="0.60" value="0.10" step="0.01" oninput="document.getElementById('c-dry-n').value=this.value;document.getElementById('cv-dry').textContent='$'+parseFloat(this.value).toFixed(2);calcGrain()">
+                  <input type="number" min="0" max="0.60" value="0.10" step="0.01" id="c-dry-n" oninput="document.getElementById('c-dry').value=this.value;document.getElementById('cv-dry').textContent='$'+parseFloat(this.value).toFixed(2);calcGrain()">
+                </div>
+                <div class="calc-field">
+                  <label>Target sale price <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-sale">$4.30</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/bu</span></span></label>
+                  <input type="range" id="c-sale" min="3.00" max="8.00" value="4.30" step="0.01" oninput="document.getElementById('c-sale-n').value=this.value;document.getElementById('cv-sale').textContent='$'+parseFloat(this.value).toFixed(2);calcGrain()">
+                  <input type="number" min="3.00" max="8.00" value="4.30" step="0.01" id="c-sale-n" oninput="document.getElementById('c-sale').value=this.value;document.getElementById('cv-sale').textContent='$'+parseFloat(this.value).toFixed(2);calcGrain()">
+                </div>
+                <div class="calc-field" style="grid-column:1/-1;">
+                  <label>Acres <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-acres">400</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">ac</span></span></label>
+                  <input type="number" id="c-acres" value="400" min="1" max="5000" oninput="document.getElementById('cv-acres').textContent=this.value;calcGrain()" style="margin-top:4px;">
+                </div>
+              </div>
             </div>
             <div>
               <div class="panel" style="margin-bottom:18px;">
@@ -395,14 +200,49 @@
           <div class="two-col">
             <div class="panel">
               <div class="panel-title">Soybean Production Inputs</div>
-              <div class="field"><label>Expected yield (bu/ac) <span class="field-val" id="sv-yield">50</span></label><input type="range" id="s-yield" min="25" max="90" value="50" oninput="document.getElementById('sv-yield').textContent=this.value;calcSoy()"></div>
-              <div class="field"><label>Seed cost ($/ac) <span class="field-val" id="sv-seed">$65</span></label><input type="range" id="s-seed" min="30" max="150" value="65" oninput="document.getElementById('sv-seed').textContent='$'+this.value;calcSoy()"></div>
-              <div class="field"><label>Fertilizer / lime ($/ac) <span class="field-val" id="sv-fert">$60</span></label><input type="range" id="s-fert" min="0" max="200" value="60" oninput="document.getElementById('sv-fert').textContent='$'+this.value;calcSoy()"></div>
-              <div class="field"><label>Chemical ($/ac) <span class="field-val" id="sv-chem">$55</span></label><input type="range" id="s-chem" min="20" max="150" value="55" oninput="document.getElementById('sv-chem').textContent='$'+this.value;calcSoy()"></div>
-              <div class="field"><label>Land / cash rent ($/ac) <span class="field-val" id="sv-land">$220</span></label><input type="range" id="s-land" min="50" max="500" value="220" oninput="document.getElementById('sv-land').textContent='$'+this.value;calcSoy()"></div>
-              <div class="field"><label>Machinery / labor ($/ac) <span class="field-val" id="sv-mach">$70</span></label><input type="range" id="s-mach" min="30" max="200" value="70" oninput="document.getElementById('sv-mach').textContent='$'+this.value;calcSoy()"></div>
-              <div class="field"><label>Target sale price ($/bu) <span class="field-val" id="sv-sale">—</span></label><input type="range" id="s-sale" min="700" max="1600" value="975" oninput="document.getElementById('sv-sale').textContent='$'+(this.value/100).toFixed(2);calcSoy()"></div>
-              <div class="field"><label>Acres</label><input type="number" id="s-acres" value="400" min="1" max="5000" oninput="calcSoy()" style="margin-top:4px;"></div>
+              <div class="calc-grid">
+                <div class="calc-section-label">Production Costs (per acre)</div>
+                <div class="calc-field">
+                  <label>Expected yield <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-yield">50</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">bu/ac</span></span></label>
+                  <input type="range" id="s-yield" min="25" max="90" value="50" oninput="document.getElementById('s-yield-n').value=this.value;document.getElementById('sv-yield').textContent=this.value;calcSoy()">
+                  <input type="number" min="25" max="90" value="50" step="1" id="s-yield-n" oninput="document.getElementById('s-yield').value=this.value;document.getElementById('sv-yield').textContent=this.value;calcSoy()">
+                </div>
+                <div class="calc-field">
+                  <label>Seed cost <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-seed">$65</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
+                  <input type="range" id="s-seed" min="30" max="150" value="65" oninput="document.getElementById('s-seed-n').value=this.value;document.getElementById('sv-seed').textContent='$'+this.value;calcSoy()">
+                  <input type="number" min="30" max="150" value="65" step="1" id="s-seed-n" oninput="document.getElementById('s-seed').value=this.value;document.getElementById('sv-seed').textContent='$'+this.value;calcSoy()">
+                </div>
+                <div class="calc-field">
+                  <label>Fertilizer / lime <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-fert">$60</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
+                  <input type="range" id="s-fert" min="0" max="200" value="60" oninput="document.getElementById('s-fert-n').value=this.value;document.getElementById('sv-fert').textContent='$'+this.value;calcSoy()">
+                  <input type="number" min="0" max="200" value="60" step="1" id="s-fert-n" oninput="document.getElementById('s-fert').value=this.value;document.getElementById('sv-fert').textContent='$'+this.value;calcSoy()">
+                </div>
+                <div class="calc-field">
+                  <label>Chemicals <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-chem">$55</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
+                  <input type="range" id="s-chem" min="20" max="150" value="55" oninput="document.getElementById('s-chem-n').value=this.value;document.getElementById('sv-chem').textContent='$'+this.value;calcSoy()">
+                  <input type="number" min="20" max="150" value="55" step="1" id="s-chem-n" oninput="document.getElementById('s-chem').value=this.value;document.getElementById('sv-chem').textContent='$'+this.value;calcSoy()">
+                </div>
+                <div class="calc-field">
+                  <label>Land / cash rent <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-land">$220</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
+                  <input type="range" id="s-land" min="50" max="500" value="220" oninput="document.getElementById('s-land-n').value=this.value;document.getElementById('sv-land').textContent='$'+this.value;calcSoy()">
+                  <input type="number" min="50" max="500" value="220" step="1" id="s-land-n" oninput="document.getElementById('s-land').value=this.value;document.getElementById('sv-land').textContent='$'+this.value;calcSoy()">
+                </div>
+                <div class="calc-field">
+                  <label>Machinery / labor <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-mach">$70</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
+                  <input type="range" id="s-mach" min="30" max="200" value="70" oninput="document.getElementById('s-mach-n').value=this.value;document.getElementById('sv-mach').textContent='$'+this.value;calcSoy()">
+                  <input type="number" min="30" max="200" value="70" step="1" id="s-mach-n" oninput="document.getElementById('s-mach').value=this.value;document.getElementById('sv-mach').textContent='$'+this.value;calcSoy()">
+                </div>
+                <div class="calc-section-label">Sale</div>
+                <div class="calc-field">
+                  <label>Target sale price <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-sale">$9.75</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/bu</span></span></label>
+                  <input type="range" id="s-sale" min="7.00" max="16.00" value="9.75" step="0.01" oninput="document.getElementById('s-sale-n').value=this.value;document.getElementById('sv-sale').textContent='$'+parseFloat(this.value).toFixed(2);calcSoy()">
+                  <input type="number" min="7.00" max="16.00" value="9.75" step="0.01" id="s-sale-n" oninput="document.getElementById('s-sale').value=this.value;document.getElementById('sv-sale').textContent='$'+parseFloat(this.value).toFixed(2);calcSoy()">
+                </div>
+                <div class="calc-field">
+                  <label>Acres <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-acres">400</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">ac</span></span></label>
+                  <input type="number" id="s-acres" value="400" min="1" max="5000" oninput="document.getElementById('sv-acres').textContent=this.value;calcSoy()" style="margin-top:4px;">
+                </div>
+              </div>
             </div>
             <div>
               <div class="panel" style="margin-bottom:18px;">
@@ -423,6 +263,11 @@
               <div class="panel"><div class="panel-title">Full Field</div><div class="stat-grid"><div class="stat-box"><div class="stat-label">TOTAL REVENUE</div><div class="stat-val" id="sf-rev">—</div><div class="stat-sub">all acres</div></div><div class="stat-box"><div class="stat-label">TOTAL COST</div><div class="stat-val" id="sf-cost">—</div><div class="stat-sub">all in</div></div><div class="stat-box"><div class="stat-label">NET PROFIT/LOSS</div><div class="stat-val" id="sf-margin">—</div><div class="stat-sub">total</div></div><div class="stat-box"><div class="stat-label">BREAK-EVEN</div><div class="stat-val" id="sf-be">—</div><div class="stat-sub">per bushel</div></div></div></div>
             </div>
           </div>
+        </div>
+        <div class="panel" style="margin-top:16px;">
+          <div class="panel-title">ARC / PLC Program Context</div>
+          <div style="font-size:12px;color:var(--txt2);line-height:1.7;">The <strong style="color:var(--txt1);">USDA Agriculture Risk Coverage (ARC)</strong> and <strong style="color:var(--txt1);">Price Loss Coverage (PLC)</strong> programs are the grain safety net, enrolled through your local FSA office. <strong style="color:var(--txt1);">PLC</strong> pays when the national market year average falls below the reference price — corn: <strong style="color:var(--corn);">$3.70/bu</strong>, soybeans: <strong style="color:var(--corn);">$8.40/bu</strong>. <strong style="color:var(--txt1);">ARC-CO</strong> pays when actual county revenue falls below 86% of the Olympic average benchmark. Use this calculator to know your break-even, then compare it against the PLC reference price to gauge your exposure.</div>
+          <a href="https://www.fsa.usda.gov/programs-and-services/arcplc_program/index" target="_blank" rel="noopener" class="auction-link" style="margin-top:10px;display:inline-block;">USDA ARC / PLC Program ↗</a>
         </div>
       </div>
 
@@ -452,19 +297,20 @@
           <button class="news-mode-btn" onclick="switchNews('grain-source',this)">From the Source</button>
         </div>
         <div class="news-panel active" id="panel-grain-brief">
+          <div class="brief-wip"><div class="brief-wip-icon">🚧</div><div class="brief-wip-body"><div class="brief-wip-title">Work in Progress</div><div class="brief-wip-text">The goal is to have real, curated grain market insights ready for you here every morning — pulled from live sources and tailored to southern MN. The content below is placeholder only.</div></div></div>
           <div class="brief-grid">
-            <div class="brief-item"><div class="brief-tag corn">Corn</div><div><div class="brief-headline">CBOT corn futures finish higher on export demand optimism and tightening South American supplies</div><div class="brief-meta">2h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Positive export signals support short-term upside. Watch basis at your local buyer — tightening basis plus higher futures = strong selling window.</div></div></div>
-            <div class="brief-item"><div class="brief-tag soy">Soybeans</div><div><div class="brief-headline">Soybean complex mixed — meal firm while oil under pressure as biodiesel margins soften</div><div class="brief-meta">3h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Meal strength supports bean values but biofuel softness is a headwind. Watch WASDE ending stocks — South American harvest pace is the near-term driver.</div></div></div>
-            <div class="brief-item"><div class="brief-tag market">Market</div><div><div class="brief-headline">Prospective Plantings report due March 28 — corn vs. soybean acreage battle expected to be close</div><div class="brief-meta">4h ago · USDA</div><div class="brief-note"><strong>What it means for you:</strong> This report is the most price-moving event of spring. Consider pricing a portion of expected production ahead of the report.</div></div></div>
-            <div class="brief-item"><div class="brief-tag corn">Corn</div><div><div class="brief-headline">Ethanol production margins improve — weekly EIA report shows strong grind pace</div><div class="brief-meta">5h ago · EIA</div><div class="brief-note"><strong>What it means for you:</strong> Strong ethanol margins mean POET is incentivized to pay competitive bids — check their daily cash price versus co-op buyers.</div></div></div>
+            <div class="brief-item"><div class="brief-tag corn">Corn</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>CBOT corn futures finish higher on export demand optimism and tightening South American supplies</div><div class="brief-meta">2h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Positive export signals support short-term upside. Watch basis at your local buyer — tightening basis plus higher futures = strong selling window.</div></div></div>
+            <div class="brief-item"><div class="brief-tag soy">Soybeans</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>Soybean complex mixed — meal firm while oil under pressure as biodiesel margins soften</div><div class="brief-meta">3h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Meal strength supports bean values but biofuel softness is a headwind. Watch WASDE ending stocks — South American harvest pace is the near-term driver.</div></div></div>
+            <div class="brief-item"><div class="brief-tag market">Market</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>Prospective Plantings report due March 28 — corn vs. soybean acreage battle expected to be close</div><div class="brief-meta">4h ago · USDA</div><div class="brief-note"><strong>What it means for you:</strong> This report is the most price-moving event of spring. Consider pricing a portion of expected production ahead of the report.</div></div></div>
+            <div class="brief-item"><div class="brief-tag corn">Corn</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>Ethanol production margins improve — weekly EIA report shows strong grind pace</div><div class="brief-meta">5h ago · EIA</div><div class="brief-note"><strong>What it means for you:</strong> Strong ethanol margins mean POET is incentivized to pay competitive bids — check their daily cash price versus co-op buyers.</div></div></div>
           </div>
         </div>
         <div class="news-panel" id="panel-grain-source">
           <div class="source-intro">Live feeds from trusted grain and commodity sources. Each link opens the full article in a new tab.</div>
           <div class="source-section"><div class="source-section-title">Government &amp; Official Data</div><div class="source-links">
-            <a class="source-link" href="https://www.ams.usda.gov/market-news/grain-and-feed" target="_blank" rel="noopener"><div class="source-link-icon">🌽</div><div class="source-link-body"><div class="source-link-title">USDA AMS — Grain &amp; Feed Market News</div><div class="source-link-desc">Official corn, soybean, and hay price reports including local cash prices across the Midwest</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
-            <a class="source-link" href="https://www.nass.usda.gov/Publications/Todays_Reports/" target="_blank" rel="noopener"><div class="source-link-icon">📊</div><div class="source-link-body"><div class="source-link-title">USDA NASS — Today's Reports</div><div class="source-link-desc">Grain Stocks, Prospective Plantings, WASDE, Crop Progress as released</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
-            <a class="source-link" href="https://www.fas.usda.gov/data/grain-and-feed-export-sales" target="_blank" rel="noopener"><div class="source-link-icon">🚢</div><div class="source-link-body"><div class="source-link-title">USDA FAS — Export Sales Report</div><div class="source-link-desc">Weekly corn and soybean export sales — China, Japan, and Mexico demand</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.ams.usda.gov/market-news/livestock-poultry-and-grain-reference-room" target="_blank" rel="noopener"><div class="source-link-icon">🌽</div><div class="source-link-body"><div class="source-link-title">USDA AMS — Grain &amp; Feed Market News</div><div class="source-link-desc">Official corn, soybean, and hay price reports including local cash prices across the Midwest</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.nass.usda.gov/Publications/" target="_blank" rel="noopener"><div class="source-link-icon">📊</div><div class="source-link-body"><div class="source-link-title">USDA NASS — Crops &amp; Grain Surveys</div><div class="source-link-desc">Grain Stocks, Prospective Plantings, WASDE, Crop Progress as released</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.fas.usda.gov/data/weekly-export-sales-2" target="_blank" rel="noopener"><div class="source-link-icon">🚢</div><div class="source-link-body"><div class="source-link-title">USDA FAS — Export Sales Report</div><div class="source-link-desc">Weekly corn and soybean export sales — China, Japan, and Mexico demand</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
           </div></div>
           <div class="source-section"><div class="source-section-title">Exchanges &amp; Market Data</div><div class="source-links">
             <a class="source-link" href="https://www.cmegroup.com/markets/agriculture/grains/corn.html" target="_blank" rel="noopener"><div class="source-link-icon">🟡</div><div class="source-link-body"><div class="source-link-title">CME Group — Corn Futures</div><div class="source-link-desc">Official CBOT corn futures quotes, contract specs, options, and settlement prices</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
@@ -491,12 +337,122 @@
 
       <!-- CATTLE PRICES -->
       <div class="section active" id="cattle-prices">
-        <div class="insight-strip" id="cattle-insight">Fetching market data...</div>
-        <div class="cards" style="grid-template-columns:repeat(3,minmax(0,1fr));">
-          <div class="card lc"><div class="card-label">CME · Live Cattle</div><div class="card-name">Market Steer</div><div class="card-price" id="p-lc">—</div><div class="card-unit">cents / lb</div><div class="badge flat" id="b-lc">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-lc">—</strong></div><div class="meta-item">LOW<strong id="l-lc">—</strong></div><div class="meta-item">PREV<strong id="v-lc">—</strong></div></div></div>
-          <div class="card fc"><div class="card-label">CME · Feeder Cattle</div><div class="card-name">Incoming Calf</div><div class="card-price" id="p-fc">—</div><div class="card-unit">cents / lb</div><div class="badge flat" id="b-fc">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-fc">—</strong></div><div class="meta-item">LOW<strong id="l-fc">—</strong></div><div class="meta-item">PREV<strong id="v-fc">—</strong></div></div></div>
-          <div class="card cn"><div class="card-label">CBOT · Corn</div><div class="card-name">Home Grown Feed</div><div class="card-price" id="p-cn-c">—</div><div class="card-unit">$ / bushel</div><div class="badge flat" id="b-cn-c">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-cn-c">—</strong></div><div class="meta-item">LOW<strong id="l-cn-c">—</strong></div><div class="meta-item">PREV<strong id="v-cn-c">—</strong></div></div></div>
+
+        <!-- Cattle type + Auction Barn selector bar -->
+        <div class="elevator-bar">
+          <div class="elevator-label">Cattle Type</div>
+          <div style="display:flex;border:1px solid var(--border2);border-radius:3px;overflow:hidden;">
+            <button class="cattle-type-btn active" data-type="beef"      onclick="setCattleType('beef')"      style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;">Beef Steer</button>
+            <button class="cattle-type-btn"        data-type="crossbred" onclick="setCattleType('crossbred')" style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Beef × Dairy</button>
+            <button class="cattle-type-btn"        data-type="holstein"  onclick="setCattleType('holstein')"  style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Holstein</button>
+          </div>
+          <div class="elevator-label" style="margin-left:8px;">Auction Barn</div>
+          <select class="elevator-select" id="cattle-barn-select" onchange="onCattleBarnChange()">
+            <option value="">Select auction barn…</option>
+          </select>
+          <div class="elev-detail" id="cattle-barn-dist"></div>
+          <div id="barn-price-status" style="font-size:11px;color:var(--txt3);font-style:italic;margin-left:auto;"></div>
         </div>
+
+        <div class="insight-strip" id="cattle-insight">Fetching market data...</div>
+        <div class="cards">
+          <div class="card lc">
+            <div class="card-label">CME · Live Cattle</div>
+            <div class="card-name" id="lc-card-name">Market Steer</div>
+            <div class="card-price" id="p-lc">—</div>
+            <div class="card-unit">cents / lb</div>
+            <div class="badge flat" id="b-lc">— —</div>
+            <div class="card-meta"><div class="meta-item">HIGH<strong id="h-lc">—</strong></div><div class="meta-item">LOW<strong id="l-lc">—</strong></div><div class="meta-item">PREV<strong id="v-lc">—</strong></div></div>
+            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+              <div id="slaughter-weight-table" style="font-size:11px;color:var(--txt3);">Loading weight class prices…</div>
+            </div>
+          </div>
+          <div class="card fc" style="grid-row:span 1;">
+            <div class="card-label">CME · Feeder Cattle Index</div>
+            <div class="card-name" id="fc-card-name">700–899 lb Beef Steer</div>
+            <div class="card-price" id="p-fc">—</div>
+            <div class="card-unit">cents / lb · futures index</div>
+            <div class="badge flat" id="b-fc">— —</div>
+            <div class="card-meta"><div class="meta-item">HIGH<strong id="h-fc">—</strong></div><div class="meta-item">LOW<strong id="l-fc">—</strong></div><div class="meta-item">PREV<strong id="v-fc">—</strong></div></div>
+            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+              <div id="feeder-weight-table" style="font-size:11px;color:var(--txt3);">Loading weight class prices…</div>
+            </div>
+          </div>
+          <div class="card cn">
+            <div class="card-label">CBOT · Corn</div>
+            <div class="card-name">Home Grown Feed</div>
+            <div class="card-price" id="p-cn-c">—</div>
+            <div class="card-unit">$ / bushel · nearby</div>
+            <div class="badge flat" id="b-cn-c">— —</div>
+            <div class="card-meta"><div class="meta-item">HIGH<strong id="h-cn-c">—</strong></div><div class="meta-item">LOW<strong id="l-cn-c">—</strong></div><div class="meta-item">PREV<strong id="v-cn-c">—</strong></div></div>
+            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
+                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">LOCAL BASIS <span id="cn-c-basis-label" style="color:var(--txt3);font-style:italic;"></span></div>
+                <div style="font-size:13px;font-weight:700;" id="cn-c-basis">—</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
+                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">LOCAL CASH</div>
+                <div style="font-size:13px;font-weight:700;color:var(--corn);" id="cn-c-cash">—</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
+                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">NEW CROP</div>
+                <div style="font-size:13px;font-weight:700;" id="cn-c-newcrop">—</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
+                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">CARRY</div>
+                <div style="font-size:13px;font-weight:700;" id="cn-c-carry">—</div>
+              </div>
+              <div style="font-size:9px;color:var(--txt3);margin-top:5px;" id="cn-c-source">Nearest elevator basis</div>
+            </div>
+          </div>
+          <div class="card" style="--card-accent:var(--soy);border-top:none;padding:0;overflow:hidden;">
+            <div style="height:2px;background:var(--soy);"></div>
+            <div style="padding:16px;">
+              <div class="card-label" style="margin-bottom:10px;">Feed Input Costs</div>
+              <div class="feed-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+                <div>
+                  <div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">SOYBEAN MEAL</div>
+                  <div style="font-size:10px;color:var(--txt3);">CBOT futures · $/ton</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="p-sbm">—</div>
+                  <div id="b-sbm" class="badge flat" style="font-size:10px;padding:2px 6px;">— —</div>
+                </div>
+              </div>
+              <div class="feed-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+                <div>
+                  <div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">DISTILLERS (DDG)</div>
+                  <div style="font-size:10px;color:var(--txt3);">USDA IA/MN spot · $/ton</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="p-ddg">—</div>
+                  <div style="font-size:10px;color:var(--txt3);" id="src-ddg">—</div>
+                </div>
+              </div>
+              <div class="feed-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;">
+                <div>
+                  <div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">ALFALFA HAY</div>
+                  <div style="font-size:10px;color:var(--txt3);">USDA IA/MN spot · $/ton</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="p-hay">—</div>
+                  <div style="font-size:10px;color:var(--txt3);" id="src-hay">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auction barn avg prices -->
+        <div class="section-divider">Auction Barn Avg Prices</div>
+        <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
+          <div class="table-scroll"><table class="cash-table">
+            <thead><tr><th>Barn</th><th>Slaughter avg</th><th>Feeder avg</th><th>Type adj</th><th>Date</th></tr></thead>
+            <tbody id="barn-table-body"><tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody>
+          </table></div>
+          <div id="barn-price-source" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;"></div>
+        </div>
+
         <div class="two-col">
           <div style="display:flex;flex-direction:column;gap:16px;">
             <div class="panel" style="padding:14px 18px;"><div class="panel-title">Midwest Conditions — Corn Belt</div><div class="weather-row"><div class="wx-item"><div class="wx-city" id="cwx-city-1">—</div><div class="wx-temp" id="cwx-1">—</div><div class="wx-cond" id="cwc-1">—</div><div class="wx-note" id="cwn-1">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-2">—</div><div class="wx-temp" id="cwx-2">—</div><div class="wx-cond" id="cwc-2">—</div><div class="wx-note" id="cwn-2">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-3">—</div><div class="wx-temp" id="cwx-3">—</div><div class="wx-cond" id="cwc-3">—</div><div class="wx-note" id="cwn-3">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-4">—</div><div class="wx-temp" id="cwx-4">—</div><div class="wx-cond" id="cwc-4">—</div><div class="wx-note" id="cwn-4">—</div></div><div class="wx-item"><div class="wx-city" id="cwx-city-5">YOUR AREA</div><div class="wx-temp" id="cwx-5">—</div><div class="wx-cond" id="cwc-5">—</div><div class="wx-note" id="cwn-5">—</div></div></div></div>
@@ -507,12 +463,17 @@
               <div class="cal-item"><div class="cal-date">Apr 18</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Cattle on Feed Report</div><div class="cal-sub">Monthly placement numbers</div></div></div>
             </div>
           </div>
-          <div class="panel"><div class="panel-title">How to Use This Dashboard</div><div class="guide-section"><div class="guide-heading">Price Colors</div><div class="guide-row"><span class="guide-badge up-ex">Green</span><span class="guide-desc">Up from yesterday — good selling signal</span></div><div class="guide-row"><span class="guide-badge down-ex">Red</span><span class="guide-desc">Down from yesterday — monitor closely</span></div><div class="guide-row"><span class="guide-badge flat-ex">Amber</span><span class="guide-desc">Flat — little change from yesterday</span></div></div><div class="guide-section"><div class="guide-heading">Key Numbers</div><div class="guide-row"><span class="guide-label">Live Cattle</span><span class="guide-desc">What the market pays for finished steers (¢/lb)</span></div><div class="guide-row"><span class="guide-label">Feeder Cattle</span><span class="guide-desc">What incoming calves cost at auction (¢/lb)</span></div><div class="guide-row"><span class="guide-label">Corn</span><span class="guide-desc">Market value of home-grown feed ($/bu)</span></div></div></div>
+          <div class="panel"><div class="panel-title">How to Use This Dashboard</div><div class="guide-section"><div class="guide-heading">Price Colors</div><div class="guide-row"><span class="guide-badge up-ex">Green</span><span class="guide-desc">Up from yesterday — good selling signal</span></div><div class="guide-row"><span class="guide-badge down-ex">Red</span><span class="guide-desc">Down from yesterday — monitor closely</span></div><div class="guide-row"><span class="guide-badge flat-ex">Amber</span><span class="guide-desc">Flat — little change from yesterday</span></div></div><div class="guide-section"><div class="guide-heading">Key Numbers</div><div class="guide-row"><span class="guide-label">Live Cattle</span><span class="guide-desc">What the market pays for finished animals (¢/lb) — adjusts by cattle type selection</span></div><div class="guide-row"><span class="guide-label">Feeder Cattle</span><span class="guide-desc">What incoming calves cost at auction (¢/lb) — does not change by type, you pay the same price to buy regardless of breed</span></div><div class="guide-row"><span class="guide-label">Corn</span><span class="guide-desc">Market value of home-grown feed ($/bu)</span></div></div><div class="guide-section"><div class="guide-heading">Cattle Type Discounts</div><div class="guide-row"><span class="guide-label" style="min-width:110px;">Beef Steer</span><span class="guide-desc">Baseline — full market price, no discount</span></div><div class="guide-row"><span class="guide-label" style="min-width:110px;">Beef × Dairy</span><span class="guide-desc">~$9.50/cwt below beef steer — crossbred discount per USDA AMS</span></div><div class="guide-row"><span class="guide-label" style="min-width:110px;">Holstein</span><span class="guide-desc">~$30.00/cwt below beef steer — dairy breed discount per USDA AMS</span></div></div></div>
         </div>
       </div>
 
       <!-- CATTLE CHARTS -->
       <div class="section" id="cattle-charts">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Type</div>
+          <div id="cattle-type-badge-charts" style="font-size:11px;letter-spacing:1px;padding:4px 12px;border-radius:3px;background:var(--cattle-dim);color:var(--cattle);text-transform:uppercase;font-weight:700;">Beef Steer</div>
+          <div style="font-size:11px;color:var(--txt3);">— change on Prices tab</div>
+        </div>
         <div class="hist-controls"><button class="hist-btn" onclick="setRange(7,this)">7D</button><button class="hist-btn" onclick="setRange(30,this)">30D</button><button class="hist-btn active" onclick="setRange(90,this)">90D</button><button class="hist-btn" onclick="setRange(180,this)">180D</button></div>
         <div class="panel full" style="margin-bottom:16px;"><div class="panel-title">Live Cattle — Historical (¢/lb)</div><div style="position:relative;width:100%;height:210px;"><canvas id="hist-lc"></canvas></div></div>
         <div class="two-col"><div class="panel"><div class="panel-title">Feeder Cattle — Historical (¢/lb)</div><div style="position:relative;width:100%;height:200px;"><canvas id="hist-fc"></canvas></div></div><div class="panel"><div class="panel-title">Corn — Historical ($/bu)</div><div style="position:relative;width:100%;height:200px;"><canvas id="hist-cn-chart"></canvas></div></div></div>
@@ -521,22 +482,130 @@
 
       <!-- CATTLE MARGIN CALC -->
       <div class="section" id="cattle-margin">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Type</div>
+          <div id="cattle-type-badge-margin" style="font-size:11px;letter-spacing:1px;padding:4px 12px;border-radius:3px;background:var(--cattle-dim);color:var(--cattle);text-transform:uppercase;font-weight:700;">Beef Steer</div>
+          <div style="font-size:11px;color:var(--txt3);">— change on Prices tab</div>
+        </div>
         <div class="two-col" style="align-items:start;">
           <div class="panel">
             <div class="panel-title">Steer — Feed to Finish</div>
-            <div class="field"><label>Buy weight (lbs) <span class="field-val" id="bw-val">500</span></label><input type="range" min="200" max="800" value="500" step="10" oninput="calc();document.getElementById('bw-val').textContent=this.value" id="bw"></div>
-            <div class="field"><label>Buy price (¢/lb) <span class="field-val" id="bp-val">350</span></label><input type="range" min="200" max="500" value="350" step="1" oninput="calc();document.getElementById('bp-val').textContent=this.value" id="bp"></div>
-            <div class="field"><label>Target sell weight (lbs) <span class="field-val" id="sw-val">1200</span></label><input type="range" min="800" max="1600" value="1200" step="10" oninput="calc();document.getElementById('sw-val').textContent=this.value" id="sw"></div>
-            <div class="field"><label>Days on feed <span class="field-val" id="dof-val">180</span></label><input type="range" min="60" max="400" value="180" step="5" oninput="calc();document.getElementById('dof-val').textContent=this.value" id="dof"></div>
-            <div class="field"><label>Corn fed (bu/day/head) <span class="field-val" id="cf-val">0.25</span></label><input type="range" min="0.1" max="1.0" value="0.25" step="0.05" oninput="calc();document.getElementById('cf-val').textContent=parseFloat(this.value).toFixed(2)" id="cf"></div>
-            <div class="field"><label>Other costs ($/day/head) <span class="field-val" id="oc-val">$1.50</span></label><input type="range" min="0.5" max="5" value="1.5" step="0.25" oninput="calc();document.getElementById('oc-val').textContent='$'+parseFloat(this.value).toFixed(2)" id="oc"></div>
-            <div class="field" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;"><label>Sell price — live cattle (¢/lb) <span class="field-val" id="sp-val">231</span></label><input type="range" min="150" max="350" value="231" step="1" oninput="calc();document.getElementById('sp-val').textContent=this.value" id="sp"></div>
-            <div class="field"><label>Corn market price ($/bu) <span class="field-val" id="cp-val">$4.53</span></label><input type="range" min="3.0" max="9.0" value="4.53" step="0.01" oninput="calc();document.getElementById('cp-val').textContent='$'+parseFloat(this.value).toFixed(2)" id="cp"></div>
-            <div class="panel" style="margin-top:8px;background:var(--bg1);border-color:var(--border);"><div class="panel-title">Seasonal Price Patterns</div><div style="position:relative;width:100%;height:150px;"><canvas id="seasonal-chart"></canvas></div><div style="font-size:11px;color:var(--txt3);margin-top:8px;line-height:1.6;">Cattle prices historically peak Mar–May and Oct–Nov. Current month highlighted in amber.</div></div>
+
+
+            <div class="calc-grid">
+
+              <!-- BUY -->
+              <div class="calc-section-label">Animal In</div>
+
+              <div class="calc-field">
+                <label>Buy weight <span class="fv" id="bw-val">500 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs</span></span></label>
+                <input type="range" min="200" max="800" value="500" step="10" id="bw" oninput="syncField('bw',this.value,0);calc()">
+                <input type="number" min="200" max="800" value="500" step="10" id="bw-n" oninput="syncField('bw',this.value,0);calc()">
+              </div>
+              <div class="calc-field">
+                <label>Buy price <span class="fv" id="bp-val">350 <span style="font-size:10px;color:var(--txt3);font-weight:400;">¢/lb</span></span></label>
+                <input type="range" min="200" max="600" value="350" step="1" id="bp" oninput="syncField('bp',this.value,0);calc()">
+                <input type="number" min="200" max="600" value="350" step="1" id="bp-n" oninput="syncField('bp',this.value,0);calc()">
+              </div>
+
+              <!-- FEED -->
+              <div class="calc-section-label">Daily Feed (per head)</div>
+
+              <div class="calc-field">
+                <label>Corn <span class="fv" id="cf-val">0.25 <span style="font-size:10px;color:var(--txt3);font-weight:400;">bu/day</span></span></label>
+                <input type="range" min="0" max="1.5" value="0.25" step="0.05" id="cf" oninput="syncField('cf',this.value,2);calc()">
+                <input type="number" min="0" max="1.5" value="0.25" step="0.05" id="cf-n" oninput="syncField('cf',this.value,2);calc()">
+              </div>
+              <div class="calc-field">
+                <label>Corn price <span class="fv" id="cp-val">$4.53 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/bu</span></span></label>
+                <input type="range" min="0" max="9.0" value="4.53" step="0.01" id="cp" oninput="syncField('cp',this.value,2,'$');calc()">
+                <input type="number" min="0" max="9.0" value="4.53" step="0.01" id="cp-n" oninput="syncField('cp',this.value,2,'$');calc()">
+              </div>
+
+              <div class="calc-field">
+                <label>Soybean meal <span class="fv" id="sbm-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
+                <input type="range" min="0" max="10" value="0" step="0.25" id="sbm" oninput="syncField('sbm',this.value,2);calc()">
+                <input type="number" min="0" max="10" value="0" step="0.25" id="sbm-n" oninput="syncField('sbm',this.value,2);calc()">
+              </div>
+              <div class="calc-field">
+                <label>SBM price <span class="fv" id="sbmp-val">$320 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
+                <input type="range" min="0" max="600" value="320" step="5" id="sbmp" oninput="syncField('sbmp',this.value,0,'$');calc()">
+                <input type="number" min="0" max="600" value="320" step="5" id="sbmp-n" oninput="syncField('sbmp',this.value,0,'$');calc()">
+              </div>
+
+              <div class="calc-field">
+                <label>Distillers <span class="fv" id="ddg-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
+                <input type="range" min="0" max="15" value="0" step="0.25" id="ddg" oninput="syncField('ddg',this.value,2);calc()">
+                <input type="number" min="0" max="15" value="0" step="0.25" id="ddg-n" oninput="syncField('ddg',this.value,2);calc()">
+              </div>
+              <div class="calc-field">
+                <label>DDG price <span class="fv" id="ddgp-val">$180 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
+                <input type="range" min="0" max="400" value="180" step="5" id="ddgp" oninput="syncField('ddgp',this.value,0,'$');calc()">
+                <input type="number" min="0" max="400" value="180" step="5" id="ddgp-n" oninput="syncField('ddgp',this.value,0,'$');calc()">
+              </div>
+
+              <div class="calc-field">
+                <label>Protein supp <span class="fv" id="pro-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
+                <input type="range" min="0" max="5" value="0" step="0.1" id="pro" oninput="syncField('pro',this.value,2);calc()">
+                <input type="number" min="0" max="5" value="0" step="0.1" id="pro-n" oninput="syncField('pro',this.value,2);calc()">
+              </div>
+              <div class="calc-field">
+                <label>Protein price <span class="fv" id="prop-val">$450 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
+                <input type="range" min="0" max="900" value="450" step="10" id="prop" oninput="syncField('prop',this.value,0,'$');calc()">
+                <input type="number" min="0" max="900" value="450" step="10" id="prop-n" oninput="syncField('prop',this.value,0,'$');calc()">
+              </div>
+
+              <div class="calc-field">
+                <label>Alfalfa hay <span class="fv" id="hay-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
+                <input type="range" min="0" max="30" value="0" step="0.5" id="hay" oninput="syncField('hay',this.value,2);calc()">
+                <input type="number" min="0" max="30" value="0" step="0.5" id="hay-n" oninput="syncField('hay',this.value,2);calc()">
+              </div>
+              <div class="calc-field">
+                <label>Hay price <span class="fv" id="hayp-val">$200 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
+                <input type="range" min="0" max="500" value="200" step="5" id="hayp" oninput="syncField('hayp',this.value,0,'$');calc()">
+                <input type="number" min="0" max="500" value="200" step="5" id="hayp-n" oninput="syncField('hayp',this.value,0,'$');calc()">
+              </div>
+
+              <!-- OTHER COSTS -->
+              <div class="calc-section-label">Other Costs</div>
+
+              <div class="calc-field">
+                <label>Other costs <span class="fv" id="oc-val">$1.50 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/day</span></span></label>
+                <input type="range" min="0" max="10" value="1.5" step="0.25" id="oc" oninput="syncField('oc',this.value,2,'$');calc()">
+                <input type="number" min="0" max="10" value="1.5" step="0.25" id="oc-n" oninput="syncField('oc',this.value,2,'$');calc()">
+              </div>
+              <div class="calc-field">
+                <label>Days on feed <span class="fv" id="dof-val">180 <span style="font-size:10px;color:var(--txt3);font-weight:400;">days</span></span></label>
+                <input type="range" min="1" max="400" value="180" step="5" id="dof" oninput="syncField('dof',this.value,0);calc()">
+                <input type="number" min="1" max="400" value="180" step="5" id="dof-n" oninput="syncField('dof',this.value,0);calc()">
+              </div>
+
+              <!-- SELL -->
+              <div class="calc-section-label">Animal Out</div>
+
+              <div class="calc-field">
+                <label>Sell weight <span class="fv" id="sw-val">1200 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs</span></span></label>
+                <input type="range" min="800" max="1800" value="1200" step="10" id="sw" oninput="syncField('sw',this.value,0);calc()">
+                <input type="number" min="800" max="1800" value="1200" step="10" id="sw-n" oninput="syncField('sw',this.value,0);calc()">
+              </div>
+              <div class="calc-field">
+                <label>Sell price <span class="fv" id="sp-val">231 <span style="font-size:10px;color:var(--txt3);font-weight:400;">¢/lb</span></span></label>
+                <input type="range" min="150" max="400" value="231" step="1" id="sp" oninput="syncField('sp',this.value,0);calc()">
+                <input type="number" min="150" max="400" value="231" step="1" id="sp-n" oninput="syncField('sp',this.value,0);calc()">
+              </div>
+
+            </div><!-- /calc-grid -->
+
+            <div class="panel" style="margin-top:12px;background:var(--bg1);border-color:var(--border);"><div class="panel-title">Seasonal Price Patterns</div><div style="position:relative;width:100%;height:150px;"><canvas id="seasonal-chart"></canvas></div><div style="font-size:11px;color:var(--txt3);margin-top:8px;line-height:1.6;">Cattle prices historically peak Mar–May and Oct–Nov. Current month highlighted in amber.</div></div>
           </div>
           <div style="display:flex;flex-direction:column;gap:16px;">
-            <div class="panel"><div class="panel-title">Per Head — Results</div><div class="result-box" style="margin-top:0;"><div class="result-row"><span>Buy cost</span><span id="r-buy">—</span></div><div class="result-row"><span>Corn cost</span><span id="r-corn">—</span></div><div class="result-row"><span>Other costs</span><span id="r-other">—</span></div><div class="result-row total"><span>Total cost</span><span id="r-total">—</span></div><div class="result-row"><span>Gross revenue</span><span id="r-rev">—</span></div><div class="result-row total" id="r-margin-row"><span>Net margin / head</span><span id="r-margin">—</span></div></div><div class="verdict neutral" id="verdict">Adjust sliders to see recommendation</div></div>
+            <div class="panel"><div class="panel-title">Per Head — Results</div><div class="result-box" style="margin-top:0;"><div class="result-row"><span>Buy cost</span><span id="r-buy">—</span></div><div class="result-row"><span>Total feed cost</span><span id="r-corn">—</span></div><div class="result-row"><span>Other costs</span><span id="r-other">—</span></div><div class="result-row total"><span>Total cost</span><span id="r-total">—</span></div><div class="result-row"><span>Gross revenue</span><span id="r-rev">—</span></div><div class="result-row total" id="r-margin-row"><span>Net margin / head</span><span id="r-margin">—</span></div></div><div class="verdict neutral" id="verdict">Adjust sliders to see recommendation</div></div>
             <div class="panel"><div class="panel-title">Full Herd Profitability</div><div class="herd-input"><label>Head count:</label><input type="number" id="herd-count" value="150" min="1" max="2000" oninput="calc()"></div><div class="stat-grid"><div class="stat-box"><div class="stat-label">TOTAL REVENUE</div><div class="stat-val" id="herd-rev">—</div><div class="stat-sub">at target weight</div></div><div class="stat-box"><div class="stat-label">TOTAL COST</div><div class="stat-val" id="herd-cost">—</div><div class="stat-sub">all in</div></div><div class="stat-box"><div class="stat-label">TOTAL MARGIN</div><div class="stat-val" id="herd-margin">—</div><div class="stat-sub">net profit / loss</div></div><div class="stat-box"><div class="stat-label">DAILY FEED COST</div><div class="stat-val" id="herd-daily">—</div><div class="stat-sub">whole herd</div></div></div></div>
+            <div class="panel" style="margin-top:0;">
+              <div class="panel-title">LRP Insurance Context</div>
+              <div style="font-size:12px;color:var(--txt2);line-height:1.7;"><strong style="color:var(--txt1);">USDA Livestock Risk Protection (LRP)</strong> is a federally subsidized price insurance program for feeder and fed cattle. It protects against a price decline between purchase and your target end date — USDA covers roughly <strong style="color:var(--cattle);">35% of the premium</strong>. Coverage is available through licensed crop insurance agents with no herd size minimum. Use this calculator to find your break-even sell price, then compare it to available LRP coverage levels to decide if downside protection makes sense.</div>
+              <a href="https://www.rma.usda.gov/en/Fact-Sheets/National-Fact-Sheets/Livestock-Risk-Protection-Feeder-Cattle" target="_blank" rel="noopener" class="auction-link" style="margin-top:10px;display:inline-block;">USDA LRP — Feeder Cattle ↗</a>
+            </div>
           </div>
         </div>
       </div>
@@ -545,22 +614,23 @@
       <div class="section" id="cattle-news">
         <div class="news-toggle"><button class="news-mode-btn active" onclick="switchNews('cattle-brief',this)">Morning Brief</button><button class="news-mode-btn" onclick="switchNews('cattle-source',this)">From the Source</button></div>
         <div class="news-panel active" id="panel-cattle-brief">
+          <div class="brief-wip"><div class="brief-wip-icon">🚧</div><div class="brief-wip-body"><div class="brief-wip-title">Work in Progress</div><div class="brief-wip-text">The goal is to have real, curated cattle market insights ready for you here every morning — pulled from live sources and tailored to southern MN. The content below is placeholder only.</div></div></div>
           <div class="brief-grid">
-            <div class="brief-item"><div class="brief-tag cattle">Cattle</div><div><div class="brief-headline">Live cattle futures post third straight weekly gain amid tight supplies and strong export demand</div><div class="brief-meta">2h ago · CME</div><div class="brief-note"><strong>What it means for you:</strong> Selling conditions remain favorable. Animals near target weight should be prioritized — don't leave margin on the table waiting for more upside.</div></div></div>
-            <div class="brief-item"><div class="brief-tag cattle">Cattle</div><div><div class="brief-headline">USDA weekly slaughter report shows 86,000 head — below year-ago pace, supporting the price floor</div><div class="brief-meta">4h ago · USDA AMS</div><div class="brief-note"><strong>What it means for you:</strong> Tighter slaughter numbers mean packers are competing harder for cattle. This supports cash prices and reduces downside risk near term.</div></div></div>
-            <div class="brief-item"><div class="brief-tag corn">Corn</div><div><div class="brief-headline">Corn futures edge higher as early planting pace raises quality concerns in Corn Belt states</div><div class="brief-meta">5h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Rising corn prices increase the opportunity cost of feeding vs. selling. Run the margin calc with the current corn price to check your tradeoff.</div></div></div>
-            <div class="brief-item"><div class="brief-tag market">Market</div><div><div class="brief-headline">CME cattle complex: choice cutout values hold above $397 as grocery demand stays resilient</div><div class="brief-meta">8h ago · CME</div><div class="brief-note"><strong>What it means for you:</strong> Strong retail beef demand underpins packer willingness to pay — a positive signal for cash cattle prices heading into spring grilling season.</div></div></div>
+            <div class="brief-item"><div class="brief-tag cattle">Cattle</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>Live cattle futures post third straight weekly gain amid tight supplies and strong export demand</div><div class="brief-meta">2h ago · CME</div><div class="brief-note"><strong>What it means for you:</strong> Selling conditions remain favorable. Animals near target weight should be prioritized — don't leave margin on the table waiting for more upside.</div></div></div>
+            <div class="brief-item"><div class="brief-tag cattle">Cattle</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>USDA weekly slaughter report shows 86,000 head — below year-ago pace, supporting the price floor</div><div class="brief-meta">4h ago · USDA AMS</div><div class="brief-note"><strong>What it means for you:</strong> Tighter slaughter numbers mean packers are competing harder for cattle. This supports cash prices and reduces downside risk near term.</div></div></div>
+            <div class="brief-item"><div class="brief-tag corn">Corn</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>Corn futures edge higher as early planting pace raises quality concerns in Corn Belt states</div><div class="brief-meta">5h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Rising corn prices increase the opportunity cost of feeding vs. selling. Run the margin calc with the current corn price to check your tradeoff.</div></div></div>
+            <div class="brief-item"><div class="brief-tag market">Market</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>CME cattle complex: choice cutout values hold above $397 as grocery demand stays resilient</div><div class="brief-meta">8h ago · CME</div><div class="brief-note"><strong>What it means for you:</strong> Strong retail beef demand underpins packer willingness to pay — a positive signal for cash cattle prices heading into spring grilling season.</div></div></div>
           </div>
         </div>
         <div class="news-panel" id="panel-cattle-source">
           <div class="source-intro">Live feeds from trusted cattle and commodity sources.</div>
           <div class="source-section"><div class="source-section-title">Government &amp; Official Data</div><div class="source-links">
-            <a class="source-link" href="https://www.ams.usda.gov/market-news/cattle" target="_blank" rel="noopener"><div class="source-link-icon">🐄</div><div class="source-link-body"><div class="source-link-title">USDA AMS — Cattle Market News</div><div class="source-link-desc">Official daily and weekly cattle price reports, auction results, and slaughter data</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
-            <a class="source-link" href="https://www.nass.usda.gov/Publications/Todays_Reports/" target="_blank" rel="noopener"><div class="source-link-icon">📊</div><div class="source-link-body"><div class="source-link-title">USDA NASS — Today's Reports</div><div class="source-link-desc">Cattle on Feed, WASDE, and all major USDA market-moving reports as released</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.ams.usda.gov/market-news/livestock-poultry-grain" target="_blank" rel="noopener"><div class="source-link-icon">🐄</div><div class="source-link-body"><div class="source-link-title">USDA AMS — Cattle Market News</div><div class="source-link-desc">Official daily and weekly cattle price reports, auction results, and slaughter data</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.nass.usda.gov/Publications/" target="_blank" rel="noopener"><div class="source-link-icon">📊</div><div class="source-link-body"><div class="source-link-title">USDA NASS — Livestock Surveys</div><div class="source-link-desc">Cattle on Feed, WASDE, and all major USDA market-moving reports as released</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
           </div></div>
           <div class="source-section"><div class="source-section-title">Cattle Industry News</div><div class="source-links">
-            <a class="source-link" href="https://www.drovers.com/cattle-news" target="_blank" rel="noopener"><div class="source-link-icon">📰</div><div class="source-link-body"><div class="source-link-title">Drovers — Cattle News</div><div class="source-link-desc">Daily cattle industry news covering markets, management, and policy</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
-            <a class="source-link" href="https://www.cmegroup.com/markets/agricultural.html" target="_blank" rel="noopener"><div class="source-link-icon">📉</div><div class="source-link-body"><div class="source-link-title">CME Group — Agricultural Markets</div><div class="source-link-desc">Live futures quotes for live cattle, feeder cattle, and corn from the exchange</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.drovers.com/news" target="_blank" rel="noopener"><div class="source-link-icon">📰</div><div class="source-link-body"><div class="source-link-title">Drovers — Cattle News</div><div class="source-link-desc">Daily cattle industry news covering markets, management, and policy</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.cmegroup.com/markets/agriculture.html" target="_blank" rel="noopener"><div class="source-link-icon">📉</div><div class="source-link-body"><div class="source-link-title">CME Group — Agricultural Markets</div><div class="source-link-desc">Live futures quotes for live cattle, feeder cattle, and corn from the exchange</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
           </div></div>
         </div>
       </div>
@@ -568,42 +638,330 @@
       <!-- CATTLE AUCTION BARNS -->
       <div class="section" id="cattle-barns">
         <div class="insight-strip"><strong>Livestock auction barns near your location</strong> — sorted by distance. All licensed by the Minnesota Board of Animal Health.</div>
-        <div class="two-col">
-          <div style="display:flex;flex-direction:column;gap:14px;">
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Central Livestock Association</div><span class="auction-freq">Mon · Tue · Wed</span></div><div class="auction-detail">44326 County 6 Blvd, Zumbrota, MN · <strong class="dist-highlight" id="dist-central">~35 miles</strong></div><div class="auction-detail">507-732-7305</div><div class="auction-detail" style="margin-top:6px;">Multiple sales weekly — feeder cattle, bred cow/heifer specials, market cows &amp; bulls. Mon/Tue 8am, Wed 2pm. Online via DVAuction.</div><div class="auction-links"><a href="https://www.centrallivestock.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a><a href="https://www.dvauction.com" target="_blank" rel="noopener" class="auction-link">DVAuction ↗</a></div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Lanesboro Sales Commission</div><span class="auction-freq">Wed &amp; Fri</span></div><div class="auction-detail">402 Coffee St E, Lanesboro, MN · <strong class="dist-highlight" id="dist-lanesboro">~60 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Wednesday 8:30am — market cows &amp; bulls, finished cattle. Friday 9am — baby calves, feeder cattle. Online via CattleUSA.</div><div class="auction-links"><a href="https://www.lanesborosalescommission.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Rock Creek Livestock Market</div><span class="auction-freq">Mon &amp; Wed</span></div><div class="auction-detail">Pine City, MN · <strong class="dist-highlight" id="dist-rockcreek">~70 miles</strong></div><div class="auction-detail">Cattle, hogs, sheep &amp; goats — 8am. Feeder sales every other Tuesday. Same day payment.</div><div class="auction-links"><a href="https://rockcreeklivestockmarket.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:14px;">
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Sleepy Eye Auction Market</div><span class="auction-freq">Every Wednesday</span></div><div class="auction-detail">Sleepy Eye, MN · <strong class="dist-highlight" id="dist-sleepyeye">~90 miles</strong></div><div class="auction-detail">Family owned 75+ years. Sale 9am — feeder, finished, slaughter.</div><div class="auction-links"><a href="https://sleepyeyeauctionmarket.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Pipestone Livestock Auction</div><span class="auction-freq">2nd &amp; 4th Thu</span></div><div class="auction-detail">Pipestone, MN · <strong class="dist-highlight" id="dist-pipestone">~160 miles</strong></div><div class="auction-detail">Feeder cattle 11am, beef cattle noon. Online bidding via LMA Auctions.</div><div class="auction-links"><a href="https://www.pipestonelivestock.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a><a href="https://lmaauctions.com" target="_blank" rel="noopener" class="auction-link">Bid Online ↗</a></div></div>
-            <div class="panel"><div class="panel-title">Online Bidding Platforms</div><div class="source-links">
-              <a class="source-link" href="https://www.dvauction.com" target="_blank" rel="noopener"><div class="source-link-icon">📡</div><div class="source-link-body"><div class="source-link-title">DVAuction</div><div class="source-link-desc">Used by Central Livestock Zumbrota — live video streaming and online bidding</div></div><div class="source-link-arrow">↗</div></a>
-              <a class="source-link" href="https://lmaauctions.com" target="_blank" rel="noopener"><div class="source-link-icon">🏷</div><div class="source-link-body"><div class="source-link-title">LMA Auctions</div><div class="source-link-desc">Used by Pipestone — pre-registration required</div></div><div class="source-link-arrow">↗</div></a>
-            </div></div>
+        <div class="barn-grid">
+          <div id="barn-col-1" style="display:flex;flex-direction:column;gap:14px;"><div style="color:var(--txt3);font-size:13px;padding:20px;text-align:center;">Locating nearby barns…</div></div>
+          <div id="barn-col-2" style="display:flex;flex-direction:column;gap:14px;"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Online Bidding Platforms</div>
+          <div class="source-links">
+            <a class="source-link" href="https://www.dvauction.com" target="_blank" rel="noopener"><div class="source-link-icon">📡</div><div class="source-link-body"><div class="source-link-title">DVAuction</div><div class="source-link-desc">Used by Central Livestock Zumbrota — live video streaming and online bidding</div></div><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://lmaauctions.com" target="_blank" rel="noopener"><div class="source-link-icon">🏷</div><div class="source-link-body"><div class="source-link-title">LMA Auctions</div><div class="source-link-desc">Used by Pipestone — pre-registration required</div></div><div class="source-link-arrow">↗</div></a>
           </div>
         </div>
       </div>
 
       <!-- CATTLE MEAT LOCKERS -->
       <div class="section" id="cattle-lockers">
-        <div class="insight-strip"><strong>Custom beef processing near your location</strong> — call ahead, most book weeks in advance.</div>
-        <div class="two-col">
-          <div style="display:flex;flex-direction:column;gap:14px;">
-            <div class="panel" style="border-color:rgba(60,185,106,.2);"><div style="font-size:10px;letter-spacing:2px;color:var(--up);margin-bottom:6px;">IN FARIBAULT</div><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Herda's Meat Processing</div><span class="auction-freq" style="background:var(--up-dim);color:var(--up);">Faribault</span></div><div class="auction-detail"><strong class="dist-highlight" id="dist-herdas">Calculating...</strong></div><div class="auction-detail" style="margin-top:6px;">Custom slaughter and processing — full custom cutting, grinding, vacuum packing. USDA-inspected. 507-334-5555</div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Krenik's Meat Processing</div><span class="auction-freq">~15 miles</span></div><div class="auction-detail">Between Montgomery &amp; Shieldsville · <strong class="dist-highlight" id="dist-kreniks">~15 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Family owned since 1960. Custom beef and pork — no comingling. Retail counter, specialty smoked products.</div><div class="auction-links"><a href="https://www.kreniks.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Lonsdale Country Market</div><span class="auction-freq">~20 miles</span></div><div class="auction-detail">Lonsdale, MN · <strong class="dist-highlight" id="dist-lonsdale">~20 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Custom butchering — beef, pork, lamb, deer &amp; wild game. Mon–Fri 10am–6pm, Sat 8:30am–3pm.</div><div class="auction-links"><a href="https://www.lonsdalecountrymarket.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:14px;">
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">Dennison Meat Locker</div><span class="auction-freq">~25 miles</span></div><div class="auction-detail">109 Farm Road, Dennison, MN · <strong class="dist-highlight" id="dist-dennison">~25 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Full custom beef processing — pricing online, smoked sausages, retail counter. Mon–Fri 8am–5pm.</div><div class="auction-links"><a href="https://dennisonmeatlocker.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a><a href="https://dennisonmeatlocker.com/custom-prices/beef-prices/" target="_blank" rel="noopener" class="auction-link">Beef Pricing ↗</a></div></div>
-            <div class="panel"><div class="auction-header" style="margin-bottom:8px;"><div class="auction-name">O'Keefe's Meat Market</div><span class="auction-freq">~30 miles</span></div><div class="auction-detail">Le Center, MN · <strong class="dist-highlight" id="dist-okeefes">~30 miles</strong></div><div class="auction-detail" style="margin-top:6px;">Full-service custom slaughter and processing — retail counter, homemade sausage. Call to schedule.</div><div class="auction-links"><a href="https://okeefesmeats.com" target="_blank" rel="noopener" class="auction-link">Website ↗</a></div></div>
-            <div class="panel"><div class="panel-title">Processing Tips</div><div class="guide-row" style="margin-bottom:9px;"><span class="guide-label" style="min-width:110px;">Schedule early</span><span class="guide-desc">Most lockers book out weeks to months ahead — call as soon as you know your sell date.</span></div><div class="guide-row" style="margin-bottom:9px;"><span class="guide-label" style="min-width:110px;">Hanging weight</span><span class="guide-desc">Processing priced on hanging weight — typically 60–65% of live weight</span></div><div class="guide-row"><span class="guide-label" style="min-width:110px;">USDA inspect</span><span class="guide-desc">For retail sales, processor must be USDA-inspected — Herda's in Faribault qualifies</span></div></div>
-          </div>
+        <div class="insight-strip"><strong>Custom beef processing near your location</strong> — sorted by distance. Call ahead, most book weeks in advance.</div>
+        <div id="locker-directory" class="barn-grid">
+          <div style="color:var(--txt3);font-size:13px;padding:20px;text-align:center;grid-column:1/-1;">Locating nearby processors…</div>
+        </div>
+        <div class="panel" style="margin-top:4px;">
+          <div class="panel-title">Processing Tips</div>
+          <div class="guide-row" style="margin-bottom:9px;"><span class="guide-label" style="min-width:110px;">Schedule early</span><span class="guide-desc">Most lockers book out weeks to months ahead — call as soon as you know your sell date.</span></div>
+          <div class="guide-row" style="margin-bottom:9px;"><span class="guide-label" style="min-width:110px;">Hanging weight</span><span class="guide-desc">Processing priced on hanging weight — typically 60–65% of live weight.</span></div>
+          <div class="guide-row"><span class="guide-label" style="min-width:110px;">USDA inspect</span><span class="guide-desc">For retail sales, processor must be USDA-inspected. Check each locker's certification before booking.</span></div>
         </div>
       </div>
 
     </div><!-- /cattle content -->
   </div><!-- /sub-cattle -->
+
+  <!-- ── DAIRY SUBMODULE ── -->
+  <div class="submodule" id="sub-dairy">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('dairy','prices',this)">Prices</div>
+      <div class="tab" onclick="switchTab('dairy','charts',this);renderDairyCharts()">Charts</div>
+      <div class="tab" onclick="switchTab('dairy','plants',this)">Local Plants</div>
+      <div class="tab" onclick="switchTab('dairy','margin',this)">Margin Calc</div>
+      <div class="tab" onclick="switchTab('dairy','news',this)">Market News</div>
+    </div>
+    <div class="content">
+
+      <!-- DAIRY PRICES -->
+      <div class="section active" id="dairy-prices">
+
+        <!-- Grade + Plant selector bar -->
+        <div class="elevator-bar">
+          <div class="elevator-label">Grade</div>
+          <div style="display:flex;border:1px solid var(--border2);border-radius:3px;overflow:hidden;">
+            <button id="dairy-grade-a-btn" class="cattle-type-btn active" onclick="setDairyGrade('A',this)" style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;">Grade A</button>
+            <button id="dairy-grade-b-btn" class="cattle-type-btn"        onclick="setDairyGrade('B',this)" style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Grade B</button>
+          </div>
+          <div class="elevator-label" style="margin-left:8px;">My Plant</div>
+          <select class="elevator-select" id="dairy-plant-select" onchange="onDairyPlantChange()">
+            <option value="">Select your plant…</option>
+          </select>
+          <div class="elev-detail" id="dairy-plant-dist"></div>
+          <div id="dairy-plant-detail" style="display:none;font-size:12px;color:var(--txt2);margin-left:8px;"></div>
+        </div>
+
+        <div class="insight-strip" id="dairy-insight">Fetching dairy market data…</div>
+
+        <!-- MN Grade Cards -->
+        <div class="section-divider">Minnesota Milk Prices</div>
+        <div class="cards">
+          <div class="card dc2">
+            <div class="card-label">Grade A · Class 1 · Est.</div>
+            <div class="card-name">Fluid Milk · Order 30</div>
+            <div class="card-price" id="p-dc2">—</div>
+            <div class="card-unit">$ / cwt · est.</div>
+            <div class="badge flat" id="b-dc2">— —</div>
+            <div class="card-meta">
+              <div class="meta-item">CLASS 3<strong id="h-dc2">—</strong></div>
+              <div class="meta-item">CL1 DIFF<strong id="l-dc2">—</strong></div>
+              <div class="meta-item">PREV<strong id="v-dc2">—</strong></div>
+            </div>
+          </div>
+          <div class="card dc">
+            <div class="card-label">Grade B · Class 3 · CME</div>
+            <div class="card-name">Cheese Milk · Nearby</div>
+            <div class="card-price" id="p-dc">—</div>
+            <div class="card-unit">$ / cwt</div>
+            <div class="badge flat" id="b-dc">— —</div>
+            <div class="card-meta"><div class="meta-item">HIGH<strong id="h-dc">—</strong></div><div class="meta-item">LOW<strong id="l-dc">—</strong></div><div class="meta-item">PREV<strong id="v-dc">—</strong></div></div>
+          </div>
+          <div class="card dc">
+            <div class="card-label" id="ord30-card-label">USDA · Order 30 · Class 1</div>
+            <div class="card-name" id="ord30-card-name">Grade A · Upper Midwest</div>
+            <div class="card-price" id="p-ord30">—</div>
+            <div class="card-unit" id="ord30-card-unit">$ / cwt · Grade A Class 1 est.</div>
+            <div class="badge flat" id="b-ord30"></div>
+            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
+                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">EST. MAILBOX</div>
+                <div style="font-size:13px;font-weight:700;color:var(--dairy);" id="dairy-plant-mailbox">—</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
+                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">PLANT PREMIUM</div>
+                <div style="font-size:13px;font-weight:700;" id="dairy-plant-premium">select plant ↑</div>
+              </div>
+              <div style="font-size:9px;color:var(--txt3);margin-top:5px;" id="dairy-blend-date">USDA Order 30 · updated monthly</div>
+            </div>
+          </div>
+          <div class="card cn">
+            <div class="card-label">Feed Inputs — Dairy</div>
+            <div class="card-name">Key Cost Drivers</div>
+            <div style="margin-top:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+                <div><div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">CORN</div><div style="font-size:10px;color:var(--txt3);">CBOT nearby · $/bu</div></div>
+                <div style="font-size:18px;font-weight:700;color:var(--corn);" id="dairy-corn-price">—</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+                <div><div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">SOYBEAN MEAL</div><div style="font-size:10px;color:var(--txt3);">CBOT nearby · $/ton</div></div>
+                <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="dairy-sbm-price">—</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;">
+                <div><div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">ALFALFA HAY</div><div style="font-size:10px;color:var(--txt3);">USDA MN spot · $/ton</div></div>
+                <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="dairy-hay-price">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- All-plant comparison table -->
+        <div class="section-divider">All Plants — Est. Mailbox Price</div>
+        <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
+          <div class="table-scroll"><table class="cash-table">
+            <thead><tr><th>Plant</th><th id="dairy-mailbox-col-header">Est. Grade A Mailbox</th><th>Est. Premium ($/cwt)</th><th>Distance</th></tr></thead>
+            <tbody id="dairy-plant-table-body"><tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading plant data…</td></tr></tbody>
+          </table></div>
+          <div id="dairy-table-footnote" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;">Grade A mailbox = Class 1 est. + plant premium · premiums estimated — verify with your plant's monthly announcement</div>
+        </div>
+
+        <div class="two-col">
+          <div class="panel"><div class="panel-title">Upcoming Dairy Market Events</div>
+            <div class="cal-item"><div class="cal-date">Mar 21</div><div><span class="cal-tag cme">CME</span><div class="cal-text">March Class III / IV Settlement</div><div class="cal-sub">Monthly contract final settlement — sets your March milk check basis.</div></div></div>
+            <div class="cal-item"><div class="cal-date">Apr 2</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Dairy Products Report</div><div class="cal-sub">Monthly production of cheese, butter, NDM — key Class III/IV price driver.</div></div></div>
+            <div class="cal-item"><div class="cal-date">Apr 17</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Cold Storage Report</div><div class="cal-sub">Cheese and butter inventories — high stocks pressure Class III/IV prices.</div></div></div>
+            <div class="cal-item"><div class="cal-date">Apr 18</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Milk Production Report</div><div class="cal-sub">Monthly cow numbers and production — watch for MN/WI numbers.</div></div></div>
+            <div class="cal-item"><div class="cal-date">May 2</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Order 30 April Blend Price Announced</div><div class="cal-sub">Upper Midwest uniform price — basis for your April milk check.</div></div></div>
+          </div>
+          <div class="panel"><div class="panel-title">How to Read This Dashboard</div>
+            <div class="guide-section"><div class="guide-heading">Minnesota Milk Grades</div><div class="guide-row"><span class="guide-label">Grade A (Class 1)</span><span class="guide-desc">Fluid milk — highest sanitation standard. Commands a premium over Grade B. Estimated as CME Class 3 + USDA Order 30 Class 1 differential (~$2.00–$3.50/cwt).</span></div><div class="guide-row"><span class="guide-label">Grade B (Class 3)</span><span class="guide-desc">Manufacturing milk — cheese, butter, powder. Most southern MN dairy farmers ship Grade B. Price tracks CME Class 3 futures directly.</span></div></div>
+            <div class="guide-section"><div class="guide-heading">Your Mailbox Price</div><div class="guide-row"><span class="guide-desc">Order 30 blend + your plant's premium = estimated mailbox price. The premium covers hauling, quality bonuses, and co-op deductions. Verify monthly with your plant or fieldman.</span></div></div>
+            <div class="guide-section"><div class="guide-heading">DMC Program</div><div class="guide-row"><span class="guide-desc">Dairy Margin Coverage uses the Class 3 (Grade B) price. If it drops below your coverage level, DMC pays the difference. See the Margin Calc tab.</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAIRY CHARTS -->
+      <div class="section" id="dairy-charts">
+
+        <!-- Plant context badge -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">My Plant</div>
+          <div id="dairy-chart-plant-badge" style="font-size:11px;letter-spacing:1px;padding:4px 14px;border-radius:3px;background:var(--dairy-dim);color:var(--dairy);text-transform:uppercase;font-weight:700;">No plant selected</div>
+          <div style="font-size:11px;color:var(--txt3);">— select on Prices tab</div>
+        </div>
+
+        <!-- Range buttons -->
+        <div class="hist-controls">
+          <button class="hist-btn" onclick="setDairyRange(7,this)">7D</button>
+          <button class="hist-btn" onclick="setDairyRange(30,this)">30D</button>
+          <button class="hist-btn active" onclick="setDairyRange(90,this)">90D</button>
+          <button class="hist-btn" onclick="setDairyRange(180,this)">180D</button>
+        </div>
+
+        <!-- Main chart -->
+        <div class="panel full" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div id="dairy-main-title" class="panel-title" style="margin:0;">Grade A Mailbox — Your Plant vs Others ($/cwt)</div>
+            <div style="display:flex;gap:14px;font-size:11px;color:var(--txt3);">
+              <span><span style="display:inline-block;width:18px;height:2px;background:var(--dairy);vertical-align:middle;margin-right:4px;"></span>Your plant</span>
+              <span><span style="display:inline-block;width:18px;height:2px;background:rgba(74,159,212,.3);vertical-align:middle;margin-right:4px;"></span>Other plants</span>
+              <span><span style="display:inline-block;width:18px;height:2px;background:rgba(180,180,180,.4);vertical-align:middle;margin-right:4px;border-top:2px dashed rgba(180,180,180,.4);"></span><span id="dairy-legend-base">Grade A base</span></span>
+            </div>
+          </div>
+          <div style="position:relative;width:100%;height:240px;"><canvas id="dairy-hist-main"></canvas></div>
+        </div>
+
+        <!-- Bottom row: Premium band + Seasonal pattern -->
+        <div class="two-col">
+          <div class="panel">
+            <div id="dairy-prem-title" class="panel-title">Your Plant Premium Over Grade A ($/cwt)</div>
+            <div id="dairy-prem-sub" style="font-size:11px;color:var(--txt3);margin-bottom:8px;">Rolling 13 months · monthly · shaded band = premium vs Grade A base</div>
+            <div style="position:relative;width:100%;height:200px;"><canvas id="dairy-hist-premium"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Seasonal Grade A Price Pattern — MN</div>
+            <div style="font-size:11px;color:var(--txt3);margin-bottom:8px;">Historical average % deviation from annual average · current month highlighted</div>
+            <div style="position:relative;width:100%;height:200px;"><canvas id="dairy-seasonal"></canvas></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- DAIRY LOCAL PLANTS -->
+      <div class="section" id="dairy-plants">
+        <div class="insight-strip">Grade A dairy plants and cooperatives serving southern Minnesota. Premiums are estimates — verify the exact amount with your plant's monthly price announcement or fieldman. Select your plant on the Prices tab to set it as your anchor.</div>
+        <div class="barn-grid">
+          <div id="dairy-dir-col-1" style="display:flex;flex-direction:column;gap:14px;"><div style="text-align:center;padding:40px;color:var(--txt3);font-size:13px;">Loading plant directory…</div></div>
+          <div id="dairy-dir-col-2" style="display:flex;flex-direction:column;gap:14px;"></div>
+        </div>
+      </div>
+
+      <!-- DAIRY MARGIN CALC -->
+      <div class="section" id="dairy-margin">
+        <div class="two-col" style="align-items:start;">
+          <div class="panel">
+            <div class="panel-title">Dairy Margin — Feed Cost vs Milk Price</div>
+            <div style="font-size:11px;color:var(--txt3);margin-bottom:16px;">Mirrors the USDA Dairy Margin Coverage (DMC) program logic. Adjust inputs to your operation.</div>
+
+            <div class="calc-grid">
+              <div class="calc-section-label">Milk Revenue</div>
+              <div class="calc-field">
+                <label>Milk price <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-mp-val">18.00</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/cwt</span></span></label>
+                <input type="range" min="10" max="30" value="18" step="0.25" id="dmc-mp" oninput="syncDMCField('dmc-mp',this.value,'$',2);calcDairy()">
+                <input type="number" min="10" max="30" value="18" step="0.25" id="dmc-mp-n" oninput="syncDMCField('dmc-mp',this.value,'$',2);calcDairy()">
+              </div>
+              <div class="calc-field">
+                <label>Production <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-prod-val">75</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/cow/day</span></span></label>
+                <input type="range" min="40" max="120" value="75" step="1" id="dmc-prod" oninput="syncDMCField('dmc-prod',this.value,'',0);calcDairy()">
+                <input type="number" min="40" max="120" value="75" step="1" id="dmc-prod-n" oninput="syncDMCField('dmc-prod',this.value,'',0);calcDairy()">
+              </div>
+
+              <div class="calc-section-label">Feed Costs (per cow per day)</div>
+              <div class="calc-field">
+                <label>Corn <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-corn-val">0.20</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">bu/day</span></span></label>
+                <input type="range" min="0" max="0.60" value="0.20" step="0.01" id="dmc-corn" oninput="syncDMCField('dmc-corn',this.value,'',2);calcDairy()">
+                <input type="number" min="0" max="0.60" value="0.20" step="0.01" id="dmc-corn-n" oninput="syncDMCField('dmc-corn',this.value,'',2);calcDairy()">
+              </div>
+              <div class="calc-field">
+                <label>Alfalfa hay <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-hay-val">30</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">lb/day</span></span></label>
+                <input type="range" min="0" max="60" value="30" step="1" id="dmc-hay" oninput="syncDMCField('dmc-hay',this.value,'',0);calcDairy()">
+                <input type="number" min="0" max="60" value="30" step="1" id="dmc-hay-n" oninput="syncDMCField('dmc-hay',this.value,'',0);calcDairy()">
+              </div>
+              <div class="calc-field">
+                <label>Soybean meal <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-sbm-val">4</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">lb/day</span></span></label>
+                <input type="range" min="0" max="15" value="4" step="0.5" id="dmc-sbm" oninput="syncDMCField('dmc-sbm',this.value,'',1);calcDairy()">
+                <input type="number" min="0" max="15" value="4" step="0.5" id="dmc-sbm-n" oninput="syncDMCField('dmc-sbm',this.value,'',1);calcDairy()">
+              </div>
+              <div class="calc-field">
+                <label>Other feed <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-other-val">$1.00</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/cow/day</span></span></label>
+                <input type="range" min="0" max="6" value="1.0" step="0.25" id="dmc-other" oninput="syncDMCField('dmc-other',this.value,'$',2);calcDairy()">
+                <input type="number" min="0" max="6" value="1.0" step="0.25" id="dmc-other-n" oninput="syncDMCField('dmc-other',this.value,'$',2);calcDairy()">
+              </div>
+
+              <div class="calc-section-label">Herd</div>
+              <div class="calc-field" style="grid-column:1/-1;">
+                <label>Number of cows <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-cows-val">100</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">head</span></span></label>
+                <input type="number" min="1" max="5000" value="100" id="dmc-cows" oninput="syncDMCField('dmc-cows',this.value,'',0);calcDairy()" style="margin-top:4px;">
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="panel">
+              <div class="panel-title">Per-Cow Summary</div>
+              <div class="result-box" style="margin-top:0;">
+                <div class="result-row"><span>Corn feed cost</span><span id="dmc-r-corn">—</span></div>
+                <div class="result-row"><span>Hay feed cost</span><span id="dmc-r-hay">—</span></div>
+                <div class="result-row"><span>SBM feed cost</span><span id="dmc-r-sbm">—</span></div>
+                <div class="result-row"><span>Other feed</span><span id="dmc-r-other">—</span></div>
+                <div class="result-row total"><span>Total feed cost / day</span><span id="dmc-r-feedtotal">—</span></div>
+                <div class="result-row"><span>Milk revenue / day</span><span id="dmc-r-rev">—</span></div>
+                <div class="result-row total" id="dmc-margin-row"><span>Margin over feed / day</span><span id="dmc-r-margin">—</span></div>
+                <div class="result-row"><span>Margin over feed ($/cwt)</span><span id="dmc-r-margin-cwt">—</span></div>
+                <div class="result-row"><span>Break-even milk price</span><span id="dmc-r-be">—</span></div>
+              </div>
+              <div class="verdict neutral" id="dmc-verdict">Adjust sliders to see your margin</div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">Full Herd</div>
+              <div class="stat-grid">
+                <div class="stat-box"><div class="stat-label">DAILY MARGIN</div><div class="stat-val" id="dmc-herd-day">—</div><div class="stat-sub">all cows</div></div>
+                <div class="stat-box"><div class="stat-label">MONTHLY MARGIN</div><div class="stat-val" id="dmc-herd-mo">—</div><div class="stat-sub">30 days</div></div>
+                <div class="stat-box"><div class="stat-label">ANNUAL MARGIN</div><div class="stat-val" id="dmc-herd-yr">—</div><div class="stat-sub">365 days</div></div>
+                <div class="stat-box"><div class="stat-label">ANNUAL MILK</div><div class="stat-val" id="dmc-herd-milk">—</div><div class="stat-sub">lbs produced</div></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">DMC Program Context</div>
+              <div style="font-size:12px;color:var(--txt2);line-height:1.7;">The <strong style="color:var(--txt1);">USDA Dairy Margin Coverage (DMC)</strong> program pays when the national margin (Class III average minus DMC feed cost index) falls below your coverage level. Coverage levels range from $4.00–$9.50/cwt. This calculator shows your <em>actual</em> margin based on your operation's costs — use it alongside DMC to see if you're covered.</div>
+              <a href="https://www.fsa.usda.gov/programs-and-services/farm-bill/farm-safety-net/dairy-programs/dmc/" target="_blank" rel="noopener" class="auction-link" style="margin-top:10px;display:inline-block;">USDA DMC Program ↗</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAIRY NEWS -->
+      <div class="section" id="dairy-news">
+        <div class="news-toggle">
+          <button class="news-mode-btn active" onclick="switchNews('dairy-brief',this)">Morning Brief</button>
+          <button class="news-mode-btn" onclick="switchNews('dairy-source',this)">From the Source</button>
+        </div>
+        <div class="news-panel active" id="panel-dairy-brief">
+          <div class="brief-wip"><div class="brief-wip-icon">🚧</div><div class="brief-wip-body"><div class="brief-wip-title">Work in Progress</div><div class="brief-wip-text">The goal is to have real, curated dairy market insights ready for you here every morning — pulled from live sources and tailored to southern MN. The content below is placeholder only.</div></div></div>
+          <div class="brief-grid">
+            <div class="brief-item"><div class="brief-tag cattle" style="background:var(--dairy-dim);color:var(--dairy);">Milk</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>CME Class 3 milk futures strengthen as cheese demand outpaces seasonal expectations heading into spring</div><div class="brief-meta">2h ago · CME</div><div class="brief-note"><strong>What it means for you:</strong> Rising Class 3 prices lift your Grade A estimate by the same amount. Check your plant's monthly announcement — a strong futures close often leads to a better blend price.</div></div></div>
+            <div class="brief-item"><div class="brief-tag cattle" style="background:var(--dairy-dim);color:var(--dairy);">USDA</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>USDA Order 30 Upper Midwest blend price announced — Class 1 differential holds at $2.10/cwt above Class 3</div><div class="brief-meta">4h ago · USDA AMS</div><div class="brief-note"><strong>What it means for you:</strong> The Class 1 differential is the premium Grade A producers earn over cheese milk. Stable differential means your Grade A estimate is a reliable planning number this month.</div></div></div>
+            <div class="brief-item"><div class="brief-tag corn">Feed</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>Soybean meal prices ease as South American harvest advances — could reduce ration costs 3–5% in coming weeks</div><div class="brief-meta">5h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Lower SBM prices directly improve your milk margin. Update the Margin Calc with current feed prices to see the impact on your per-cow profitability.</div></div></div>
+            <div class="brief-item"><div class="brief-tag market">Policy</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>USDA Dairy Margin Coverage (DMC) enrollment window open — 2025 production history deadline approaching</div><div class="brief-meta">8h ago · USDA FSA</div><div class="brief-note"><strong>What it means for you:</strong> DMC Tier 1 covers the first 5 million lbs at low premium cost. If margins narrow, DMC pays the difference. Run the Margin Calc to see where your breakeven sits.</div></div></div>
+          </div>
+        </div>
+        <div class="news-panel" id="panel-dairy-source">
+          <div class="source-intro">Live feeds from trusted dairy and commodity sources. Each link opens the full article in a new tab.</div>
+          <div class="source-section"><div class="source-section-title">Government &amp; Official Data</div><div class="source-links">
+            <a class="source-link" href="https://www.ams.usda.gov/market-news/dairy" target="_blank" rel="noopener"><div class="source-link-icon">🥛</div><div class="source-link-body"><div class="source-link-title">USDA AMS — Dairy Market News</div><div class="source-link-desc">Weekly dairy price reports, Federal Order blend prices, and Class price announcements</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.fmma30.com/" target="_blank" rel="noopener"><div class="source-link-icon">📋</div><div class="source-link-body"><div class="source-link-title">USDA Order 30 — Upper Midwest</div><div class="source-link-desc">Federal Milk Marketing Order 30 monthly blend and class price announcements</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.fsa.usda.gov/resources/programs/dairy-margin-coverage-program-dmc" target="_blank" rel="noopener"><div class="source-link-icon">🛡</div><div class="source-link-body"><div class="source-link-title">USDA FSA — Dairy Margin Coverage</div><div class="source-link-desc">DMC program enrollment, payment triggers, and coverage level calculator</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.nass.usda.gov/Surveys/Guide_to_NASS_Surveys/Milk/index.php" target="_blank" rel="noopener"><div class="source-link-icon">📊</div><div class="source-link-body"><div class="source-link-title">USDA NASS — Milk Production Surveys</div><div class="source-link-desc">Milk Production, Dairy Products, and Cold Storage reports as released</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
+          </div></div>
+          <div class="source-section"><div class="source-section-title">Exchanges &amp; Market Data</div><div class="source-links">
+            <a class="source-link" href="https://www.cmegroup.com/markets/agriculture/dairy/class-iii-milk.html" target="_blank" rel="noopener"><div class="source-link-icon">📉</div><div class="source-link-body"><div class="source-link-title">CME Group — Class III Milk Futures</div><div class="source-link-desc">Official CME Class III (dc.f) quotes, settlement prices, and options — the Grade B/Class 3 benchmark</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.cmegroup.com/markets/agriculture/dairy/class-iv-milk.html" target="_blank" rel="noopener"><div class="source-link-icon">🧈</div><div class="source-link-body"><div class="source-link-title">CME Group — Class IV Milk Futures</div><div class="source-link-desc">Butter and nonfat dry milk benchmark — influences Order 30 blend price</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+          </div></div>
+          <div class="source-section"><div class="source-section-title">Dairy Industry News</div><div class="source-links">
+            <a class="source-link" href="https://www.dairyherd.com/markets/futures" target="_blank" rel="noopener"><div class="source-link-icon">📰</div><div class="source-link-body"><div class="source-link-title">Dairy Herd — Markets</div><div class="source-link-desc">Market commentary and price outlook for Upper Midwest dairy producers</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.dairymarkets.org" target="_blank" rel="noopener"><div class="source-link-icon">🌐</div><div class="source-link-body"><div class="source-link-title">DairyMarkets.org</div><div class="source-link-desc">Independent price analysis, historical charts, and Federal Order data for dairy producers</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+          </div></div>
+        </div>
+      </div>
+
+    </div><!-- /dairy content -->
+  </div><!-- /sub-dairy -->
 
 </div><!-- /mod-markets -->
 
@@ -613,7 +971,7 @@
 <div class="module" id="mod-herd">
   <div class="stub-screen">
     <div class="stub-mark" style="color:var(--herd);">#27HERD</div>
-    <div class="stub-sub">animal inventory · weights · health records · feeding logs</div>
+    <div class="stub-sub">Animal inventory · weights · health records · feeding logs</div>
     <div style="font-size:14px;color:var(--txt3);letter-spacing:2px;font-style:italic;">watching the gate so you don't have to</div>
     <div style="font-size:12px;color:var(--txt3);margin-top:8px;">Coming soon</div>
   </div>
@@ -625,7 +983,7 @@
 <div class="module" id="mod-fields">
   <div class="stub-screen">
     <div class="stub-mark" style="color:var(--fields);">#27FIELDS</div>
-    <div class="stub-sub">acres · inputs · yield tracking · crop planning</div>
+    <div class="stub-sub">Acres · inputs · yield tracking · crop planning</div>
     <div style="font-size:14px;color:var(--txt3);letter-spacing:2px;font-style:italic;">watching the dirt so you don't have to</div>
     <div style="font-size:12px;color:var(--txt3);margin-top:8px;">Coming soon</div>
   </div>
@@ -637,7 +995,7 @@
 <div class="module" id="mod-finance">
   <div class="stub-screen">
     <div class="stub-mark" style="color:var(--finance);">#27FINANCE</div>
-    <div class="stub-sub">p&amp;l · grain contracts · input costs · break-evens</div>
+    <div class="stub-sub">P&amp;L · grain contracts · input costs · break-evens</div>
     <div style="font-size:14px;color:var(--txt3);letter-spacing:2px;font-style:italic;">watching the bottom line so you don't have to</div>
     <div style="font-size:12px;color:var(--txt3);margin-top:8px;">Coming soon</div>
   </div>
@@ -660,13 +1018,13 @@
     </div>
 
     <div style="font-size:15px;color:var(--txt2);line-height:1.9;margin-bottom:32px;">
-      Originally engineered for southern Minnesota operations —with a special thanks to #27, DFM, & MFM— grow27 was built to scale beyond a single farm. Our goal is to empower every operation with the same advanced tools, real-time data, and automated insights, bridging the gap between spend and capability.
+      Originally engineered for southern Minnesota operations —with a special thanks to #27, DFM, &amp; MFM— grow27 was built to scale beyond a single farm. Our goal is to empower every operation with the same advanced tools, real-time data, and automated insights, bridging the gap between spend and capability.
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
       <div style="font-size:11px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">The Platform</div>
       <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
-        grow27 is the platform. #27Markets is the first piece of it —watching the boards so you don't have to- with live grain and cattle market data, local buyer prices, and margin calculators built for working farmers. #27Herd, #27Fields, and #27Finance are coming, each adding another layer of intelligence to the operation.
+        grow27 is the platform. #27Markets is the first piece of it —watching the boards so you don't have to— with live grain and cattle market data, local buyer prices, and margin calculators built for working farmers. #27Herd, #27Fields, and #27Finance are coming, each adding another layer of intelligence to the operation.
       </div>
     </div>
 
@@ -685,11 +1043,11 @@
       <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
         grow27 was designed and built using AI-assisted development, proving that powerful, professional tools don't require a large team or budget to build. That's the point.
       </div>
-       <div style="font-size:15px;color:var(--txt2);line-height:1.9;">watching the overhead so you don't have to</div>
+      <div style="font-size:15px;color:var(--txt2);line-height:1.9;">watching the overhead so you don't have to</div>
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:24px;font-size:12px;color:var(--txt3);letter-spacing:1px;">
-      grow27 · southern Minnesota · v0.1 · © 2026
+      grow27 · southern Minnesota · <span class="app-version">v1.9</span> · © 2026
     </div>
 
   </div>
@@ -699,7 +1057,7 @@
 <footer class="g27-footer">
   <div class="g27-footer-wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="24" style="display:inline-block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg></div>
   <div class="g27-footer-tagline">#27 — worth more than its weight</div>
-  <div class="g27-footer-copy">v0.1 · © 2026 grow27 · All rights reserved</div>
+  <div class="g27-footer-copy"><span class="app-version">v1.9</span> · © 2026 grow27 · All rights reserved</div>
 </footer>
 
 <!-- ── BOTTOM NAV ── -->
@@ -729,5 +1087,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="js/markets.js"></script>
 <script src="js/app.js"></script>
+
+<!-- ── MOBILE FEEDBACK FAB ── -->
+<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.10%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
 </body>
 </html>

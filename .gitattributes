@@ -1,0 +1,18 @@
+# Normalize line endings to LF on commit, checkout as-is on all platforms
+* text=auto eol=lf
+
+# Explicitly handle common file types
+*.html text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.svg text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.gif binary
