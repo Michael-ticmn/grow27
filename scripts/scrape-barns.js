@@ -184,9 +184,10 @@ async function scrapeBarns(config) {
   }
 
   // ── 4b. Download and OCR additional images (rep sales) ────────────────
-  // Each image has 2+ tables side-by-side. Instead of blind % cropping,
-  // OCR the full image first to find "Location" and "Price" column headers,
-  // then crop each table precisely to those boundaries and re-OCR.
+  // Each image has two tables side-by-side. Each table has a header row:
+  //   "Location  Description  Weight (#)  Price"
+  // We scan a thin header strip at progressively wider crops until "Price"
+  // appears in the OCR text — that gives us the exact crop width for each table.
   const repOcrTexts = [];
   for (const repUrl of repImageUrls) {
     try {
@@ -198,116 +199,67 @@ async function scrapeBarns(config) {
       console.log(`[${id}] rep image downloaded · ${buf.length} bytes`);
 
       const meta = await sharp(buf).metadata();
-      const imgW = meta.width;
-      const imgH = meta.height;
-      console.log(`[${id}] rep image size: ${imgW}x${imgH}`);
+      const w = meta.width;
+      const h = meta.height;
+      console.log(`[${id}] rep image size: ${w}x${h}`);
 
-      // Step 1: Full-image OCR via worker API to get word bounding boxes
-      // The simple Tesseract.recognize() returns empty blocks/tsv objects.
-      // Using createWorker + worker.recognize populates structured output.
-      const worker = await Tesseract.createWorker('eng');
-      const { data: fullData } = await worker.recognize(buf);
-      await worker.terminate();
+      // Scan a thin header strip (top 15% of image) at increasing widths
+      // to find where the left table's "Price" column ends
+      const headerH = Math.min(100, Math.floor(h * 0.2));
+      let splitL = Math.floor(w * 0.6); // fallback default
 
-      // Extract words with bounding boxes from HOCR output (most reliable)
-      // HOCR format: <span class='ocrx_word' title='bbox x0 y0 x1 y1; ...'>text</span>
-      const allWords = [];
-      if (fullData.hocr && typeof fullData.hocr === 'string' && fullData.hocr.length > 0) {
-        const wordRe = /class='ocrx_word'[^>]*title='bbox (\d+) (\d+) (\d+) (\d+)[^']*'[^>]*>([^<]+)/g;
-        let m;
-        while ((m = wordRe.exec(fullData.hocr)) !== null) {
-          const text = m[5].trim();
-          if (text) allWords.push({ text, x0: +m[1], y0: +m[2], x1: +m[3], y1: +m[4] });
-        }
-        console.log(`[${id}] HOCR parsed: ${allWords.length} words`);
-      }
-
-      // Fallback: try blocks structure from worker API
-      if (allWords.length === 0 && Array.isArray(fullData.blocks)) {
-        for (const block of fullData.blocks) {
-          for (const para of (block.paragraphs || [])) {
-            for (const line of (para.lines || [])) {
-              for (const word of (line.words || [])) {
-                if (word.bbox) allWords.push({ text: word.text, x0: word.bbox.x0, y0: word.bbox.y0, x1: word.bbox.x1, y1: word.bbox.y1 });
-              }
-            }
-          }
-        }
-        console.log(`[${id}] blocks parsed: ${allWords.length} words`);
-      }
-
-      console.log(`[${id}] full OCR: ${allWords.length} words extracted`);
-
-      // Step 2: Find "Location" and "Price" column header words
-      const locWords = allWords.filter(w => /^location$/i.test(w.text));
-      const priWords = allWords.filter(w => /^price$/i.test(w.text));
-      console.log(`[${id}] landmarks: ${locWords.length} "Location", ${priWords.length} "Price"`);
-
-      // Step 3: Pair each Location with the nearest Price on the same y-row
-      const yTol = 20; // pixels
-      const tables = [];
-      for (const loc of locWords) {
-        const candidates = priWords
-          .filter(p => Math.abs(p.y0 - loc.y0) < yTol && p.x0 > loc.x1)
-          .sort((a, b) => a.x0 - b.x0);
-        if (candidates.length > 0) {
-          tables.push({
-            left: loc.x0,
-            right: candidates[0].x1,
-            headerY: loc.y0
-          });
-          console.log(`[${id}] table found: x=${loc.x0}–${candidates[0].x1}, y=${loc.y0}`);
-        }
-      }
-
-      if (tables.length === 0) {
-        console.warn(`[${id}] no Location/Price pairs found — using full OCR text as fallback`);
-        repOcrTexts.push(normalizeOcr(fullData.text));
-        continue;
-      }
-
-      // Step 4: Find "Representative" words to get section top boundaries
-      const repWordPositions = allWords.filter(w => /^representative$/i.test(w.text));
-      for (const table of tables) {
-        // Find nearest "Representative" word above this table's header row, in similar x-range
-        const above = repWordPositions
-          .filter(r => r.y1 <= table.headerY + 5 && r.y0 >= table.headerY - 60
-                    && r.x0 >= table.left - 30 && r.x0 <= table.right)
-          .sort((a, b) => b.y0 - a.y0); // closest above
-        table.topY = above.length > 0 ? above[0].y0 : Math.max(0, table.headerY - 30);
-      }
-
-      // Step 5: Set bottom boundaries — next table below in same column, or image bottom
-      tables.sort((a, b) => a.topY - b.topY || a.left - b.left);
-      for (let i = 0; i < tables.length; i++) {
-        const nextBelow = tables
-          .filter(t => t !== tables[i] && t.topY > tables[i].headerY
-                    && Math.abs(t.left - tables[i].left) < 50)
-          .sort((a, b) => a.topY - b.topY)[0];
-        tables[i].bottomY = nextBelow ? nextBelow.topY : imgH;
-      }
-
-      // Step 6: Crop each table section and re-OCR
-      for (const table of tables) {
-        const pad = 5;
-        const cropLeft = Math.max(0, table.left - pad);
-        const cropTop = Math.max(0, table.topY - pad);
-        const cropW = Math.min(table.right + pad * 3, imgW) - cropLeft; // extra right pad for price digits
-        const cropH = Math.min(table.bottomY, imgH) - cropTop;
-
-        if (cropW < 50 || cropH < 20) continue;
-        console.log(`[${id}] cropping table: x=${cropLeft}–${cropLeft + cropW}, y=${cropTop}–${cropTop + cropH} (${cropW}x${cropH})`);
-
-        const cropBuf = await sharp(buf)
-          .extract({ left: cropLeft, top: cropTop, width: cropW, height: cropH })
+      for (let pct = 45; pct <= 70; pct += 5) {
+        const testW = Math.floor(w * pct / 100);
+        const testBuf = await sharp(buf)
+          .extract({ left: 0, top: 0, width: testW, height: headerH })
           .png().toBuffer();
-
-        const { data: cropData } = await Tesseract.recognize(cropBuf, 'eng');
-        const cropText = normalizeOcr(cropData.text);
-        console.log(`[${id}] table OCR · ${cropText.length} chars`);
-        console.log(`[${id}] table preview:\n${cropText.slice(0, 500)}\n`);
-        repOcrTexts.push(cropText);
+        const { data: testData } = await Tesseract.recognize(testBuf, 'eng');
+        const testText = (testData.text || '').toLowerCase();
+        if (/price/.test(testText)) {
+          splitL = testW;
+          console.log(`[${id}] left table "Price" found at ${pct}% width (${testW}px)`);
+          break;
+        }
       }
+
+      // Scan from right side inward to find where the right table's "Location" starts
+      let splitR = Math.max(0, splitL - Math.floor(w * 0.15)); // default: overlap 15%
+
+      for (let pct = 55; pct >= 30; pct -= 5) {
+        const startX = Math.floor(w * pct / 100);
+        const testBuf = await sharp(buf)
+          .extract({ left: startX, top: 0, width: w - startX, height: headerH })
+          .png().toBuffer();
+        const { data: testData } = await Tesseract.recognize(testBuf, 'eng');
+        const testText = (testData.text || '').toLowerCase();
+        if (/location/.test(testText) && /price/.test(testText)) {
+          splitR = startX;
+          console.log(`[${id}] right table "Location" found starting at ${pct}% (${startX}px)`);
+          break;
+        }
+      }
+
+      console.log(`[${id}] adaptive crop — left: 0-${splitL}px, right: ${splitR}-${w}px`);
+
+      const leftBuf = await sharp(buf)
+        .extract({ left: 0, top: 0, width: splitL, height: h })
+        .png().toBuffer();
+      const rightBuf = await sharp(buf)
+        .extract({ left: splitR, top: 0, width: w - splitR, height: h })
+        .png().toBuffer();
+
+      // OCR each half separately
+      const { data: leftData } = await Tesseract.recognize(leftBuf, 'eng');
+      const leftText = normalizeOcr(leftData.text);
+      console.log(`[${id}] rep LEFT OCR · ${leftText.length} chars`);
+      console.log(`[${id}] rep LEFT preview:\n${leftText.slice(0, 500)}\n`);
+      repOcrTexts.push(leftText);
+
+      const { data: rightData } = await Tesseract.recognize(rightBuf, 'eng');
+      const rightText = normalizeOcr(rightData.text);
+      console.log(`[${id}] rep RIGHT OCR · ${rightText.length} chars`);
+      console.log(`[${id}] rep RIGHT preview:\n${rightText.slice(0, 500)}\n`);
+      repOcrTexts.push(rightText);
 
     } catch (repErr) {
       console.warn(`[${id}] rep image OCR failed (non-fatal): ${repErr.message}`);
