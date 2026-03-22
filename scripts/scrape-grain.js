@@ -1,0 +1,214 @@
+// scripts/scrape-grain.js
+// grow27 — grain cash bid scraper (orchestrator)
+// Runs via GitHub Actions daily at 7am CT.
+// Reads data/grain-config.json, writes data/prices/grain/<id>.json + data/prices/grain/index.json.
+//
+// Architecture:
+//   This file handles the common loop (launch browser, delegate parse, write output).
+//   Source-specific parsing lives in scripts/grain/<id>.js — each module exports
+//   a parse({ id, config, browser }) function returning the standard result shape.
+//   If no source-specific module exists, scripts/grain/_default.js is used.
+//
+// Deps: puppeteer (JS-rendered pages), cheerio (optional HTML parsing).
+// ─────────────────────────────────────────────────────────────────────────────
+
+'use strict';
+
+const fs   = require('fs');
+const path = require('path');
+
+// Lazy-require heavy deps — installed in GitHub Actions, not locally
+let puppeteer;
+function ensureDeps() {
+  if (!puppeteer) puppeteer = require('puppeteer');
+}
+
+const ROOT        = path.join(__dirname, '..');
+const CONFIG_PATH = path.join(ROOT, 'data', 'grain-config.json');
+const PRICES_DIR  = path.join(ROOT, 'data', 'prices', 'grain');
+const INDEX_PATH  = path.join(PRICES_DIR, 'index.json');
+
+const MAX_HISTORY  = 14;
+const MAX_AGE_DAYS = 14;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function trimHistory(history) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - MAX_AGE_DAYS);
+  const cutStr = cutoff.toISOString().slice(0, 10);
+  return history.filter(e => e.date >= cutStr).slice(-MAX_HISTORY);
+}
+
+// ── Grain parser loader ──────────────────────────────────────────────────────
+
+const GRAIN_DIR = path.join(__dirname, 'grain');
+
+function loadGrainParser(id) {
+  const specific = path.join(GRAIN_DIR, `${id}.js`);
+  if (fs.existsSync(specific)) {
+    console.log(`[${id}] using custom parser: grain/${id}.js`);
+    return require(specific);
+  }
+  console.log(`[${id}] no custom parser found — using grain/_default.js`);
+  return require(path.join(GRAIN_DIR, '_default.js'));
+}
+
+// ── Load / save helpers ──────────────────────────────────────────────────────
+
+function loadGrainFile(id, name) {
+  const p = path.join(PRICES_DIR, `${id}.json`);
+  try {
+    const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+    console.log(`[${id}] loaded ${p} · history length: ${data.history.length}`);
+    return data;
+  } catch (e) {
+    console.warn(`[${id}] could not load ${p} (${e.message}) — starting fresh`);
+    return { id, name, lastUpdated: today(), lastSuccess: null, history: [] };
+  }
+}
+
+function saveGrainFile(data) {
+  const p = path.join(PRICES_DIR, `${data.id}.json`);
+  try {
+    fs.writeFileSync(p, JSON.stringify(data, null, 2) + '\n');
+    console.log(`[${data.id}] wrote ${p} · history length: ${data.history.length}`);
+  } catch (e) {
+    console.error(`[${data.id}] WRITE FAILED: ${p} — ${e.message}`);
+    throw e;
+  }
+}
+
+// ── Trend helper ─────────────────────────────────────────────────────────────
+// Compares most recent nearby corn cash price to the previous day's
+
+function calcTrend(history, commodity = 'corn') {
+  const good = [...history]
+    .reverse()
+    .filter(e => e.source === 'scraped' && e.locations && Object.keys(e.locations).length > 0);
+  if (good.length < 2) return null;
+
+  // Find first location with data in both entries
+  for (const locKey of Object.keys(good[0].locations)) {
+    const cur  = good[0].locations[locKey]?.[commodity]?.[0]?.cash;
+    const prev = good[1].locations[locKey]?.[commodity]?.[0]?.cash;
+    if (cur != null && prev != null) {
+      const diff = cur - prev;
+      if (diff >  0.005) return 'up';
+      if (diff < -0.005) return 'down';
+      return 'flat';
+    }
+  }
+  return null;
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+
+async function run() {
+  const todayStr = today();
+  console.log(`\n=== grow27 grain scraper · ${todayStr} ===`);
+  console.log(`ROOT: ${ROOT}`);
+  console.log(`CONFIG: ${CONFIG_PATH}`);
+  console.log(`PRICES_DIR: ${PRICES_DIR}\n`);
+
+  // Ensure output directory exists
+  if (!fs.existsSync(PRICES_DIR)) {
+    fs.mkdirSync(PRICES_DIR, { recursive: true });
+    console.log(`Created ${PRICES_DIR}`);
+  }
+
+  const grainConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  console.log(`Loaded config · ${grainConfig.length} sources\n`);
+
+  const indexOut = [];
+
+  for (const config of grainConfig) {
+    const { id, name } = config;
+    console.log(`\n════ ${id} (${name}) ════`);
+
+    const grainData = loadGrainFile(id, name);
+    const parser = loadGrainParser(id);
+
+    let browser;
+    try {
+      ensureDeps();
+      console.log(`[${id}] launching Puppeteer...`);
+      browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+
+      const result = await parser.parse({ id, config, browser });
+
+      const entry = {
+        date:      todayStr,
+        locations: result.locations ?? {},
+        source:    result.source ?? 'scraped',
+      };
+      if (result.error) entry.error = result.error;
+      if (result.source === 'scraped') grainData.lastSuccess = todayStr;
+
+      const locCount = Object.keys(entry.locations).length;
+      const firstLoc = locCount > 0 ? Object.keys(entry.locations)[0] : 'none';
+      console.log(`[${id}] entry: ${locCount} locations scraped (first: ${firstLoc})`);
+
+      // Dedup by date, then append
+      grainData.history = trimHistory(grainData.history)
+        .filter(e => e.date !== todayStr);
+      grainData.history.push(entry);
+
+    } catch (err) {
+      console.error(`[${id}] SCRAPE FAILED: ${err.message}`);
+      const entry = {
+        date:      todayStr,
+        locations: {},
+        source:    'fetch_failed',
+        error:     err.message,
+      };
+      grainData.history = trimHistory(grainData.history)
+        .filter(e => e.date !== todayStr);
+      grainData.history.push(entry);
+    } finally {
+      if (browser) await browser.close();
+    }
+
+    grainData.lastUpdated = todayStr;
+    saveGrainFile(grainData);
+
+    indexOut.push(buildIndexRow(grainData, config));
+  }
+
+  fs.writeFileSync(INDEX_PATH, JSON.stringify(indexOut, null, 2) + '\n');
+  console.log('\n=== grain index.json updated ===');
+}
+
+// ── Build index row from history ─────────────────────────────────────────────
+
+function buildIndexRow(grainData, config) {
+  const recent = [...grainData.history]
+    .reverse()
+    .find(e => e.source === 'scraped' && Object.keys(e.locations).length > 0);
+
+  return {
+    id:          config.id,
+    name:        config.name,
+    url:         config.url,
+    lastSuccess: grainData.lastSuccess,
+    date:        recent?.date ?? null,
+    locations:   recent?.locations ?? {},
+    trend:       calcTrend(grainData.history),
+    source:      recent?.source ?? 'pending',
+  };
+}
+
+// ── Run if executed directly ─────────────────────────────────────────────────
+
+if (require.main === module) {
+  run().catch(err => {
+    console.error('Fatal:', err);
+    process.exit(1);
+  });
+}
