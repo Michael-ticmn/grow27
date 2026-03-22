@@ -13,7 +13,7 @@ const path      = require('path');
 const cheerio   = require('cheerio');
 const puppeteer = require('puppeteer');
 const Tesseract = require('tesseract.js');
-const Jimp       = require('jimp');
+const sharp      = require('sharp');
 
 const ROOT         = path.join(__dirname, '..');
 const CONFIG_PATH  = path.join(ROOT, 'data', 'barns-config.json');
@@ -198,18 +198,19 @@ async function scrapeBarns(config) {
       const buf = await resp.buffer();
       console.log(`[${id}] rep image downloaded · ${buf.length} bytes`);
 
-      // Crop into left and right halves
-      const img = await Jimp.read(buf);
-      const w = img.getWidth();
-      const h = img.getHeight();
+      // Crop into left and right halves using sharp
+      const meta = await sharp(buf).metadata();
+      const w = meta.width;
+      const h = meta.height;
       const halfW = Math.floor(w / 2);
       console.log(`[${id}] rep image size: ${w}x${h} — cropping at ${halfW}px`);
 
-      const leftImg = img.clone().crop(0, 0, halfW, h);
-      const rightImg = img.clone().crop(halfW, 0, w - halfW, h);
-
-      const leftBuf = await leftImg.getBufferAsync(Jimp.MIME_PNG);
-      const rightBuf = await rightImg.getBufferAsync(Jimp.MIME_PNG);
+      const leftBuf = await sharp(buf)
+        .extract({ left: 0, top: 0, width: halfW, height: h })
+        .png().toBuffer();
+      const rightBuf = await sharp(buf)
+        .extract({ left: halfW, top: 0, width: w - halfW, height: h })
+        .png().toBuffer();
 
       // OCR each half separately
       const { data: leftData } = await Tesseract.recognize(leftBuf, 'eng');
