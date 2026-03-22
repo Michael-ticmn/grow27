@@ -377,46 +377,63 @@ async function scrapeBarns(config) {
 
     // ── 6. Parse Representative Sales from OCR text (images 2 & 3) ─────────
     // The rep sales tables are PNG images, not HTML — parse from repOcrTexts[]
-    const repSales = { finished: [], feeder: [], bulls: [] };
+    // OCR reads side-by-side columns left-to-right, merging them into single
+    // lines like "RED WING, MN 1 HoLcow 1365 155.00 C Representative Sales: Ma"
+    // Pre-split on "Representative Sales" boundaries to separate merged content.
+    const repSales = { finished: [], feeder: [], bulls: [], cows: [] };
     try {
-      // Combine all rep OCR texts for parsing
       const allRepText = repOcrTexts.join('\n');
       if (allRepText.length > 0) {
         console.log(`[${id}] parsing rep sales from ${repOcrTexts.length} OCR images · ${allRepText.length} chars`);
 
-        const repLines = allRepText.split('\n').map(l => l.trim()).filter(Boolean);
+        const rawLines = allRepText.split('\n').map(l => l.trim()).filter(Boolean);
         let currentCategory = null;
 
-        // Regex for section headers
-        const SECTION_RE = /representative\s+sales[:\s]*(\w+)/i;
-        // Regex for sale rows: LOCATION, ST  [qty]  DESC DESC  weight  price
-        // OCR may vary — flexible pattern:
-        //   "ALBERT LEA, MN    1  BLK STR    1195    239.00"
-        //   "MAZEPPA, MN       2  XBRD HFR   1417    238.00"
-        //   "DODGE CENTER, MN  1  BLK STR    1345    23800"
-        // Pattern: city + state, then qty, then 1-3 word description, then weight, then price
+        // Pre-split: break merged lines on "Representative Sales" boundaries
+        // e.g. "data row here Representative Sales: Feeder Cattle" → 2 fragments
+        const fragments = [];
+        for (const line of rawLines) {
+          const parts = line.split(/(?=Representative\s+Sales)/i);
+          for (const part of parts) {
+            const trimmed = part.trim();
+            if (trimmed) fragments.push(trimmed);
+          }
+        }
+        console.log(`[${id}] rep OCR fragments: ${fragments.length} (from ${rawLines.length} raw lines)`);
+
+        // Section header regex — capture the full category after "Representative Sales:"
+        const SECTION_RE = /^Representative\s+Sales[:\s]+(.+)/i;
+
+        // Sale row regexes
+        // "ALBERT LEA, MN    1  BLK STR    1195    239.00"
+        // "MAZEPPA, MN       2  XBRD HFR   1417    238.00"
+        // "DODGE CENTER, MN  1  BLK STR    1345    23800"
         const SALE_ROW_RE = /^([A-Z][A-Z\s.]+,\s*[A-Z]{2})\s+(\d{1,3})\s+([A-Z][A-Z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)\s*$/;
-        // Looser fallback: allow lowercase OCR errors, no strict start anchor
         const SALE_ROW_LOOSE_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/;
 
-        for (const line of repLines) {
-          // Check for section headers
-          const secMatch = line.match(SECTION_RE);
+        for (const frag of fragments) {
+          // Check for section header
+          const secMatch = frag.match(SECTION_RE);
           if (secMatch) {
-            const secWord = secMatch[1].toLowerCase();
-            if (/finish/i.test(secWord)) currentCategory = 'finished';
-            else if (/feeder/i.test(secWord)) currentCategory = 'feeder';
-            else if (/bull/i.test(secWord)) currentCategory = 'bulls';
-            console.log(`[${id}] rep sales section: ${currentCategory} ("${line.slice(0, 60)}")`);
+            const secText = secMatch[1].trim().toLowerCase();
+            if (/finish/i.test(secText))            currentCategory = 'finished';
+            else if (/feeder\s*cattle/i.test(secText)) currentCategory = 'feeder';
+            else if (/calve/i.test(secText))         currentCategory = 'feeder';  // calves are young feeders
+            else if (/market\s*cow/i.test(secText))  currentCategory = 'cows';
+            else if (/market\s*bull/i.test(secText))  currentCategory = 'bulls';
+            else if (/^bull/i.test(secText))          currentCategory = 'bulls';
+            else if (/hog/i.test(secText))           currentCategory = null;  // skip hogs
+            else                                      currentCategory = null;  // unknown, skip
+            console.log(`[${id}] rep sales section: ${currentCategory} ("${frag.slice(0, 60)}")`);
             continue;
           }
 
           // Skip header/label rows
-          if (/location|description|weight|price|city|state/i.test(line) && !/[A-Z]{2,}\s+\d/.test(line)) continue;
+          if (/^location|^description|^city/i.test(frag)) continue;
           if (!currentCategory) continue;
 
           // Try strict match first, then loose
-          const m = line.match(SALE_ROW_RE) || line.match(SALE_ROW_LOOSE_RE);
+          const m = frag.match(SALE_ROW_RE) || frag.match(SALE_ROW_LOOSE_RE);
           if (!m) continue;
 
           const location = m[1].trim();
@@ -438,7 +455,7 @@ async function scrapeBarns(config) {
           // Map description to sex
           let sex = 'steer';
           if (/HFR/.test(descUpper)) sex = 'heifer';
-          else if (/BULL/.test(descUpper)) sex = 'bull';
+          else if (/BULL|BUL/.test(descUpper)) sex = 'bull';
           else if (/COW/.test(descUpper)) sex = 'cow';
 
           repSales[currentCategory].push({
@@ -446,7 +463,7 @@ async function scrapeBarns(config) {
           });
         }
 
-        console.log(`[${id}] rep sales parsed — finished: ${repSales.finished.length}, feeder: ${repSales.feeder.length}, bulls: ${repSales.bulls.length}`);
+        console.log(`[${id}] rep sales parsed — finished: ${repSales.finished.length}, feeder: ${repSales.feeder.length}, bulls: ${repSales.bulls.length}, cows: ${repSales.cows.length}`);
       } else {
         console.log(`[${id}] no rep OCR text available — skipping rep sales parse`);
       }
@@ -457,7 +474,7 @@ async function scrapeBarns(config) {
     // ── 7. Build weight-class averages from representative sales ─────────
     const finishByWeight = {};  // { "1200-1299": { beef: { sum, count }, crossbred: {...}, holstein: {...} } }
     const feederByWeight = {};
-    const headCount = { finished: 0, feeder: 0, bulls: 0 };
+    const headCount = { finished: 0, feeder: 0, bulls: 0, cows: 0 };
 
     for (const sale of repSales.finished) {
       headCount.finished += sale.qty;
@@ -482,6 +499,10 @@ async function scrapeBarns(config) {
 
     for (const sale of repSales.bulls) {
       headCount.bulls += sale.qty;
+    }
+
+    for (const sale of repSales.cows) {
+      headCount.cows += sale.qty;
     }
 
     // Convert to averages
@@ -511,7 +532,7 @@ async function scrapeBarns(config) {
     }
     feederWeightAvgs.sort((a, b) => parseInt(a.range) - parseInt(b.range));
 
-    console.log(`[${id}] head count — finished: ${headCount.finished}, feeder: ${headCount.feeder}, bulls: ${headCount.bulls}`);
+    console.log(`[${id}] head count — finished: ${headCount.finished}, feeder: ${headCount.feeder}, bulls: ${headCount.bulls}, cows: ${headCount.cows}`);
     console.log(`[${id}] finish weight avgs: ${finishWeightAvgs.length} buckets`);
     console.log(`[${id}] feeder weight avgs: ${feederWeightAvgs.length} buckets`);
 
