@@ -88,10 +88,22 @@
       "repSales": {
         "finishWeightAvgs": [
           {
+            "range": "1300-1399 lbs",
+            "type": "beef",
+            "avgPrice": 235.44,
+            "head": 8
+          },
+          {
             "range": "1500-1599 lbs",
             "type": "beef",
             "avgPrice": 234,
             "head": 1
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "crossbred",
+            "avgPrice": 230,
+            "head": 3
           },
           {
             "range": "1500-1599 lbs",
@@ -127,7 +139,7 @@
           }
         ],
         "headCount": {
-          "finished": 22,
+          "finished": 33,
           "feeder": 3,
           "bulls": 7,
           "cows": 21
