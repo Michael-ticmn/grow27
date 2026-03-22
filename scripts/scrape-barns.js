@@ -203,10 +203,20 @@ async function scrapeBarns(config) {
       console.log(`[${id}] rep image size: ${imgW}x${imgH}`);
 
       // Step 1: Full-image OCR to get word bounding boxes
+      // tesseract.js nests words inside blocks → paragraphs → lines → words
       const { data: fullData } = await Tesseract.recognize(buf, 'eng');
-      const allWords = (fullData.words || []).map(w => ({
-        text: w.text, x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1
-      }));
+      const allWords = [];
+      for (const block of (fullData.blocks || [])) {
+        for (const para of (block.paragraphs || [])) {
+          for (const line of (para.lines || [])) {
+            for (const word of (line.words || [])) {
+              allWords.push({
+                text: word.text, x0: word.bbox.x0, y0: word.bbox.y0, x1: word.bbox.x1, y1: word.bbox.y1
+              });
+            }
+          }
+        }
+      }
       console.log(`[${id}] full OCR: ${allWords.length} words`);
 
       // Step 2: Find "Location" and "Price" column header words
