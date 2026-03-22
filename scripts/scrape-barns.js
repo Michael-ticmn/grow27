@@ -188,6 +188,18 @@ async function scrapeBarns(config) {
       return extractLinePrice(cleaned);
     }
 
+    // Helper: extract the price specifically after "upto" keyword
+    // For two-column OCR lines like "Mixed Grading 21500-22300 owt 350 - 600% upto - 40500 cwt"
+    // we only want the number right after "upto", not the slaughter prices from the left column
+    function extractUptoPrice(line) {
+      const m = line.match(/upto\s*[-–]?\s*(\d{3,5}(?:\.\d{2})?)/i);
+      if (m) {
+        const v = normalizePrice(m[1]);
+        if (v !== null) return parseFloat(v.toFixed(2));
+      }
+      return null;
+    }
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const lower = line.toLowerCase();
@@ -222,8 +234,14 @@ async function scrapeBarns(config) {
         console.log(`[${id}] entered feeder section at line ${i}`);
       }
 
-      // In feeder section: "Beef Steers" (not "Finished") → feeder.beef
-      if (inFeederSection && /beef\s+steers/i.test(line) && !/finished/i.test(line)) {
+      // In feeder section: "Beef Steers & Bulls" is feeder-specific
+      // (OCR may merge columns: "Finished Beef Steers 22400 23900 owt Beef Steers & Bulls")
+      if (inFeederSection && /beef\s+steers\s*[&]\s*bulls/i.test(line)) {
+        feederBeefHeader = i;
+        console.log(`[${id}] feeder beef header at line ${i}: "${line}"`);
+      }
+      // Fallback: "Beef Steers" without "Finished" on its own line
+      else if (inFeederSection && /beef\s+steers/i.test(line) && !/finished/i.test(line)) {
         feederBeefHeader = i;
         const price = extractPriceSkipWeights(line);
         if (price !== null) {
@@ -233,6 +251,7 @@ async function scrapeBarns(config) {
       }
 
       // In feeder section: "Dairy Steers" (not "Finished") → feeder.holstein
+      // Also match if OCR merged columns (line has "Finished" but also "Dairy Steers lite test")
       if (inFeederSection && /dairy\s+steers/i.test(line) && !/finished/i.test(line)) {
         feederHolsteinHeader = i;
         const price = extractPriceSkipWeights(line);
@@ -243,19 +262,20 @@ async function scrapeBarns(config) {
       }
 
       // Look-ahead: if we're on a line right after a feeder header,
-      // try to grab the highest "upto" price as the top-end estimate
-      if (feeder.beef === null && feederBeefHeader >= 0 && i > feederBeefHeader && i <= feederBeefHeader + 6) {
+      // grab the first "upto" price (extracts number after "upto" keyword
+      // to avoid matching slaughter prices from the left column)
+      if (feeder.beef === null && feederBeefHeader >= 0 && i >= feederBeefHeader && i <= feederBeefHeader + 6) {
         if (/upto/i.test(line)) {
-          const price = extractPriceSkipWeights(line);
+          const price = extractUptoPrice(line);
           if (price !== null) {
             feeder.beef = price;
             console.log(`[${id}] feeder.beef = ${price} ✓ (from upto line ${i})`);
           }
         }
       }
-      if (feeder.holstein === null && feederHolsteinHeader >= 0 && i > feederHolsteinHeader && i <= feederHolsteinHeader + 6) {
+      if (feeder.holstein === null && feederHolsteinHeader >= 0 && i >= feederHolsteinHeader && i <= feederHolsteinHeader + 6) {
         if (/upto/i.test(line)) {
-          const price = extractPriceSkipWeights(line);
+          const price = extractUptoPrice(line);
           if (price !== null) {
             feeder.holstein = price;
             console.log(`[${id}] feeder.holstein = ${price} ✓ (from upto line ${i})`);
