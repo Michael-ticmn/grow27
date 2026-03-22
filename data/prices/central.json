@@ -88,82 +88,40 @@
       "repSales": {
         "finishWeightAvgs": [
           {
-            "range": "1100-1199 lbs",
-            "type": "beef",
-            "avgPrice": 239,
-            "head": 1
-          },
-          {
-            "range": "1200-1299 lbs",
-            "type": "crossbred",
-            "avgPrice": 237.5,
-            "head": 6
-          },
-          {
             "range": "1300-1399 lbs",
             "type": "beef",
-            "avgPrice": 227,
-            "head": 5
-          },
-          {
-            "range": "1400-1499 lbs",
-            "type": "crossbred",
-            "avgPrice": 232.55,
-            "head": 22
-          },
-          {
-            "range": "1400-1499 lbs",
-            "type": "beef",
-            "avgPrice": 235,
-            "head": 6
+            "avgPrice": 236,
+            "head": 11
           },
           {
             "range": "1500-1599 lbs",
             "type": "beef",
-            "avgPrice": 232.2,
-            "head": 5
-          },
-          {
-            "range": "1500-1599 lbs",
-            "type": "crossbred",
-            "avgPrice": 224.5,
-            "head": 9
-          },
-          {
-            "range": "1600-1699 lbs",
-            "type": "beef",
-            "avgPrice": 233.5,
-            "head": 3
-          },
-          {
-            "range": "1600-1699 lbs",
-            "type": "crossbred",
-            "avgPrice": 231,
-            "head": 8
-          },
-          {
-            "range": "1600-1699 lbs",
-            "type": "holstein",
-            "avgPrice": 207,
-            "head": 3
-          },
-          {
-            "range": "1700-1799 lbs",
-            "type": "beef",
-            "avgPrice": 229.5,
+            "avgPrice": 234,
             "head": 1
           },
           {
-            "range": "1700-1799 lbs",
+            "range": "1500-1599 lbs",
+            "type": "crossbred",
+            "avgPrice": 234,
+            "head": 3
+          },
+          {
+            "range": "1500-1599 lbs",
             "type": "holstein",
-            "avgPrice": 207,
-            "head": 4
+            "avgPrice": 211.5,
+            "head": 2
+          },
+          {
+            "range": "1600-1699 lbs",
+            "type": "holstein",
+            "avgPrice": 211.54,
+            "head": 17
           },
           {
             "range": "1800-1899 lbs",
             "type": "holstein",
-            "avgPrice": 204,
-            "head": 1
+            "avgPrice": 212.25,
+            "head": 6
           }
         ],
         "feederWeightAvgs": [
@@ -199,10 +157,10 @@
           }
         ],
         "headCount": {
-          "finished": 74,
+          "finished": 40,
           "feeder": 11,
-          "bulls": 8,
-          "cows": 39
+          "bulls": 11,
+          "cows": 21
         }
       },
       "source": "scraped"
