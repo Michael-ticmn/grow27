@@ -243,11 +243,16 @@ async function scrapeBarns(config) {
 
       console.log(`[${id}] adaptive crop — left: 0-${splitL}px, right: ${splitR}-${w}px`);
 
+      // Crop each half, then upscale 2x for better OCR accuracy on small text
       const leftBuf = await sharp(buf)
         .extract({ left: 0, top: 0, width: splitL, height: h })
+        .resize({ width: splitL * 2, height: h * 2, kernel: 'lanczos3' })
+        .sharpen()
         .png().toBuffer();
       const rightBuf = await sharp(buf)
         .extract({ left: splitR, top: 0, width: w - splitR, height: h })
+        .resize({ width: (w - splitR) * 2, height: h * 2, kernel: 'lanczos3' })
+        .sharpen()
         .png().toBuffer();
 
       // OCR each half separately
