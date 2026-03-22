@@ -850,41 +850,69 @@ function buildBarnTable() {
     const feederBadge = makeBadge(barnFeederSrc);
 
     // ── Finish weight rows ──
-    // If scraped finish prices exist, use them as the effective baseline for this type
-    const finishBase = (b.finishPrices && b.finishPrices.beef != null) ? b.finishPrices.beef : b.basePrice;
-    const finishRows = weightClasses.map(w => {
-      // For scraped barns with type-specific prices, anchor to the type price; otherwise use grade-adj off base
-      let price;
-      if(scraped && b.finishPrices[cattleType] != null) {
-        // Use the actual scraped type price + grade-schedule weight offset (no type discount)
-        price = (b.finishPrices[cattleType] + w.adj).toFixed(2);
-      } else if(scraped && b.finishPrices.beef != null) {
-        // Scraped but no type-specific price — fall back to beef minus discount
-        price = (b.finishPrices.beef + w.adj - disc).toFixed(2);
+    let finishRows, finishFoot;
+    const repFinish = b.repSales && b.repSales.finishWeightAvgs;
+    if (repFinish && repFinish.length) {
+      // Use real representative sales data — actual averages by weight class
+      const typeRows = repFinish.filter(r => r.type === cattleType);
+      if (typeRows.length) {
+        finishRows = typeRows.map(r => {
+          return `<tr>
+            <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${r.range} <span style="font-size:9px;opacity:.6;">${r.head} hd</span></td>
+            <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${r.avgPrice.toFixed(2)}¢</td>
+          </tr>`;
+        }).join('');
       } else {
-        price = (b.basePrice + w.adj - disc).toFixed(2);
+        finishRows = `<tr><td colspan="2" style="font-size:11px;color:var(--txt3);padding:8px;text-align:center;">No ${typeLabel} finish sales reported</td></tr>`;
       }
-      const isBase = w.adj === 0;
-      const srcNote = scraped && isBase ? ' <span style="font-size:9px;color:var(--up);opacity:.8;">barn reported</span>' : isBase ? ' <span style="font-size:9px;opacity:.6;">baseline</span>' : '';
-      return `<tr${isBase ? ' style="background:var(--bg3);"' : ''}>
-        <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}${srcNote}</td>
-        <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${price}¢</td>
-      </tr>`;
-    }).join('');
-    const finishFoot = scraped
-      ? `${b.name} sale report · USDA grade schedule adj`
-      : `${b.name} reported price · USDA grade schedule adj`;
+      finishFoot = `${b.name} · rep. sales sample avg`;
+    } else {
+      // Fallback: estimated weight offsets from baseline
+      finishRows = weightClasses.map(w => {
+        let price;
+        if(scraped && b.finishPrices[cattleType] != null) {
+          price = (b.finishPrices[cattleType] + w.adj).toFixed(2);
+        } else if(scraped && b.finishPrices.beef != null) {
+          price = (b.finishPrices.beef + w.adj - disc).toFixed(2);
+        } else {
+          price = (b.basePrice + w.adj - disc).toFixed(2);
+        }
+        const isBase = w.adj === 0;
+        const srcNote = scraped && isBase ? ' <span style="font-size:9px;color:var(--up);opacity:.8;">barn reported</span>' : isBase ? ' <span style="font-size:9px;opacity:.6;">baseline</span>' : '';
+        return `<tr${isBase ? ' style="background:var(--bg3);"' : ''}>
+          <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}${srcNote}</td>
+          <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${price}¢</td>
+        </tr>`;
+      }).join('');
+      finishFoot = scraped
+        ? `${b.name} sale report · weight estimates`
+        : `${b.name} reported price · weight estimates`;
+    }
 
     // ── Feeder weight rows ──
-    // Priority: scraped barn data → USDA sj_ls850.txt → blank
+    // Priority: rep sales → OCR feeder weights → USDA sj_ls850.txt → blank
     let feederRows = '';
     let feederFoot = '';
-    if(b.feederWeights && b.feederWeights.length) {
-      // Use barn's own scraped feeder data, filtered to relevant cattle type
+    const repFeeder = b.repSales && b.repSales.feederWeightAvgs;
+    if (repFeeder && repFeeder.length) {
+      // Use real representative sales data
+      const typeRows = repFeeder.filter(r => r.type === cattleType);
+      if (typeRows.length) {
+        feederRows = typeRows.map(r => {
+          return `<tr>
+            <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${r.range} <span style="font-size:9px;opacity:.6;">${r.head} hd</span></td>
+            <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${r.avgPrice.toFixed(2)}¢</td>
+          </tr>`;
+        }).join('');
+      } else {
+        feederRows = `<tr><td colspan="2" style="font-size:11px;color:var(--txt3);padding:8px;text-align:center;">No ${typeLabel} feeder sales reported</td></tr>`;
+      }
+      feederFoot = `${b.name} · rep. sales sample avg`;
+    } else if(b.feederWeights && b.feederWeights.length) {
+      // Fallback: OCR feeder weights from summary table
       const relevantWeights = b.feederWeights.filter(w => w.types.includes(cattleType));
       if(relevantWeights.length) {
         feederRows = relevantWeights.map(w => {
-          // Scraped feeder prices are already type-specific — no discount needed
           const adjP = w.price.toFixed(2);
           return `<tr>
             <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}</td>
@@ -927,6 +955,17 @@ function buildBarnTable() {
     const drawerHtml = `<tr class="barn-drawer" id="drawer-${key}">
       <td colspan="5">
         <div class="barn-detail-inner">
+          <div class="barn-drawer-mini">
+            <div class="barn-drawer-mini-header">Market Summary</div>
+            <div style="padding:6px 8px;font-size:11px;color:var(--txt2);line-height:1.6;">
+              ${b.saleDay ? `<div><span style="color:var(--txt3);">Sale Day:</span> ${b.saleDay}</div>` : ''}
+              ${b.reportDate ? `<div><span style="color:var(--txt3);">Report Date:</span> ${b.reportDate}</div>` : ''}
+              ${b.repSales && b.repSales.headCount ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Rep. Sales:</span> ${b.repSales.headCount.finished + b.repSales.headCount.feeder + b.repSales.headCount.bulls} hd reported</div><div style="padding-left:8px;font-size:10px;color:var(--txt3);">${b.repSales.headCount.finished} finished · ${b.repSales.headCount.feeder} feeder · ${b.repSales.headCount.bulls} bulls</div>` : ''}
+              ${scraped ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Slaughter:</span> ${b.finishPrices.beef != null ? b.finishPrices.beef.toFixed(2) + '¢ beef' : '—'}${b.finishPrices.crossbred != null ? ' · ' + b.finishPrices.crossbred.toFixed(2) + '¢ cross' : ''}${b.finishPrices.holstein != null ? ' · ' + b.finishPrices.holstein.toFixed(2) + '¢ holstein' : ''}</div>` : ''}
+              ${b.liteTestNote ? `<div style="margin-top:4px;color:var(--corn);font-style:italic;">${b.liteTestNote}</div>` : ''}
+            </div>
+            <div class="barn-drawer-mini-foot">${scraped ? b.name + ' · rep. sales sample, not all transactions' : b.name + ' · estimated'}</div>
+          </div>
           <div class="barn-drawer-mini">
             <div class="barn-drawer-mini-header">Finish Weights <span style="font-weight:400;color:var(--txt3);">slaughter ¢/lb</span></div>
             <table style="width:100%;border-collapse:collapse;">
@@ -987,7 +1026,16 @@ function buildBarnTable() {
 async function loadFeedInputPrices() {
   // Soybean meal futures via Stooq — ticker zm.f (CBOT ZM contract)
   try {
-    const r = await fetch('https://stooq.com/q/l/?s=zmw00.f&f=sd2t2ohlcv&h&e=csv');
+    const stooqUrl = 'https://stooq.com/q/l/?s=zmw00.f&f=sd2t2ohlcv&h&e=csv';
+    const proxies = [
+      'https://corsproxy.io/?' + encodeURIComponent(stooqUrl),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(stooqUrl),
+    ];
+    let r;
+    for (const p of proxies) {
+      try { r = await fetch(p, { signal: AbortSignal.timeout(8000) }); if (r.ok) break; } catch(_) {}
+    }
+    if (!r || !r.ok) throw new Error('all proxies failed');
     const t = await r.text();
     const cols = t.trim().split('\n')[1]?.split(',');
     if(cols) {
