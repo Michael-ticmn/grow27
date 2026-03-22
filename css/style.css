@@ -279,7 +279,7 @@
   .barn-drawer{display:none;}
   .barn-drawer--open{display:table-row;}
   .barn-drawer > td{padding:0;background:var(--bg2);border-bottom:2px solid var(--border);}
-  .barn-detail-inner{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;}
+  .barn-detail-inner{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:10px;}
   .barn-drawer-mini{background:var(--bg1);border-radius:5px;overflow:hidden;border:1px solid var(--border);}
   .barn-drawer-mini-header{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);padding:6px 8px;border-bottom:1px solid var(--border);background:var(--bg2);}
   .barn-drawer-mini table{width:100%;border-collapse:collapse;}

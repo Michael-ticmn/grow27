@@ -112,10 +112,12 @@ async function scrapeBarns(config) {
       return { slaughter: null, feeder: null, source: 'fetch_failed', error: fetchErr.message };
     }
 
+    // ── Parse HTML once for reuse ──────────────────────────────────────────
+    const $ = cheerio.load(html);
+
     // ── 2. Extract og:image URL containing "screenshot" ──────────────────
     let imageUrl;
     try {
-      const $ = cheerio.load(html);
       const ogImages = [];
       $('meta[property="og:image"]').each((_, el) => {
         const url = $(el).attr('content');
@@ -172,6 +174,8 @@ async function scrapeBarns(config) {
     const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
     const feederWeights = [];  // { range, price, types } per weight class
     let reportDate = null;  // extracted from "Market Report - MM/DD/YYYY"
+    let saleDay = null;     // extracted from "Monday - Cattle" or similar
+    let liteTestNote = null; // extracted from "lite test see Thur 3/5/26 Report"
 
     // Track whether we're in the feeder section (for liteTest detection)
     let inFeederSection = false;
@@ -217,6 +221,22 @@ async function scrapeBarns(config) {
           const yyyy = dm[3].length === 2 ? '20' + dm[3] : dm[3];
           reportDate = `${yyyy}-${mm}-${dd}`;
           console.log(`[${id}] report date: ${reportDate}`);
+        }
+      }
+
+      // ── Sale day extraction (e.g. "Monday - Cattle") ────────────────────
+      if (!saleDay && /^(monday|tuesday|wednesday|thursday|friday|saturday)\s*[-–]\s*cattle/i.test(line)) {
+        saleDay = line.match(/^(monday|tuesday|wednesday|thursday|friday|saturday)/i)[1];
+        saleDay = saleDay.charAt(0).toUpperCase() + saleDay.slice(1).toLowerCase();
+        console.log(`[${id}] sale day: ${saleDay}`);
+      }
+
+      // ── Lite test note extraction ────────────────────────────────────────
+      if (!liteTestNote && /lite\s*test\s*see/i.test(line)) {
+        const m = line.match(/lite\s*test\s*see\s+(.*)/i);
+        if (m) {
+          liteTestNote = 'lite test see ' + m[1].trim();
+          console.log(`[${id}] lite test note: ${liteTestNote}`);
         }
       }
 
@@ -332,7 +352,139 @@ async function scrapeBarns(config) {
       throw new Error('OCR returned no usable prices — text may be unreadable');
     }
 
-    return { slaughter, feeder, feederWeights, reportDate, source: 'scraped', error: null };
+    // ── 6. Parse Representative Sales HTML tables ──────────────────────────
+    // These tables have individual sale records with type, weight, and price
+    const repSales = { finished: [], feeder: [], bulls: [] };
+    try {
+      // Find table headers that indicate representative sales sections
+      $('td, th').each((_, el) => {
+        const text = $(el).text().trim();
+        let category = null;
+        if (/representative\s+sales:\s*finished/i.test(text)) category = 'finished';
+        else if (/representative\s+sales:\s*feeder/i.test(text)) category = 'feeder';
+        else if (/representative\s+sales:\s*bulls/i.test(text)) category = 'bulls';
+        if (!category) return;
+
+        // Walk up to find the table, then parse its rows
+        const table = $(el).closest('table');
+        if (!table.length) return;
+
+        table.find('tr').each((_, row) => {
+          const cells = $(row).find('td');
+          if (cells.length < 4) return;
+          const cellTexts = [];
+          cells.each((_, c) => cellTexts.push($(c).text().trim()));
+
+          // Expected: Location, [Qty], Description, Weight (#), Price
+          // Some rows have qty embedded, detect by checking if cell is a small number
+          let location, qty, desc, weight, price;
+          if (cells.length >= 5) {
+            location = cellTexts[0];
+            qty = parseInt(cellTexts[1]) || 1;
+            desc = cellTexts[2];
+            weight = parseFloat(cellTexts[3]);
+            price = parseFloat(cellTexts[4]);
+          } else {
+            location = cellTexts[0];
+            qty = 1;
+            desc = cellTexts[1];
+            weight = parseFloat(cellTexts[2]);
+            price = parseFloat(cellTexts[3]);
+          }
+
+          // Skip header rows and invalid data
+          if (!desc || isNaN(weight) || isNaN(price)) return;
+          if (/location|description/i.test(location)) return;
+
+          // Map description to cattle type
+          const descUpper = desc.toUpperCase();
+          let cattleType = 'beef';
+          if (/HOL/.test(descUpper)) cattleType = 'holstein';
+          else if (/XBRD|BKRD|BWF|RWF|CROSS/.test(descUpper)) cattleType = 'crossbred';
+
+          // Map description to sex
+          let sex = 'steer';
+          if (/HFR/.test(descUpper)) sex = 'heifer';
+          else if (/BULL/.test(descUpper)) sex = 'bull';
+          else if (/COW/.test(descUpper)) sex = 'cow';
+
+          repSales[category].push({
+            location, qty, desc, cattleType, sex, weight, price
+          });
+        });
+
+        console.log(`[${id}] rep sales ${category}: ${repSales[category].length} records`);
+      });
+    } catch (repErr) {
+      console.warn(`[${id}] rep sales parse error (non-fatal): ${repErr.message}`);
+    }
+
+    // ── 7. Build weight-class averages from representative sales ─────────
+    const finishByWeight = {};  // { "1200-1299": { beef: { sum, count }, crossbred: {...}, holstein: {...} } }
+    const feederByWeight = {};
+    const headCount = { finished: 0, feeder: 0, bulls: 0 };
+
+    for (const sale of repSales.finished) {
+      headCount.finished += sale.qty;
+      // Bucket into 100lb weight classes
+      const bucket = Math.floor(sale.weight / 100) * 100;
+      const range = `${bucket}-${bucket + 99}`;
+      if (!finishByWeight[range]) finishByWeight[range] = {};
+      if (!finishByWeight[range][sale.cattleType]) finishByWeight[range][sale.cattleType] = { sum: 0, count: 0 };
+      finishByWeight[range][sale.cattleType].sum += sale.price * sale.qty;
+      finishByWeight[range][sale.cattleType].count += sale.qty;
+    }
+
+    for (const sale of repSales.feeder) {
+      headCount.feeder += sale.qty;
+      const bucket = Math.floor(sale.weight / 100) * 100;
+      const range = `${bucket}-${bucket + 99}`;
+      if (!feederByWeight[range]) feederByWeight[range] = {};
+      if (!feederByWeight[range][sale.cattleType]) feederByWeight[range][sale.cattleType] = { sum: 0, count: 0 };
+      feederByWeight[range][sale.cattleType].sum += sale.price * sale.qty;
+      feederByWeight[range][sale.cattleType].count += sale.qty;
+    }
+
+    for (const sale of repSales.bulls) {
+      headCount.bulls += sale.qty;
+    }
+
+    // Convert to averages
+    const finishWeightAvgs = [];
+    for (const [range, types] of Object.entries(finishByWeight)) {
+      for (const [type, data] of Object.entries(types)) {
+        finishWeightAvgs.push({
+          range: range + ' lbs',
+          type,
+          avgPrice: parseFloat((data.sum / data.count).toFixed(2)),
+          head: data.count
+        });
+      }
+    }
+    finishWeightAvgs.sort((a, b) => parseInt(a.range) - parseInt(b.range));
+
+    const feederWeightAvgs = [];
+    for (const [range, types] of Object.entries(feederByWeight)) {
+      for (const [type, data] of Object.entries(types)) {
+        feederWeightAvgs.push({
+          range: range + ' lbs',
+          type,
+          avgPrice: parseFloat((data.sum / data.count).toFixed(2)),
+          head: data.count
+        });
+      }
+    }
+    feederWeightAvgs.sort((a, b) => parseInt(a.range) - parseInt(b.range));
+
+    console.log(`[${id}] head count — finished: ${headCount.finished}, feeder: ${headCount.feeder}, bulls: ${headCount.bulls}`);
+    console.log(`[${id}] finish weight avgs: ${finishWeightAvgs.length} buckets`);
+    console.log(`[${id}] feeder weight avgs: ${feederWeightAvgs.length} buckets`);
+
+    return {
+      slaughter, feeder, feederWeights, reportDate, saleDay, liteTestNote,
+      repSales: { finishWeightAvgs, feederWeightAvgs, headCount },
+      source: 'scraped', error: null
+    };
 
   } catch (parseErr) {
     console.error(`[${id}] PARSE ERROR: ${parseErr.message}`);
@@ -424,6 +576,9 @@ async function run() {
         slaughter: result.slaughter ?? { beef: null, crossbred: null, holstein: null },
         feeder:    result.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
         feederWeights: result.feederWeights ?? [],
+        saleDay:      result.saleDay ?? null,
+        liteTestNote: result.liteTestNote ?? null,
+        repSales:     result.repSales ?? null,
         source:    result.source,
       };
       if (result.error) entry.error = result.error;
@@ -457,6 +612,9 @@ async function run() {
       slaughter:    recent?.slaughter ?? { beef: null, crossbred: null, holstein: null },
       feeder:       recent?.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
       feederWeights: recent?.feederWeights ?? [],
+      saleDay:      recent?.saleDay ?? null,
+      liteTestNote: recent?.liteTestNote ?? null,
+      repSales:     recent?.repSales ?? null,
       trend:        calcTrend(barnData.history),
       source:       recent?.source ?? 'pending',
     });
