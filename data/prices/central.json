@@ -2,7 +2,7 @@
   "id": "central",
   "name": "Central Livestock Association",
   "location": "Zumbrota MN",
-  "lastUpdated": "2026-03-21",
+  "lastUpdated": "2026-03-22",
   "lastSuccess": null,
   "history": [
     {
@@ -20,6 +20,22 @@
       },
       "source": "fetch_failed",
       "error": "zero prices extracted — page structure may have changed"
+    },
+    {
+      "date": "2026-03-22",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "source": "fetch_failed",
+      "error": "fetch is not a function"
     }
   ]
 }
