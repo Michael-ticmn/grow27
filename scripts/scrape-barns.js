@@ -202,77 +202,38 @@ async function scrapeBarns(config) {
       const imgH = meta.height;
       console.log(`[${id}] rep image size: ${imgW}x${imgH}`);
 
-      // Step 1: Full-image OCR to get word bounding boxes
-      const { data: fullData } = await Tesseract.recognize(buf, 'eng');
+      // Step 1: Full-image OCR via worker API to get word bounding boxes
+      // The simple Tesseract.recognize() returns empty blocks/tsv objects.
+      // Using createWorker + worker.recognize populates structured output.
+      const worker = await Tesseract.createWorker('eng');
+      const { data: fullData } = await worker.recognize(buf);
+      await worker.terminate();
 
-      // Debug: log what properties tesseract.js returns
-      console.log(`[${id}] fullData keys: ${Object.keys(fullData).join(', ')}`);
-      console.log(`[${id}] fullData.text length: ${(fullData.text || '').length}`);
-      console.log(`[${id}] fullData.tsv type: ${typeof fullData.tsv}, length: ${(fullData.tsv || '').length}`);
-      console.log(`[${id}] fullData.blocks type: ${typeof fullData.blocks}, isArray: ${Array.isArray(fullData.blocks)}, length: ${(fullData.blocks || []).length}`);
-      console.log(`[${id}] fullData.words type: ${typeof fullData.words}, isArray: ${Array.isArray(fullData.words)}, length: ${(fullData.words || []).length}`);
-      if (fullData.blocks && fullData.blocks[0]) {
-        const b0 = fullData.blocks[0];
-        console.log(`[${id}] block[0] keys: ${Object.keys(b0).join(', ')}`);
-        if (b0.paragraphs && b0.paragraphs[0]) {
-          const p0 = b0.paragraphs[0];
-          console.log(`[${id}] para[0] keys: ${Object.keys(p0).join(', ')}`);
-          if (p0.lines && p0.lines[0]) {
-            const l0 = p0.lines[0];
-            console.log(`[${id}] line[0] keys: ${Object.keys(l0).join(', ')}`);
-            if (l0.words && l0.words[0]) {
-              const w0 = l0.words[0];
-              console.log(`[${id}] word[0]: ${JSON.stringify(w0).slice(0, 200)}`);
-            }
-          }
-        }
-      }
-      if (fullData.tsv) {
-        const tsvLines = fullData.tsv.split('\n').slice(0, 5);
-        console.log(`[${id}] TSV sample:\n${tsvLines.join('\n')}`);
-      }
-
-      // Try all possible word extraction methods
+      // Extract words with bounding boxes from HOCR output (most reliable)
+      // HOCR format: <span class='ocrx_word' title='bbox x0 y0 x1 y1; ...'>text</span>
       const allWords = [];
+      if (fullData.hocr && typeof fullData.hocr === 'string' && fullData.hocr.length > 0) {
+        const wordRe = /class='ocrx_word'[^>]*title='bbox (\d+) (\d+) (\d+) (\d+)[^']*'[^>]*>([^<]+)/g;
+        let m;
+        while ((m = wordRe.exec(fullData.hocr)) !== null) {
+          const text = m[5].trim();
+          if (text) allWords.push({ text, x0: +m[1], y0: +m[2], x1: +m[3], y1: +m[4] });
+        }
+        console.log(`[${id}] HOCR parsed: ${allWords.length} words`);
+      }
 
-      // Method A: nested blocks → paragraphs → lines → words
-      if (fullData.blocks) {
+      // Fallback: try blocks structure from worker API
+      if (allWords.length === 0 && Array.isArray(fullData.blocks)) {
         for (const block of fullData.blocks) {
           for (const para of (block.paragraphs || [])) {
             for (const line of (para.lines || [])) {
               for (const word of (line.words || [])) {
-                if (word.bbox) {
-                  allWords.push({ text: word.text, x0: word.bbox.x0, y0: word.bbox.y0, x1: word.bbox.x1, y1: word.bbox.y1 });
-                }
+                if (word.bbox) allWords.push({ text: word.text, x0: word.bbox.x0, y0: word.bbox.y0, x1: word.bbox.x1, y1: word.bbox.y1 });
               }
             }
           }
         }
-      }
-
-      // Method B: flat words array
-      if (allWords.length === 0 && fullData.words) {
-        for (const word of fullData.words) {
-          if (word.bbox) {
-            allWords.push({ text: word.text, x0: word.bbox.x0, y0: word.bbox.y0, x1: word.bbox.x1, y1: word.bbox.y1 });
-          }
-        }
-      }
-
-      // Method C: TSV parsing
-      if (allWords.length === 0 && fullData.tsv) {
-        for (const row of fullData.tsv.split('\n')) {
-          const cols = row.split('\t');
-          if (cols.length >= 12 && cols[0] === '5') {
-            const text = cols[11].trim();
-            if (!text) continue;
-            const left = parseInt(cols[6]);
-            const top = parseInt(cols[7]);
-            const cw = parseInt(cols[8]);
-            const ch = parseInt(cols[9]);
-            allWords.push({ text, x0: left, y0: top, x1: left + cw, y1: top + ch });
-          }
-        }
+        console.log(`[${id}] blocks parsed: ${allWords.length} words`);
       }
 
       console.log(`[${id}] full OCR: ${allWords.length} words extracted`);
