@@ -130,7 +130,7 @@ loadGrainPrices();
 loadCattlePrices();
 loadDairyPrices();
 loadBarnPrices();
-loadCentralLivestockData();
+loadScrapedBarnData().then(() => loadCentralLivestockData());
 loadFeedInputPrices();
 loadFeederWeightPrices();
 updateSlaughterWeightTable();

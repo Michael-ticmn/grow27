@@ -481,12 +481,56 @@ async function loadBarnPrices() {
   }
 }
 
-// ── CENTRAL LIVESTOCK SCRAPER ─────────────────────────────────────────────────
-// Fetches centrallivestock.com/monday---cattle.html and parses:
-//   finishPrices: { beef, crossbred, holstein }  — high end of reported range, ¢/cwt
-//   feederWeights: [{ range, priceHi, types }]   — feeder weight classes + price ceiling
+// ── LOAD PRE-SCRAPED BARN DATA (from GitHub Actions bot) ─────────────────────
+// Fetches data/prices/index.json written by scripts/scrape-barns.js
+// Populates BARNS_DATA with slaughter finishPrices for any barn with source='scraped'
+async function loadScrapedBarnData() {
+  try {
+    const r = await fetch('data/prices/index.json');
+    if (!r.ok) throw new Error('fetch ' + r.status);
+    const index = await r.json();
+
+    for (const entry of index) {
+      const b = BARNS_DATA[entry.id];
+      if (!b) continue;
+      if (entry.source !== 'scraped') continue;
+
+      // Slaughter → finishPrices
+      if (entry.slaughter) {
+        b.finishPrices = {
+          beef:      entry.slaughter.beef,
+          crossbred: entry.slaughter.crossbred,
+          holstein:  entry.slaughter.holstein,
+        };
+        if (entry.slaughter.beef != null) b.basePrice = entry.slaughter.beef;
+      }
+
+      b.dataSource = 'live';
+
+      // Report date from lastSuccess
+      if (entry.lastSuccess) {
+        const d = new Date(entry.lastSuccess + 'T12:00:00');
+        b.reportDate = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+    }
+
+    buildBarnTable();
+    console.log('[barn-data] loaded scraped prices from index.json');
+  } catch (e) {
+    console.warn('[barn-data] could not load index.json:', e.message, '— will fall back to CORS scraper');
+  }
+}
+
+// ── CENTRAL LIVESTOCK SCRAPER (CORS fallback) ────────────────────────────────
+// Falls back to scraping centrallivestock.com via CORS proxies if the
+// pre-scraped data from index.json is missing or stale.
 // Sets BARNS_DATA.central.dataSource = 'live' on success.
 async function loadCentralLivestockData() {
+  // Skip if pre-scraped data already loaded
+  if (BARNS_DATA.central.finishPrices && BARNS_DATA.central.dataSource === 'live') {
+    console.log('[central] skipping CORS scraper — pre-scraped data already loaded');
+    return;
+  }
   try {
     const url = 'https://www.centrallivestock.com/monday---cattle.html';
     // Try proxies in order — some block certain domains

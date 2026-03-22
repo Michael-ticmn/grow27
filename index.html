@@ -1085,8 +1085,46 @@
 </nav>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/markets.js"></script>
-<script src="js/app.js"></script>
+<script src="js/markets.js?v=1.16"></script>
+<script>
+// Load pre-scraped barn data from GitHub Actions bot (inline to bypass JS cache)
+// Self-executing: loads data immediately AND patches the CORS scraper to skip
+(async function() {
+  try {
+    const r = await fetch('data/prices/index.json');
+    if (!r.ok) throw new Error('fetch ' + r.status);
+    const index = await r.json();
+    for (const entry of index) {
+      const b = BARNS_DATA[entry.id];
+      if (!b || entry.source !== 'scraped') continue;
+      if (entry.slaughter) {
+        b.finishPrices = { beef: entry.slaughter.beef, crossbred: entry.slaughter.crossbred, holstein: entry.slaughter.holstein };
+        if (entry.slaughter.beef != null) b.basePrice = entry.slaughter.beef;
+      }
+      b.dataSource = 'live';
+      b._scrapeError = null;
+      if (entry.lastSuccess) {
+        const d = new Date(entry.lastSuccess + 'T12:00:00');
+        b.reportDate = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+    }
+    buildBarnTable();
+    console.log('[barn-data] loaded scraped prices from index.json');
+  } catch (e) {
+    console.warn('[barn-data] could not load index.json:', e.message);
+  }
+})();
+// Patch: replace CORS scraper so it skips when pre-scraped data is loaded
+var _origLoadCentral = loadCentralLivestockData;
+loadCentralLivestockData = async function() {
+  if (BARNS_DATA.central.finishPrices && BARNS_DATA.central.dataSource === 'live') {
+    console.log('[central] skipping CORS scraper — pre-scraped data already loaded');
+    return;
+  }
+  return _origLoadCentral();
+};
+</script>
+<script src="js/app.js?v=1.16"></script>
 
 <!-- ── MOBILE FEEDBACK FAB ── -->
 <a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.10%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
