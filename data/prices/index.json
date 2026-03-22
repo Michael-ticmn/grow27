@@ -77,13 +77,13 @@
         {
           "range": "1500-1599 lbs",
           "type": "beef",
-          "avgPrice": 230,
+          "avgPrice": 234,
           "head": 1
         },
         {
           "range": "1500-1599 lbs",
           "type": "crossbred",
-          "avgPrice": 234,
+          "avgPrice": 230,
           "head": 3
         },
         {
@@ -95,7 +95,7 @@
         {
           "range": "1600-1699 lbs",
           "type": "holstein",
-          "avgPrice": 213.69,
+          "avgPrice": 211.48,
           "head": 13
         },
         {
@@ -117,13 +117,19 @@
           "type": "beef",
           "avgPrice": 350,
           "head": 2
+        },
+        {
+          "range": "mixed wt",
+          "type": "holstein",
+          "avgPrice": 280,
+          "head": 2
         }
       ],
       "headCount": {
         "finished": 33,
-        "feeder": 9,
-        "bulls": 7,
-        "cows": 21
+        "feeder": 5,
+        "bulls": 8,
+        "cows": 20
       }
     },
     "trend": null,
