@@ -49,6 +49,8 @@ function normalizePrice(raw) {
   if (raw.includes('.')) return (v >= 100 && v <= 400) ? v : null;
   // 5-digit integer (e.g. 22400 → 224.00, 40500 → 405.00)
   if (v >= 10000 && v <= 50000) return v / 100;
+  // 4-digit integer (e.g. 2300 → 230.0, 2375 → 237.5) — OCR drops trailing zero
+  if (v >= 1000 && v <= 5000) return v / 10;
   // 3-digit integer in valid range (e.g. 235 → 235.00)
   if (v >= 100 && v <= 400) return v;
   return null;
@@ -159,11 +161,20 @@ async function scrapeBarns(config) {
     }
 
   // ── 4. Run Tesseract OCR on main image ────────────────────────────────
+  // Normalize OCR text: force ASCII English characters — barn reports are
+  // English-only so any non-ASCII is an OCR artifact (Ñ for X, ó for o, etc.)
+  function normalizeOcr(text) {
+    return text
+      .replace(/\u00d1/g, 'X')    // Ñ → X (common OCR misread)
+      .replace(/\u00f1/g, 'x')    // ñ → x
+      .replace(/[^\x20-\x7E\n\r\t]/g, '');  // strip remaining non-ASCII
+  }
+
   let ocrText;
   try {
     console.log(`[${id}] running Tesseract OCR on main image...`);
     const { data } = await Tesseract.recognize(imgBuffer, 'eng');
-    ocrText = data.text;
+    ocrText = normalizeOcr(data.text);
     console.log(`[${id}] OCR complete · ${ocrText.length} chars`);
     console.log(`[${id}] OCR text preview:\n${ocrText.slice(0, 1000)}\n`);
   } catch (ocrErr) {
@@ -182,9 +193,9 @@ async function scrapeBarns(config) {
       const buf = await resp.buffer();
       console.log(`[${id}] rep image downloaded · ${buf.length} bytes`);
       const { data } = await Tesseract.recognize(buf, 'eng');
-      repOcrTexts.push(data.text);
-      console.log(`[${id}] rep OCR complete · ${data.text.length} chars`);
-      console.log(`[${id}] rep OCR preview:\n${data.text.slice(0, 500)}\n`);
+      repOcrTexts.push(normalizeOcr(data.text));
+      console.log(`[${id}] rep OCR complete · ${repOcrTexts[repOcrTexts.length - 1].length} chars`);
+      console.log(`[${id}] rep OCR preview:\n${repOcrTexts[repOcrTexts.length - 1].slice(0, 500)}\n`);
     } catch (repErr) {
       console.warn(`[${id}] rep image OCR failed (non-fatal): ${repErr.message}`);
     }
@@ -405,13 +416,13 @@ async function scrapeBarns(config) {
         const SECTION_RE = /^Representative\s+Sales[:\s]+(.+)/i;
 
         // Sale row regex (loose — allows OCR case errors like BiKsTR)
-        // Sale row regex: allow non-ASCII chars in description (OCR produces
-        // Ñ for X, ó for ¢, etc.) — use \S for description start char
-        const SALE_ROW_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2,3})\s+(\d{1,3})\s+(\S[\w\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/g;
+        // Sale row regex (all OCR text is now ASCII-normalized)
+        const SALE_ROW_RE = /([A-Za-z][A-Za-z\s.]+,\s*[A-Za-z]{2,3})\s+(\d{1,3})\s+([A-Za-z][A-Za-z\s\/]{2,20}?)\s+(\d{3,4})\s+(\d{3,6}(?:\.\d{2})?)/g;
 
-        // Cattle breed/sex filter — prevents hog rows from leaking in.
-        // ST\/H = "Steers/Heifers" (OCR merges breed+sex: "BKRDST/H")
-        const CATTLE_DESC_RE = /STR|ST\/H|HFR|COW|BULL|BUL|CALF|CLF/i;
+        // Hog filter — reject known hog/swine descriptions.
+        // OCR garbles cattle breed codes (BLK→BHR, BLK STR→BSR) so a positive
+        // cattle filter misses valid cattle. Instead, reject known non-cattle.
+        const HOG_DESC_RE = /MKT|HOG|SOW|BOAR|GILT|PIG|PORK/i;
 
         // Category mapper
         function mapCategory(secText) {
@@ -441,16 +452,16 @@ async function scrapeBarns(config) {
 
           const price = normalizePrice(rawPrice);
           if (price === null || weight < 200 || weight > 2500) return;
-          if (!CATTLE_DESC_RE.test(desc)) return;
+          if (HOG_DESC_RE.test(desc)) return;  // reject hogs/swine
 
           // Map description to cattle type
-          // OCR commonly reads "BLK" as "BIK"/"BiK" (L→I misread)
+          // OCR commonly reads "BLK" as "BIK"/"BiK"/"BK" (L→I misread)
+          // normalizeOcr() already converted Ñ→X so XBRD matches directly
           const descUpper = desc.toUpperCase();
           let cattleType = 'beef';
           if (/HOL/i.test(descUpper)) cattleType = 'holstein';
           else if (/XBRD|BKRD|BWF|RWF|CROSS/i.test(descUpper)) cattleType = 'crossbred';
-          else if (/\u00d1BRD/i.test(desc)) cattleType = 'crossbred';  // OCR: Ñ for X
-          // BLK, BIK, RED, CHAR, WF, ANG, SIM, etc. all default to beef
+          // BLK, BIK, BK, RED, CHAR, WF, ANG, SIM, etc. all default to beef
 
           let sex = 'steer';
           if (/ST\/H/.test(descUpper)) sex = 'mixed';  // steers/heifers
