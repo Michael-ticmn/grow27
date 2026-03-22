@@ -2,8 +2,8 @@
 // grow27 — auction barn price scraper
 // Runs via GitHub Actions daily at 7am CT.
 // Reads data/barns-config.json, writes data/prices/<id>.json + data/prices/index.json.
-// Deps: cheerio (HTML parsing), puppeteer (JS-rendered pages),
-//       tesseract.js (OCR), node-fetch (image download).
+// Deps: cheerio (HTML parsing), puppeteer (JS-rendered pages + image download),
+//       tesseract.js (OCR).
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -13,7 +13,6 @@ const path      = require('path');
 const cheerio   = require('cheerio');
 const puppeteer = require('puppeteer');
 const Tesseract = require('tesseract.js');
-const fetch     = require('node-fetch');
 
 const ROOT         = path.join(__dirname, '..');
 const CONFIG_PATH  = path.join(ROOT, 'data', 'barns-config.json');
@@ -52,72 +51,70 @@ function extractLinePrice(line) {
   return null;
 }
 
-// ── Puppeteer fetch (handles JS-rendered pages) ─────────────────────────────
-
-async function fetchRenderedHtml(url) {
-  const browser = await puppeteer.launch({
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-  await new Promise(r => setTimeout(r, 3000));
-  const html = await page.content();
-  await browser.close();
-  return html;
-}
-
 // ── OCR-based scraper (for barns that publish report as PNG image) ───────────
 
 async function scrapeBarns(config) {
   const { id, reportUrl } = config;
 
-  // ── 1. Fetch rendered HTML via Puppeteer ────────────────────────────────
-  let html;
+  let browser;
   try {
-    console.log(`[${id}] launching Puppeteer for: ${reportUrl}`);
-    html = await fetchRenderedHtml(reportUrl);
-    console.log(`[${id}] fetch OK · ${html.length} bytes`);
-    if (html.length < 500) throw new Error('response too short — likely blocked or empty');
-  } catch (fetchErr) {
-    console.error(`[${id}] FETCH FAILED: ${fetchErr.message}`);
-    return { slaughter: null, feeder: null, source: 'fetch_failed', error: fetchErr.message };
-  }
+    // ── 1. Fetch rendered HTML via Puppeteer ──────────────────────────────
+    let html;
+    try {
+      console.log(`[${id}] launching Puppeteer for: ${reportUrl}`);
+      browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+      const page = await browser.newPage();
+      await page.goto(reportUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+      await new Promise(r => setTimeout(r, 3000));
+      html = await page.content();
+      console.log(`[${id}] fetch OK · ${html.length} bytes`);
+      if (html.length < 500) throw new Error('response too short — likely blocked or empty');
+    } catch (fetchErr) {
+      console.error(`[${id}] FETCH FAILED: ${fetchErr.message}`);
+      return { slaughter: null, feeder: null, source: 'fetch_failed', error: fetchErr.message };
+    }
 
-  // ── 2. Extract og:image URL containing "screenshot" ────────────────────
-  let imageUrl;
-  try {
-    const $ = cheerio.load(html);
-    const ogImages = [];
-    $('meta[property="og:image"]').each((_, el) => {
-      const url = $(el).attr('content');
-      if (url) ogImages.push(url);
-    });
-    console.log(`[${id}] og:image URLs found: ${ogImages.length}`);
-    ogImages.forEach((u, i) => console.log(`[${id}]   [${i}] ${u}`));
+    // ── 2. Extract og:image URL containing "screenshot" ──────────────────
+    let imageUrl;
+    try {
+      const $ = cheerio.load(html);
+      const ogImages = [];
+      $('meta[property="og:image"]').each((_, el) => {
+        const url = $(el).attr('content');
+        if (url) ogImages.push(url);
+      });
+      console.log(`[${id}] og:image URLs found: ${ogImages.length}`);
+      ogImages.forEach((u, i) => console.log(`[${id}]   [${i}] ${u}`));
 
-    // Prefer URL containing "screenshot" in the filename
-    imageUrl = ogImages.find(u => /screenshot/i.test(u))
-            || ogImages.find(u => /report|market|cattle|price/i.test(u))
-            || ogImages[0];
+      // Prefer URL containing "screenshot" in the filename
+      imageUrl = ogImages.find(u => /screenshot/i.test(u))
+              || ogImages.find(u => /report|market|cattle|price/i.test(u))
+              || ogImages[0];
 
-    if (!imageUrl) throw new Error('no og:image meta tag found');
-    console.log(`[${id}] selected image URL: ${imageUrl}`);
-  } catch (imgErr) {
-    console.error(`[${id}] IMAGE EXTRACT FAILED: ${imgErr.message}`);
-    return { slaughter: null, feeder: null, source: 'fetch_failed', error: imgErr.message };
-  }
+      if (!imageUrl) throw new Error('no og:image meta tag found');
+      console.log(`[${id}] selected image URL: ${imageUrl}`);
+    } catch (imgErr) {
+      console.error(`[${id}] IMAGE EXTRACT FAILED: ${imgErr.message}`);
+      return { slaughter: null, feeder: null, source: 'fetch_failed', error: imgErr.message };
+    }
 
-  // ── 3. Download PNG as buffer via node-fetch ───────────────────────────
-  let imgBuffer;
-  try {
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) throw new Error(`HTTP ${imgRes.status}`);
-    imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-    console.log(`[${id}] image downloaded · ${imgBuffer.length} bytes`);
-  } catch (dlErr) {
-    console.error(`[${id}] IMAGE DOWNLOAD FAILED: ${dlErr.message}`);
-    return { slaughter: null, feeder: null, source: 'fetch_failed', error: dlErr.message };
-  }
+    // ── 3. Download PNG via Puppeteer (avoids 403 from bare fetch) ────────
+    let imgBuffer;
+    try {
+      const page = await browser.newPage();
+      const imgResponse = await page.goto(imageUrl, {
+        waitUntil: 'networkidle2',
+        timeout: 15000,
+      });
+      if (!imgResponse.ok()) throw new Error(`HTTP ${imgResponse.status()}`);
+      imgBuffer = await imgResponse.buffer();
+      console.log(`[${id}] image downloaded via Puppeteer · ${imgBuffer.length} bytes`);
+    } catch (dlErr) {
+      console.error(`[${id}] IMAGE DOWNLOAD FAILED: ${dlErr.message}`);
+      return { slaughter: null, feeder: null, source: 'fetch_failed', error: dlErr.message };
+    }
 
   // ── 4. Run Tesseract OCR ──────────────────────────────────────────────
   let ocrText;
@@ -214,6 +211,10 @@ async function scrapeBarns(config) {
   } catch (parseErr) {
     console.error(`[${id}] PARSE ERROR: ${parseErr.message}`);
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: parseErr.message };
+  }
+
+  } finally {
+    if (browser) await browser.close();
   }
 }
 
