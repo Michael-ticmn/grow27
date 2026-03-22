@@ -202,14 +202,15 @@ async function scrapeBarns(config) {
       const meta = await sharp(buf).metadata();
       const w = meta.width;
       const h = meta.height;
-      const halfW = Math.floor(w / 2);
-      console.log(`[${id}] rep image size: ${w}x${h} — cropping at ${halfW}px`);
+      const splitL = Math.floor(w * 0.6);   // left table takes ~60% of width
+      const splitR = Math.floor(w * 0.45);  // right half starts at 45% — overlap avoids gap
+      console.log(`[${id}] rep image size: ${w}x${h} — left crop 0-${splitL}px, right crop ${splitR}-${w}px`);
 
       const leftBuf = await sharp(buf)
-        .extract({ left: 0, top: 0, width: halfW, height: h })
+        .extract({ left: 0, top: 0, width: splitL, height: h })
         .png().toBuffer();
       const rightBuf = await sharp(buf)
-        .extract({ left: halfW, top: 0, width: w - halfW, height: h })
+        .extract({ left: splitR, top: 0, width: w - splitR, height: h })
         .png().toBuffer();
 
       // OCR each half separately
