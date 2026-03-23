@@ -119,5 +119,11 @@ Do not set, use, or reference any ANTHROPIC_API_KEY environment variable.
 
 ---
 
+## Browser Usage
+Never open Chrome. If a browser is required, use Microsoft Edge only.
+Do not access saved credentials, autofill data, or browser storage from any browser.
+
+---
+
 ## Never touch directly
 Never edit files directly on main. All changes to index.html, js/, and css/ must be made on UserUpdates and promoted to main via push-main.ps1

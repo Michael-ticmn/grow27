@@ -145,6 +145,7 @@ async function run() {
 
       const entry = {
         date:      todayStr,
+        scrapedAt: new Date().toISOString(),
         locations: result.locations ?? {},
         source:    result.source ?? 'scraped',
       };
@@ -198,6 +199,7 @@ function buildIndexRow(grainData, config) {
     url:         config.url,
     lastSuccess: grainData.lastSuccess,
     date:        recent?.date ?? null,
+    scrapedAt:   recent?.scrapedAt ?? null,
     locations:   recent?.locations ?? {},
     trend:       calcTrend(grainData.history),
     source:      recent?.source ?? 'pending',
