@@ -228,7 +228,63 @@ async function loadCattlePrices(){
   calc();renderSeasonal();
   updateSlaughterWeightTable();
   buildBarnTable(); // refresh feeder avg column now that CATTLE_DATA.fc is loaded
+  updateCattleInsight();
   markUpdated();
+}
+
+// Best-barn insight for cattle — shows top slaughter and feeder barn for current type
+function updateCattleInsight() {
+  var el = document.getElementById('cattle-insight');
+  if (!el) return;
+  var type = typeof cattleType !== 'undefined' ? cattleType : 'beef';
+  var typeLabel = CATTLE_TYPE_DISCOUNTS[type].label;
+  var bestSlaughter = null, bestSlaughterName = '', slaughterSrc = '', slaughterCount = 0;
+  var bestFeeder = null, bestFeederName = '', feederSrc = '', feederCount = 0;
+
+  for (var key in BARNS_DATA) {
+    var b = BARNS_DATA[key];
+    // Slaughter: prefer rep sales head-weighted avg, then finishPrices
+    var sp = null, spSrc = '';
+    var rep = b.repSales && b.repSales.finishWeightAvgs;
+    if (rep && rep.length) {
+      var rows = rep.filter(function(r) { return r.type === type; });
+      var th = 0, ws = 0;
+      rows.forEach(function(r) { th += r.head; ws += r.avgPrice * r.head; });
+      if (th > 0) { sp = ws / th; spSrc = 'actual'; }
+    }
+    if (sp === null && b.finishPrices && b.finishPrices[type] != null) { sp = b.finishPrices[type]; spSrc = 'posted'; }
+    if (sp !== null) { slaughterCount++; if (bestSlaughter === null || sp > bestSlaughter) { bestSlaughter = sp; bestSlaughterName = b.name; slaughterSrc = spSrc; } }
+
+    // Feeder: prefer rep sales head-weighted avg, then _feederScraped
+    var fp = null, fpSrc = '';
+    var repF = b.repSales && b.repSales.feederWeightAvgs;
+    if (repF && repF.length) {
+      var frows = repF.filter(function(r) { return r.type === type; });
+      var fth = 0, fws = 0;
+      frows.forEach(function(r) { fth += r.head; fws += r.avgPrice * r.head; });
+      if (fth > 0) { fp = fws / fth; fpSrc = 'actual'; }
+    }
+    if (fp === null && b._feederScraped && b._feederScraped[type] != null) { fp = b._feederScraped[type]; fpSrc = 'posted'; }
+    if (fp !== null) { feederCount++; if (bestFeeder === null || fp > bestFeeder) { bestFeeder = fp; bestFeederName = b.name; feederSrc = fpSrc; } }
+  }
+
+  if (bestSlaughter !== null || bestFeeder !== null) {
+    var parts = [];
+    var slTag = slaughterSrc === 'posted' ? ' <span style="font-size:10px;color:var(--txt3);">(posted)</span>' : '';
+    var fdTag = feederSrc === 'posted' ? ' <span style="font-size:10px;color:var(--txt3);">(posted)</span>' : '';
+    var slCount = ' <span style="font-size:10px;color:var(--txt3);">(of ' + slaughterCount + ')</span>';
+    var fdCount = ' <span style="font-size:10px;color:var(--txt3);">(of ' + feederCount + ')</span>';
+    if (bestSlaughter !== null) parts.push('Best ' + typeLabel.toLowerCase() + ' slaughter: <strong>' + bestSlaughterName + ' ' + bestSlaughter.toFixed(2) + '¢</strong>' + slTag + slCount);
+    if (bestFeeder !== null) parts.push('Best feeder: <strong>' + bestFeederName + ' ' + bestFeeder.toFixed(2) + '¢</strong>' + fdTag + fdCount);
+    el.innerHTML = parts.join(' · ');
+    return;
+  }
+
+  // Fallback — CBOT summary if no barn data
+  if (CATTLE_DATA.lc) {
+    var lc = CATTLE_DATA.lc, fc = CATTLE_DATA.fc;
+    el.innerHTML = 'Live cattle <strong>' + lc.price.toFixed(2) + '¢/lb</strong>, feeder <strong>' + (fc ? fc.price.toFixed(2) : '—') + '¢/lb</strong>';
+  }
 }
 
 // ── CATTLE CHARTS ─────────────────────────────────────────────────────────────
@@ -396,7 +452,7 @@ function sortedElevatorKeys(){const keys=Object.keys(ELEVATORS);if(!userLat)retu
 function onElevChange(){const key=document.getElementById('elev-select').value;const disp=document.getElementById('elev-basis-display');const distEl=document.getElementById('elev-dist-display');if(!key){disp.style.display='none';distEl.textContent='';updateGrainInsight();return;}const e=ELEVATORS[key];let html='<strong>'+e.name+'</strong> — Corn basis: ';const cb=e.cornBasis;html+='<span style="color:'+(cb>=0?'var(--up)':'var(--down)')+'">'+(cb>=0?'+':'')+cb.toFixed(2)+'</span>';if(e.soyBasis!==null){const sb=e.soyBasis;html+='  &nbsp;·&nbsp;  Soy basis: <span style="color:'+(sb>=0?'var(--up)':'var(--down)')+'">'+(sb>=0?'+':'')+sb.toFixed(2)+'</span>';}else{html+='  &nbsp;·&nbsp;  <span style="color:var(--txt3)">Soy: N/A</span>';}disp.innerHTML=html;disp.style.display='';if(userLat&&userLon){const d=Math.round(distMiles(userLat,userLon,e.lat,e.lon));distEl.textContent='~'+d+' mi away';}highlightTableRow(key);updateGrainInsight();}
 function highlightTableRow(key){document.querySelectorAll('#cash-table-body tr').forEach(tr=>tr.classList.toggle('selected',tr.dataset.key===key));}
 function selectFromTable(key){document.getElementById('elev-select').value=key;onElevChange();}
-function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');if(!sel)return;const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;else if(userLat&&sorted.length){sel.value=sorted[0];onElevChange();}}
+function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');if(!sel)return;const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;}
 function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(e.cornActual&&e.cornCash!=null)?e.cornCash.toFixed(4):(cornFut+e.cornBasis).toFixed(4);const soyCash=e.soyBasis===null?'—':((e.soyActual&&e.soyCash!=null)?e.soyCash.toFixed(4):(soyFut+e.soyBasis).toFixed(4));const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';function fmtScrapeBadge(d){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';const stale=(Date.now()-dt.getTime())>24*60*60*1000;const color=stale?'var(--down)':'var(--up)';const inner=tm?mo+'<br>'+tm:mo;return`<span class="scrape-badge" style="margin-left:4px;font-size:8px;color:${color};border:1px solid ${color};border-radius:3px;padding:1px 4px;display:inline-block;line-height:1.3;text-align:center;" title="Basis scraped ${d}">${inner}</span>`;}const cornBadge=e.cornActual?fmtScrapeBadge(e.cornActualDate):'';const soyBadge=e.soyActual?fmtScrapeBadge(e.soyActualDate):'';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}${cornBadge}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash+soyBadge:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
 function updateGrainInsight(){
   const el=document.getElementById('grain-insight');
@@ -416,15 +472,15 @@ function updateGrainInsight(){
   }
 
   // No buyer selected or no actual data — show best actual prices
-  let bestCorn=null,bestCornName='',bestSoy=null,bestSoyName='';
+  let bestCorn=null,bestCornName='',bestSoy=null,bestSoyName='',cornCount=0,soyCount=0;
   for(const[k,e]of Object.entries(ELEVATORS)){
-    if(e.cornActual&&e.cornCash!=null&&(bestCorn===null||e.cornCash>bestCorn)){bestCorn=e.cornCash;bestCornName=e.name;}
-    if(e.soyActual&&e.soyCash!=null&&(bestSoy===null||e.soyCash>bestSoy)){bestSoy=e.soyCash;bestSoyName=e.name;}
+    if(e.cornActual&&e.cornCash!=null){cornCount++;if(bestCorn===null||e.cornCash>bestCorn){bestCorn=e.cornCash;bestCornName=e.name;}}
+    if(e.soyActual&&e.soyCash!=null){soyCount++;if(bestSoy===null||e.soyCash>bestSoy){bestSoy=e.soyCash;bestSoyName=e.name;}}
   }
   if(bestCorn!==null||bestSoy!==null){
     const parts=[];
-    if(bestCorn!==null)parts.push('Best corn: <strong>'+bestCornName+' $'+bestCorn.toFixed(4)+'</strong>');
-    if(bestSoy!==null)parts.push('Best beans: <strong>'+bestSoyName+' $'+bestSoy.toFixed(4)+'</strong>');
+    if(bestCorn!==null)parts.push('Best corn: <strong>'+bestCornName+' $'+bestCorn.toFixed(4)+'</strong> <span style="font-size:10px;color:var(--txt3);">(of '+cornCount+')</span>');
+    if(bestSoy!==null)parts.push('Best beans: <strong>'+bestSoyName+' $'+bestSoy.toFixed(4)+'</strong> <span style="font-size:10px;color:var(--txt3);">(of '+soyCount+')</span>');
     el.innerHTML=parts.join(' · ')+tsStr;
     return;
   }
@@ -645,18 +701,8 @@ function setCattleType(type) {
     if(spVal){ setFieldVal('sp-val', adjPrice); }
     calc();
   }
-  // Update insight strip with type context
-  const typeLabel = CATTLE_TYPE_DISCOUNTS[type].label;
-  const disc = CATTLE_TYPE_DISCOUNTS[type].discountCwt;
-  const insightEl = document.getElementById('cattle-insight');
-  if(insightEl && CATTLE_DATA.lc) {
-    const adjPrice = (CATTLE_DATA.lc.price - disc).toFixed(2);
-    if(disc > 0) {
-      insightEl.innerHTML = '<strong>'+typeLabel+'</strong> selected — estimated market price <strong>'+adjPrice+'¢/lb</strong> (−'+disc.toFixed(2)+' discount vs beef steer baseline).';
-    } else {
-      insightEl.innerHTML = '<strong>'+typeLabel+'</strong> selected — baseline price <strong>'+adjPrice+'¢/lb</strong>.';
-    }
-  }
+  // Update insight strip with best barn prices for this type
+  updateCattleInsight();
 }
 
 // Auction barn data — base prices per cwt (beef steer baseline)
@@ -963,10 +1009,6 @@ function rebuildBarnSelect() {
     sel.appendChild(opt);
   });
   if(cur && BARNS_DATA[cur]) { sel.value = cur; }
-  else if(userLat && sorted.length) {
-    sel.value = sorted[0];
-    onCattleBarnChange();
-  }
 }
 
 function onCattleBarnChange() {
@@ -1069,11 +1111,20 @@ function buildBarnTable() {
     : null;
 
   // Badge helper
+  var BADGE_TIPS = {
+    live: 'Price scraped directly from this barn\u2019s report',
+    barn: 'Barn-posted summary price, not from live sale data',
+    usda: 'Estimated from USDA regional averages',
+    cme:  'Estimated from CME futures prices',
+    aging: 'Scraped from barn report but more than 8 days old'
+  };
+
   function makeBadge(src) {
     if(!src) return '';
     const cls = (src === 'live' || src === 'actual') ? 'barn-src-live' : src === 'barn' ? 'barn-src-barn' : src === 'usda' ? 'barn-src-usda' : 'barn-src-cme';
     const lbl = (src === 'live') ? 'ACTUAL' : src.toUpperCase();
-    return `<span class="barn-src-badge ${cls}">${lbl}</span>`;
+    const tip = BADGE_TIPS[src] || '';
+    return `<span class="barn-src-badge ${cls}" title="${tip}">${lbl}</span>`;
   }
 
   // Age-aware badge: green ACTUAL if ≤8 days old, gold AGING if older
@@ -1087,7 +1138,8 @@ function buildBarnTable() {
     }
     var cls = aging ? 'barn-src-aging' : 'barn-src-live';
     var lbl = aging ? 'AGING' : 'ACTUAL';
-    return '<span class="barn-src-badge ' + cls + '">' + lbl + '</span>';
+    var tip = aging ? BADGE_TIPS.aging : BADGE_TIPS.live;
+    return '<span class="barn-src-badge ' + cls + '" title="' + tip + '">' + lbl + '</span>';
   }
 
   // Finish weight classes — grade schedule adjustments off each barn's own reported price
