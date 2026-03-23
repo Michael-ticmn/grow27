@@ -128,7 +128,8 @@ buildBarnTable = function() {
       }
       var badgeClass = feederSrc !== 'live' ? 'barn-src-barn' : aging ? 'barn-src-aging' : 'barn-src-live';
       var badgeLabel = feederSrc !== 'live' ? feederSrc.toUpperCase() : aging ? 'AGING' : 'ACTUAL';
-      cells[1].innerHTML = feederPrice.toFixed(2) + '&cent; <span class="barn-src-badge ' + badgeClass + '">' + badgeLabel + '</span>' + dateStr;
+      var badgeTip = feederSrc !== 'live' ? 'Barn-posted summary price, not from live sale data' : aging ? 'Scraped from barn report but more than 8 days old' : 'Price scraped directly from this barn\u2019s report';
+      cells[1].innerHTML = feederPrice.toFixed(2) + '&cent; <span class="barn-src-badge ' + badgeClass + '" title="' + badgeTip + '">' + badgeLabel + '</span>' + dateStr;
     }
   });
 };
