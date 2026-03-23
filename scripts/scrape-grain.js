@@ -128,6 +128,12 @@ async function run() {
 
   for (const config of grainConfig) {
     const { id, name } = config;
+
+    if (config.disabled) {
+      console.log(`\n════ ${id} (${name}) ════ SKIPPED — ${config.disabledReason || 'disabled'}`);
+      continue;
+    }
+
     console.log(`\n════ ${id} (${name}) ════`);
 
     const grainData = loadGrainFile(id, name);
