@@ -42,18 +42,11 @@ async function loadGrainPrices(){
   async function fetchOne(sym){try{const r=await fetch('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv');const t=await r.text();const cols=t.trim().split('\n')[1]?.split(',');if(!cols)throw 0;const[open,high,low,close]=[3,4,5,6].map(i=>parseFloat(cols[i]));if(isNaN(close))throw 0;return{price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};}catch{return null;}}
   const[cn,cn2,sb,sb2]=await Promise.all([fetchOne('c.f'),fetchOne('ch.f'),fetchOne('s.f'),fetchOne('sh.f')]);
   GRAIN_DATA={cn:cn||fb.cn,cn2:cn2||fb.cn2,sb:sb||fb.sb,sb2:sb2||fb.sb2};
-  document.getElementById('status-txt').textContent=[cn,cn2,sb,sb2].some(Boolean)?'Live data':'Recent values';
+  const isLive=[cn,cn2,sb,sb2].some(Boolean);document.getElementById('status-txt').textContent=isLive?'Live data':'Recent values';cbotNow=new Date();const cbotTs='as of '+cbotNow.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' '+cbotNow.toLocaleDateString('en-US',{month:'short',day:'numeric'});['cn','cn2','sb','sb2'].forEach(id=>{const el=document.getElementById('cbot-ts-'+id);if(el)el.textContent=cbotTs;});
   function setCard(id,d){const el=document.getElementById('p-'+id);el.textContent='$'+d.price.toFixed(4);el.style.color=d.change>0.003?'var(--up)':d.change<-0.003?'var(--down)':'var(--corn)';document.getElementById('h-'+id).textContent=d.high.toFixed(4);document.getElementById('l-'+id).textContent=d.low.toFixed(4);document.getElementById('v-'+id).textContent=d.open.toFixed(4);setBadge('b-'+id,d.change,d.pct);}
   setCard('cn',GRAIN_DATA.cn);setCard('cn2',GRAIN_DATA.cn2);setCard('sb',GRAIN_DATA.sb);setCard('sb2',GRAIN_DATA.sb2);
   buildCashTable();
   updateCornCardCattle();
-  const{cn:c,sb:s}=GRAIN_DATA;
-  let msg='';
-  if(c.change>0&&s.change>0)msg='<strong>Both corn and beans moving up</strong> — positive selling conditions today.';
-  else if(c.change>0&&s.change<=0)msg='<strong>Corn up, beans flat</strong> — corn offers the better opportunity today.';
-  else if(c.change<=0&&s.change>0)msg='<strong>Beans stronger than corn today.</strong> Compare cash bids across buyers.';
-  else msg='Market quiet. Corn <strong>$'+c.price.toFixed(2)+'</strong> nearby · Beans <strong>$'+s.price.toFixed(2)+'</strong> nearby.';
-  document.getElementById('grain-insight').innerHTML=msg;
   markUpdated();
 }
 
@@ -227,17 +220,23 @@ async function loadGrainScrapedData() {
       const locData = GRAIN_SCRAPED[map.source]?.[map.location];
       if (!locData) continue;
       const scrapeDate = GRAIN_SCRAPE_DATES[map.source] || null; // ISO datetime or date string
-      // Use nearby (first) corn bid basis
+      // Use nearby (first) corn bid — store cash, basis, and futures data
       const cornNearby = locData.corn?.[0];
       if (cornNearby && cornNearby.basis != null) {
         elev.cornBasis = cornNearby.basis;
+        elev.cornCash = cornNearby.cash;
+        elev.cornCbot = cornNearby.cbot;
+        elev.cornFuturesMonth = cornNearby.futuresMonth;
         elev.cornActual = true;
         elev.cornActualDate = scrapeDate;
       }
-      // Use nearby (first) bean bid basis
+      // Use nearby (first) bean bid — store cash, basis, and futures data
       const beanNearby = locData.beans?.[0];
       if (beanNearby && beanNearby.basis != null) {
         elev.soyBasis = beanNearby.basis;
+        elev.soyCash = beanNearby.cash;
+        elev.soyCbot = beanNearby.cbot;
+        elev.soyFuturesMonth = beanNearby.futuresMonth;
         elev.soyActual = true;
         elev.soyActualDate = scrapeDate;
       }
@@ -246,6 +245,7 @@ async function loadGrainScrapedData() {
     console.log('[grain] overlaid actual prices on ' + updated + ' elevators');
     buildCashTable();
     rebuildElevatorDirectory();
+    updateGrainInsight();
   } catch (e) {
     console.warn('[grain] could not load scraped data:', e.message);
   }
@@ -256,11 +256,52 @@ function autoDetectRegion(){if(!userLat||!userLon)return'both';const dA=distMile
 function setRegion(k){activeRegion=k;const discovered=Object.fromEntries(Object.entries(ELEVATORS).filter(([,e])=>e.discovered));CURATED=getCuratedForRegion(k==='auto'?autoDetectRegion():k);ELEVATORS=Object.assign({},CURATED,discovered);document.querySelectorAll('.region-btn').forEach(b=>b.classList.toggle('active',b.dataset.region===k));rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();updateRegionBadge();}
 function updateRegionBadge(){const el=document.getElementById('active-region-label');if(!el)return;const eff=activeRegion==='auto'?(userLat?autoDetectRegion():'both'):activeRegion;if(eff==='A')el.textContent=REGION_A.label+' — '+REGION_A.sublabel;else if(eff==='B')el.textContent=REGION_B.label+' — '+REGION_B.sublabel;else el.textContent='All regions — '+REGION_A.label+' + '+REGION_B.label;}
 function sortedElevatorKeys(){const keys=Object.keys(ELEVATORS);if(!userLat)return keys;return keys.slice().sort((a,b)=>distMiles(userLat,userLon,ELEVATORS[a].lat,ELEVATORS[a].lon)-distMiles(userLat,userLon,ELEVATORS[b].lat,ELEVATORS[b].lon));}
-function onElevChange(){const key=document.getElementById('elev-select').value;const disp=document.getElementById('elev-basis-display');const distEl=document.getElementById('elev-dist-display');if(!key){disp.style.display='none';distEl.textContent='';return;}const e=ELEVATORS[key];let html='<strong>'+e.name+'</strong> — Corn basis: ';const cb=e.cornBasis;html+='<span style="color:'+(cb>=0?'var(--up)':'var(--down)')+'">'+(cb>=0?'+':'')+cb.toFixed(2)+'</span>';if(e.soyBasis!==null){const sb=e.soyBasis;html+='  &nbsp;·&nbsp;  Soy basis: <span style="color:'+(sb>=0?'var(--up)':'var(--down)')+'">'+(sb>=0?'+':'')+sb.toFixed(2)+'</span>';}else{html+='  &nbsp;·&nbsp;  <span style="color:var(--txt3)">Soy: N/A</span>';}disp.innerHTML=html;disp.style.display='';if(userLat&&userLon){const d=Math.round(distMiles(userLat,userLon,e.lat,e.lon));distEl.textContent='~'+d+' mi away';}highlightTableRow(key);}
+function onElevChange(){const key=document.getElementById('elev-select').value;const disp=document.getElementById('elev-basis-display');const distEl=document.getElementById('elev-dist-display');if(!key){disp.style.display='none';distEl.textContent='';updateGrainInsight();return;}const e=ELEVATORS[key];let html='<strong>'+e.name+'</strong> — Corn basis: ';const cb=e.cornBasis;html+='<span style="color:'+(cb>=0?'var(--up)':'var(--down)')+'">'+(cb>=0?'+':'')+cb.toFixed(2)+'</span>';if(e.soyBasis!==null){const sb=e.soyBasis;html+='  &nbsp;·&nbsp;  Soy basis: <span style="color:'+(sb>=0?'var(--up)':'var(--down)')+'">'+(sb>=0?'+':'')+sb.toFixed(2)+'</span>';}else{html+='  &nbsp;·&nbsp;  <span style="color:var(--txt3)">Soy: N/A</span>';}disp.innerHTML=html;disp.style.display='';if(userLat&&userLon){const d=Math.round(distMiles(userLat,userLon,e.lat,e.lon));distEl.textContent='~'+d+' mi away';}highlightTableRow(key);updateGrainInsight();}
 function highlightTableRow(key){document.querySelectorAll('#cash-table-body tr').forEach(tr=>tr.classList.toggle('selected',tr.dataset.key===key));}
 function selectFromTable(key){document.getElementById('elev-select').value=key;onElevChange();}
 function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');if(!sel)return;const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;else if(userLat&&sorted.length){sel.value=sorted[0];onElevChange();}}
-function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(cornFut+e.cornBasis).toFixed(2);const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(2):'—';const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';function fmtActualDate(d){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?(' '+dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})):'';return' '+mo+tm;}const cornDateStr=fmtActualDate(e.cornActualDate);const soyDateStr=fmtActualDate(e.soyActualDate);const cornBadge=e.cornActual?`<span class="barn-src-badge barn-src-live" style="margin-left:4px;font-size:8px;" title="Basis scraped ${e.cornActualDate||''}">ACTUAL${cornDateStr}</span>`:'';const soyBadge=e.soyActual?`<span class="barn-src-badge barn-src-live" style="margin-left:4px;font-size:8px;" title="Basis scraped ${e.soyActualDate||''}">ACTUAL${soyDateStr}</span>`:'';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}${cornBadge}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash+soyBadge:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
+function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(e.cornActual&&e.cornCash!=null)?e.cornCash.toFixed(4):(cornFut+e.cornBasis).toFixed(4);const soyCash=e.soyBasis===null?'—':((e.soyActual&&e.soyCash!=null)?e.soyCash.toFixed(4):(soyFut+e.soyBasis).toFixed(4));const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';function fmtScrapeBadge(d){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?(' '+dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})):'';const stale=(Date.now()-dt.getTime())>24*60*60*1000;const color=stale?'var(--down)':'var(--up)';return`<span style="margin-left:4px;font-size:8px;color:${color};border:1px solid ${color};border-radius:3px;padding:1px 4px;" title="Basis scraped ${d}">${mo}${tm}</span>`;}const cornBadge=e.cornActual?fmtScrapeBadge(e.cornActualDate):'';const soyBadge=e.soyActual?fmtScrapeBadge(e.soyActualDate):'';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}${cornBadge}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash+soyBadge:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
+function updateGrainInsight(){
+  const el=document.getElementById('grain-insight');
+  if(!el)return;
+  const selKey=document.getElementById('elev-select')?.value;
+  const selElev=selKey?ELEVATORS[selKey]:null;
+  const ts=cbotNow||new Date();
+  const tsStr='<span style="color:var(--txt3);font-size:11px;"> · as of '+ts.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' '+ts.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span>';
+
+  // If a buyer is selected and has actual data, show their prices
+  if(selElev&&selElev.cornActual){
+    const parts=['<strong>'+selElev.name+'</strong>'];
+    if(selElev.cornCash!=null)parts.push('Corn <strong>$'+selElev.cornCash.toFixed(4)+'</strong> (basis '+(selElev.cornBasis>=0?'+':'')+selElev.cornBasis.toFixed(2)+')');
+    if(selElev.soyCash!=null)parts.push('Beans <strong>$'+selElev.soyCash.toFixed(4)+'</strong> (basis '+(selElev.soyBasis>=0?'+':'')+selElev.soyBasis.toFixed(2)+')');
+    el.innerHTML=parts.join(' · ')+tsStr;
+    return;
+  }
+
+  // No buyer selected or no actual data — show best actual prices
+  let bestCorn=null,bestCornName='',bestSoy=null,bestSoyName='';
+  for(const[k,e]of Object.entries(ELEVATORS)){
+    if(e.cornActual&&e.cornCash!=null&&(bestCorn===null||e.cornCash>bestCorn)){bestCorn=e.cornCash;bestCornName=e.name;}
+    if(e.soyActual&&e.soyCash!=null&&(bestSoy===null||e.soyCash>bestSoy)){bestSoy=e.soyCash;bestSoyName=e.name;}
+  }
+  if(bestCorn!==null||bestSoy!==null){
+    const parts=[];
+    if(bestCorn!==null)parts.push('Best corn: <strong>'+bestCornName+' $'+bestCorn.toFixed(4)+'</strong>');
+    if(bestSoy!==null)parts.push('Best beans: <strong>'+bestSoyName+' $'+bestSoy.toFixed(4)+'</strong>');
+    el.innerHTML=parts.join(' · ')+tsStr;
+    return;
+  }
+
+  // Fallback — CBOT summary
+  const{cn:c,sb:s}=GRAIN_DATA;
+  let msg='';
+  if(c.change>0&&s.change>0)msg='<strong>Both corn and beans moving up</strong> — positive selling conditions today.';
+  else if(c.change>0&&s.change<=0)msg='<strong>Corn up, beans flat</strong> — corn offers the better opportunity today.';
+  else if(c.change<=0&&s.change>0)msg='<strong>Beans stronger than corn today.</strong> Compare cash bids across buyers.';
+  else msg='Market quiet. Corn <strong>$'+c.price.toFixed(4)+'</strong> nearby · Beans <strong>$'+s.price.toFixed(4)+'</strong> nearby.';
+  el.innerHTML=msg+tsStr;
+}
+let cbotNow=null;
 function rebuildElevatorDirectory() {
   const col1 = document.getElementById('elev-dir-col-1');
   const col2 = document.getElementById('elev-dir-col-2');
