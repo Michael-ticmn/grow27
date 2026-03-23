@@ -412,33 +412,34 @@ async function loadGrainScrapedData() {
     }
     console.log('[grain] loaded scraped data:', Object.keys(GRAIN_SCRAPED).join(', '));
 
-    // Overlay actual basis onto ELEVATORS
+    // Overlay actual basis onto region source objects + current ELEVATORS
     let updated = 0;
     for (const [elevKey, map] of Object.entries(GRAIN_SCRAPE_MAP)) {
-      const elev = ELEVATORS[elevKey];
-      if (!elev) continue;
       const locData = GRAIN_SCRAPED[map.source]?.[map.location];
       if (!locData) continue;
-      const scrapeDate = GRAIN_SCRAPE_DATES[map.source] || null; // ISO datetime or date string
-      // Use nearby (first) corn bid — store cash, basis, and futures data
+      const scrapeDate = GRAIN_SCRAPE_DATES[map.source] || null;
+      // Apply to all copies: region source + current ELEVATORS
+      const targets = [REGION_A.elevators[elevKey], REGION_B.elevators[elevKey], ELEVATORS[elevKey]].filter(Boolean);
+      if (!targets.length) continue;
       const cornNearby = locData.corn?.[0];
-      if (cornNearby && cornNearby.basis != null) {
-        elev.cornBasis = cornNearby.basis;
-        elev.cornCash = cornNearby.cash;
-        elev.cornCbot = cornNearby.cbot;
-        elev.cornFuturesMonth = cornNearby.futuresMonth;
-        elev.cornActual = true;
-        elev.cornActualDate = scrapeDate;
-      }
-      // Use nearby (first) bean bid — store cash, basis, and futures data
       const beanNearby = locData.beans?.[0];
-      if (beanNearby && beanNearby.basis != null) {
-        elev.soyBasis = beanNearby.basis;
-        elev.soyCash = beanNearby.cash;
-        elev.soyCbot = beanNearby.cbot;
-        elev.soyFuturesMonth = beanNearby.futuresMonth;
-        elev.soyActual = true;
-        elev.soyActualDate = scrapeDate;
+      for (const elev of targets) {
+        if (cornNearby && cornNearby.basis != null) {
+          elev.cornBasis = cornNearby.basis;
+          elev.cornCash = cornNearby.cash;
+          elev.cornCbot = cornNearby.cbot;
+          elev.cornFuturesMonth = cornNearby.futuresMonth;
+          elev.cornActual = true;
+          elev.cornActualDate = scrapeDate;
+        }
+        if (beanNearby && beanNearby.basis != null) {
+          elev.soyBasis = beanNearby.basis;
+          elev.soyCash = beanNearby.cash;
+          elev.soyCbot = beanNearby.cbot;
+          elev.soyFuturesMonth = beanNearby.futuresMonth;
+          elev.soyActual = true;
+          elev.soyActualDate = scrapeDate;
+        }
       }
       updated++;
     }
