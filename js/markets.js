@@ -477,8 +477,10 @@ function rebuildElevatorDirectory() {
     // Basis block
     const cornBasisStr = (e.cornBasis >= 0 ? '+' : '') + e.cornBasis.toFixed(2);
     const soyBasisStr  = e.soyBasis !== null ? (e.soyBasis >= 0 ? '+' : '') + e.soyBasis.toFixed(2) : null;
-    const cornTag = e.cornActual ? ' <span class="barn-src-badge barn-src-live" style="font-size:8px;">ACTUAL</span>' : e.curated ? '' : ' est.';
-    const soyTag  = e.soyActual  ? ' <span class="barn-src-badge barn-src-live" style="font-size:8px;">ACTUAL</span>' : e.curated ? '' : ' est.';
+    const cornAging = e.cornActual && e.cornActualDate && (Date.now() - new Date(e.cornActualDate + 'T12:00:00').getTime()) / 86400000 > 8;
+    const soyAging  = e.soyActual  && e.soyActualDate  && (Date.now() - new Date(e.soyActualDate  + 'T12:00:00').getTime()) / 86400000 > 8;
+    const cornTag = e.cornActual ? ' <span class="barn-src-badge ' + (cornAging ? 'barn-src-aging' : 'barn-src-live') + '" style="font-size:8px;">' + (cornAging ? 'AGING' : 'ACTUAL') + '</span>' : e.curated ? '' : ' est.';
+    const soyTag  = e.soyActual  ? ' <span class="barn-src-badge ' + (soyAging  ? 'barn-src-aging' : 'barn-src-live') + '" style="font-size:8px;">' + (soyAging  ? 'AGING' : 'ACTUAL') + '</span>' : e.curated ? '' : ' est.';
     const basisBlock = `<div class="elev-details-row" style="margin-top:10px;">
       <div class="elev-detail-item">CORN BASIS
         <strong style="color:${e.cornActual?'var(--corn)':e.curated?'var(--corn)':'var(--txt3)'}">
@@ -1074,6 +1076,20 @@ function buildBarnTable() {
     return `<span class="barn-src-badge ${cls}">${lbl}</span>`;
   }
 
+  // Age-aware badge: green ACTUAL if ≤8 days old, gold AGING if older
+  function ageBadge(src, dateStr) {
+    if (!src) return '';
+    if (src !== 'live' && src !== 'actual') return makeBadge(src);
+    var aging = false;
+    if (dateStr) {
+      var age = (Date.now() - new Date(dateStr + 'T12:00:00').getTime()) / 86400000;
+      aging = age > 8;
+    }
+    var cls = aging ? 'barn-src-aging' : 'barn-src-live';
+    var lbl = aging ? 'AGING' : 'ACTUAL';
+    return '<span class="barn-src-badge ' + cls + '">' + lbl + '</span>';
+  }
+
   // Finish weight classes — grade schedule adjustments off each barn's own reported price
   const weightClasses = [
     { range: '1000–1099 lbs', adj: +2.50 },
@@ -1139,8 +1155,8 @@ function buildBarnTable() {
     // ── Per-column source badges ──
     // Slaughter: LIVE if barn has scraped finishPrices, else barn's dataSource (usda/cme)
     const slaughterSrc = b.finishPrices ? 'live' : b.dataSource;
-    const slaughterBadge = makeBadge(slaughterSrc);
-    const feederBadge = makeBadge(barnFeederSrc);
+    const slaughterBadge = ageBadge(slaughterSrc, b.slaughterDate);
+    const feederBadge = ageBadge(barnFeederSrc, b.feederDate);
 
     // ── Finish weight rows ──
     let finishRows, finishFoot;
