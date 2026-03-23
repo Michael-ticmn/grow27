@@ -803,9 +803,9 @@ async function loadBarnPrices() {
 
 // ── LOAD PRE-SCRAPED BARN DATA (from GitHub Actions bot) ─────────────────────
 // Fetches data/prices/index.json written by scripts/scrape-barns.js
-// Populates BARNS_DATA with slaughter finishPrices for any barn with source='scraped'
+// Fallback: loads barn data from index.json if data-loader.js hasn't already done it.
+// Normally data-loader.js (self-executing) handles this first; this exists as a safety net.
 async function loadScrapedBarnData() {
-  // Skip if data-loader.js already populated barn data
   if (BARNS_DATA.central && BARNS_DATA.central.dataSource === 'live') {
     console.log('[scraped-barn] skipping — data-loader.js already loaded');
     return;
@@ -814,72 +814,35 @@ async function loadScrapedBarnData() {
     const r = await fetch('data/prices/index.json');
     if (!r.ok) throw new Error('fetch ' + r.status);
     const index = await r.json();
-
     for (const entry of index) {
       const b = BARNS_DATA[entry.id];
-      if (!b) continue;
-      if (entry.source !== 'scraped') continue;
-
-      // Slaughter → finishPrices (stored as {low, high} ranges)
+      if (!b || entry.source !== 'scraped') continue;
       if (entry.slaughter) {
-        b.finishPrices = {
-          beef:      priceObj(entry.slaughter.beef),
-          crossbred: priceObj(entry.slaughter.crossbred),
-          holstein:  priceObj(entry.slaughter.holstein),
-        };
-        b._slaughterScraped = b.finishPrices;
+        b.finishPrices = { beef: priceObj(entry.slaughter.beef), crossbred: priceObj(entry.slaughter.crossbred), holstein: priceObj(entry.slaughter.holstein) };
         if (entry.slaughter.beef != null) b.basePrice = priceMid(entry.slaughter.beef);
       }
-
-      // Feeder → _feederScraped (stored as {low, high} ranges)
       if (entry.feeder) {
-        b._feederScraped = {
-          beef:      priceObj(entry.feeder.beef),
-          crossbred: priceObj(entry.feeder.crossbred),
-          holstein:  priceObj(entry.feeder.holstein),
-          liteTest:  entry.feeder.liteTest ?? false,
-        };
+        b._feederScraped = { beef: priceObj(entry.feeder.beef), crossbred: priceObj(entry.feeder.crossbred), holstein: priceObj(entry.feeder.holstein), liteTest: entry.feeder.liteTest ?? false };
       }
-
-      // Rep sales (weight-class averages, headcounts, bulls, cows)
       if (entry.repSales) b.repSales = entry.repSales;
-
-      // Feeder weight ranges from summary table
       if (entry.feederWeights && entry.feederWeights.length) b.feederWeights = entry.feederWeights;
-
-      // Sale days (multi-day barns) & lite test note
       if (entry.saleDays) b.saleDays = entry.saleDays;
       if (entry.saleDay) b.saleDay = entry.saleDay;
       if (entry.liteTestNote) b.liteTestNote = entry.liteTestNote;
-
-      // Per-category sale day and date
       if (entry.slaughterSaleDay) b.slaughterSaleDay = entry.slaughterSaleDay;
       if (entry.slaughterDate) b.slaughterDate = entry.slaughterDate;
       if (entry.feederSaleDay) b.feederSaleDay = entry.feederSaleDay;
       if (entry.feederDate) b.feederDate = entry.feederDate;
-
       b.dataSource = 'live';
-
-      // Report date: prefer slaughter date, then feeder, then lastSuccess
-      const dateStr = entry.slaughterDate || entry.feederDate || entry.lastSuccess;
-      if (dateStr) {
-        const d = new Date(dateStr + 'T12:00:00');
-        b.reportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      }
-      if (entry.slaughterDate) {
-        const d = new Date(entry.slaughterDate + 'T12:00:00');
-        b.slaughterReportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      }
-      if (entry.feederDate) {
-        const d = new Date(entry.feederDate + 'T12:00:00');
-        b.feederReportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      }
+      var dateStr = entry.slaughterDate || entry.feederDate || entry.lastSuccess;
+      if (dateStr) { var d = new Date(dateStr + 'T12:00:00'); b.reportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+      if (entry.slaughterDate) { var d2 = new Date(entry.slaughterDate + 'T12:00:00'); b.slaughterReportDate = d2.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+      if (entry.feederDate) { var d3 = new Date(entry.feederDate + 'T12:00:00'); b.feederReportDate = d3.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
     }
-
     buildBarnTable();
     console.log('[barn-data] loaded scraped prices from index.json');
   } catch (e) {
-    console.warn('[barn-data] could not load index.json:', e.message, '— will fall back to CORS scraper');
+    console.warn('[barn-data] could not load index.json:', e.message);
   }
 }
 

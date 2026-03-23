@@ -1,5 +1,5 @@
 // Load pre-scraped barn data from GitHub Actions bot
-// Self-executing: loads data immediately AND patches the CORS scraper to skip
+// Self-executing: loads data immediately, patches CORS scraper to skip when data is fresh
 (async function() {
   try {
     const r = await fetch('data/prices/index.json');
@@ -80,5 +80,3 @@ loadCentralLivestockData = async function() {
   }
   return _origLoadCentral();
 };
-
-// No longer need to patch buildBarnTable — markets.js handles _feederScraped and ranges directly
