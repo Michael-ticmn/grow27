@@ -108,11 +108,11 @@ function renderCalcFields(containerId, fields, mode, fnName) {
     if (mode === 'grain') {
       var valId2 = 'cv-' + id.replace(/^[cs]-/, '');
       if (f.vid) valId2 = f.vid;
-      labelInner = f.label + ' <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="' + valId2 + '">' + dispVal + '</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">' + f.unit + '</span></span>';
+      labelInner = f.label + ' <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="' + valId2 + '">' + dispVal + '</span><span style="font-size:12px;color:var(--txt3);font-weight:400;">' + f.unit + '</span></span>';
     } else if (mode === 'cattle') {
-      labelInner = f.label + ' <span class="fv" id="' + vid + '">' + dispVal + ' <span style="font-size:10px;color:var(--txt3);font-weight:400;">' + f.unit + '</span></span>';
+      labelInner = f.label + ' <span class="fv" id="' + vid + '">' + dispVal + ' <span style="font-size:12px;color:var(--txt3);font-weight:400;">' + f.unit + '</span></span>';
     } else {
-      labelInner = f.label + ' <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="' + vid + '">' + dispVal + '</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">' + f.unit + '</span></span>';
+      labelInner = f.label + ' <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="' + vid + '">' + dispVal + '</span><span style="font-size:12px;color:var(--txt3);font-weight:400;">' + f.unit + '</span></span>';
     }
 
     if (f.numberOnly) {
@@ -302,10 +302,10 @@ function updateCattleInsight() {
 
   if (bestSlaughter !== null || bestFeeder !== null) {
     var parts = [];
-    var slTag = slaughterSrc === 'posted' ? ' <span style="font-size:10px;color:var(--txt3);">(posted)</span>' : '';
-    var fdTag = feederSrc === 'posted' ? ' <span style="font-size:10px;color:var(--txt3);">(posted)</span>' : '';
-    var slCount = ' <span style="font-size:10px;color:var(--txt3);">(of ' + slaughterCount + ')</span>';
-    var fdCount = ' <span style="font-size:10px;color:var(--txt3);">(of ' + feederCount + ')</span>';
+    var slTag = slaughterSrc === 'posted' ? ' <span style="font-size:12px;color:var(--txt3);">(posted)</span>' : '';
+    var fdTag = feederSrc === 'posted' ? ' <span style="font-size:12px;color:var(--txt3);">(posted)</span>' : '';
+    var slCount = ' <span style="font-size:12px;color:var(--txt3);">(of ' + slaughterCount + ')</span>';
+    var fdCount = ' <span style="font-size:12px;color:var(--txt3);">(of ' + feederCount + ')</span>';
     if (bestSlaughter !== null) parts.push('Best ' + typeLabel.toLowerCase() + ' slaughter: <strong>' + bestSlaughterName + ' ' + bestSlaughter.toFixed(2) + '¢</strong>' + slTag + slCount);
     if (bestFeeder !== null) parts.push('Best feeder: <strong>' + bestFeederName + ' ' + bestFeeder.toFixed(2) + '¢</strong>' + fdTag + fdCount);
     el.innerHTML = parts.join(' · ');
@@ -486,14 +486,14 @@ function onElevChange(){const key=document.getElementById('elev-select').value;c
 function highlightTableRow(key){document.querySelectorAll('#cash-table-body tr').forEach(tr=>tr.classList.toggle('selected',tr.dataset.key===key));}
 function selectFromTable(key){document.getElementById('elev-select').value=key;onElevChange();}
 function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');if(!sel)return;const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;}
-function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(e.cornActual&&e.cornCash!=null)?e.cornCash.toFixed(4):(cornFut+e.cornBasis).toFixed(4);const soyCash=e.soyBasis===null?'—':((e.soyActual&&e.soyCash!=null)?e.soyCash.toFixed(4):(soyFut+e.soyBasis).toFixed(4));const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';function fmtScrapeBadge(d){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';const stale=(Date.now()-dt.getTime())>24*60*60*1000;const color=stale?'var(--down)':'var(--up)';const inner=tm?mo+'<br>'+tm:mo;return`<span class="scrape-badge" style="margin-left:4px;font-size:8px;color:${color};border:1px solid ${color};border-radius:3px;padding:1px 4px;display:inline-block;line-height:1.3;text-align:center;" title="Basis scraped ${d}">${inner}</span>`;}const cornBadge=e.cornActual?fmtScrapeBadge(e.cornActualDate):'';const soyBadge=e.soyActual?fmtScrapeBadge(e.soyActualDate):'';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}${cornBadge}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash+soyBadge:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
+function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=sortedElevatorKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(e.cornActual&&e.cornCash!=null)?e.cornCash.toFixed(4):(cornFut+e.cornBasis).toFixed(4);const soyCash=e.soyBasis===null?'—':((e.soyActual&&e.soyCash!=null)?e.soyCash.toFixed(4):(soyFut+e.soyBasis).toFixed(4));const cbClass=e.cornBasis>=0?'basis-pos':'basis-neg';const sbClass=e.soyBasis===null?'':(e.soyBasis>=0?'basis-pos':'basis-neg');const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:13px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'—';const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'—';function fmtScrapeBadge(d){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';const stale=(Date.now()-dt.getTime())>24*60*60*1000;const color=stale?'var(--down)':'var(--up)';const inner=tm?mo+'<br>'+tm:mo;return`<span class="scrape-badge" style="margin-left:4px;font-size:11px;color:${color};border:1px solid ${color};border-radius:3px;padding:1px 4px;display:inline-block;line-height:1.3;text-align:center;" title="Basis scraped ${d}">${inner}</span>`;}const cornBadge=e.cornActual?fmtScrapeBadge(e.cornActualDate):'';const soyBadge=e.soyActual?fmtScrapeBadge(e.soyActualDate):'';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div class="elev-name-cell">${e.name}</div><div class="elev-loc-cell">${e.loc}</div></td><td class="cash-price-cell">$${cornCash}${cornBadge}</td><td class="${cbClass}">${cbStr}</td><td class="cash-price-cell soy">${soyCash!=='—'?'$'+soyCash+soyBadge:'<span style="color:var(--txt3)">—</span>'}</td><td class="${sbClass}">${sbStr}</td><td>${distBadge}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
 function updateGrainInsight(){
   const el=document.getElementById('grain-insight');
   if(!el)return;
   const selKey=document.getElementById('elev-select')?.value;
   const selElev=selKey?ELEVATORS[selKey]:null;
   const ts=cbotNow||new Date();
-  const tsStr='<span style="color:var(--txt3);font-size:11px;"> · as of '+ts.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' '+ts.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span>';
+  const tsStr='<span style="color:var(--txt3);font-size:13px;"> · as of '+ts.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' '+ts.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span>';
 
   // If a buyer is selected and has actual data, show their prices
   if(selElev&&selElev.cornActual){
@@ -512,8 +512,8 @@ function updateGrainInsight(){
   }
   if(bestCorn!==null||bestSoy!==null){
     const parts=[];
-    if(bestCorn!==null)parts.push('Best corn: <strong>'+bestCornName+' $'+bestCorn.toFixed(4)+'</strong> <span style="font-size:10px;color:var(--txt3);">(of '+cornCount+')</span>');
-    if(bestSoy!==null)parts.push('Best beans: <strong>'+bestSoyName+' $'+bestSoy.toFixed(4)+'</strong> <span style="font-size:10px;color:var(--txt3);">(of '+soyCount+')</span>');
+    if(bestCorn!==null)parts.push('Best corn: <strong>'+bestCornName+' $'+bestCorn.toFixed(4)+'</strong> <span style="font-size:12px;color:var(--txt3);">(of '+cornCount+')</span>');
+    if(bestSoy!==null)parts.push('Best beans: <strong>'+bestSoyName+' $'+bestSoy.toFixed(4)+'</strong> <span style="font-size:12px;color:var(--txt3);">(of '+soyCount+')</span>');
     el.innerHTML=parts.join(' · ')+tsStr;
     return;
   }
@@ -548,14 +548,14 @@ function rebuildElevatorDirectory() {
 
     // Distance badge
     const distBadge = dist !== null
-      ? `<span style="font-size:11px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest ? ' ★' : ''}</span>`
+      ? `<span style="font-size:13px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest ? ' ★' : ''}</span>`
       : '';
 
     // Region + discovered badges
     const regionBadge = e.region==='A' ? `<span class="region-badge-a">Area 1</span>`
                       : e.region==='B' ? `<span class="region-badge-b">Area 2</span>` : '';
     const discoveredBadge = e.discovered
-      ? `<span class="elev-crop-tag" style="background:var(--bg3);color:var(--txt3);font-size:9px;letter-spacing:1px;">Discovered</span>` : '';
+      ? `<span class="elev-crop-tag" style="background:var(--bg3);color:var(--txt3);font-size:13px;letter-spacing:1px;">Discovered</span>` : '';
 
     // Crop tags
     const cropTags = `<div class="elev-crops" style="margin-top:6px;">
@@ -568,8 +568,8 @@ function rebuildElevatorDirectory() {
     const soyBasisStr  = e.soyBasis !== null ? (e.soyBasis >= 0 ? '+' : '') + e.soyBasis.toFixed(2) : null;
     const cornAging = e.cornActual && e.cornActualDate && (Date.now() - new Date(e.cornActualDate + 'T12:00:00').getTime()) / 86400000 > 8;
     const soyAging  = e.soyActual  && e.soyActualDate  && (Date.now() - new Date(e.soyActualDate  + 'T12:00:00').getTime()) / 86400000 > 8;
-    const cornTag = e.cornActual ? ' <span class="barn-src-badge ' + (cornAging ? 'barn-src-aging' : 'barn-src-live') + '" style="font-size:8px;">' + (cornAging ? 'AGING' : 'ACTUAL') + '</span>' : e.curated ? '' : ' est.';
-    const soyTag  = e.soyActual  ? ' <span class="barn-src-badge ' + (soyAging  ? 'barn-src-aging' : 'barn-src-live') + '" style="font-size:8px;">' + (soyAging  ? 'AGING' : 'ACTUAL') + '</span>' : e.curated ? '' : ' est.';
+    const cornTag = e.cornActual ? ' <span class="barn-src-badge ' + (cornAging ? 'barn-src-aging' : 'barn-src-live') + '" style="font-size:11px;">' + (cornAging ? 'AGING' : 'ACTUAL') + '</span>' : e.curated ? '' : ' est.';
+    const soyTag  = e.soyActual  ? ' <span class="barn-src-badge ' + (soyAging  ? 'barn-src-aging' : 'barn-src-live') + '" style="font-size:11px;">' + (soyAging  ? 'AGING' : 'ACTUAL') + '</span>' : e.curated ? '' : ' est.';
     const basisBlock = `<div class="elev-details-row" style="margin-top:10px;">
       <div class="elev-detail-item">CORN BASIS
         <strong style="color:${e.cornActual?'var(--corn)':e.curated?'var(--corn)':'var(--txt3)'}">
@@ -847,7 +847,8 @@ async function loadScrapedBarnData() {
       // Feeder weight ranges from summary table
       if (entry.feederWeights && entry.feederWeights.length) b.feederWeights = entry.feederWeights;
 
-      // Sale day & lite test note
+      // Sale days (multi-day barns) & lite test note
+      if (entry.saleDays) b.saleDays = entry.saleDays;
       if (entry.saleDay) b.saleDay = entry.saleDay;
       if (entry.liteTestNote) b.liteTestNote = entry.liteTestNote;
 
@@ -1206,25 +1207,10 @@ function buildBarnTable() {
   const rows = sorted.map((key) => {
     const b = BARNS_DATA[key];
 
-    // ── Slaughter avg: weighted average from rep sales if available ──
+    // ── Slaughter avg: scraped range is primary ──
     const scrapedFinish = b.finishPrices && b.finishPrices[cattleType] != null;
-    const repFinishAll = b.repSales && b.repSales.finishWeightAvgs;
-    let adjPrice, adjPriceDisplay;
-    if (repFinishAll && repFinishAll.length) {
-      const typeRows = repFinishAll.filter(r => r.type === cattleType);
-      const totalHead = typeRows.reduce((s, r) => s + r.head, 0);
-      const weightedSum = typeRows.reduce((s, r) => s + r.avgPrice * r.head, 0);
-      if (totalHead > 0) {
-        adjPrice = (weightedSum / totalHead).toFixed(2);
-        adjPriceDisplay = adjPrice;
-      } else if (scrapedFinish) {
-        adjPriceDisplay = formatRange(b.finishPrices[cattleType]);
-        adjPrice = priceMid(b.finishPrices[cattleType])?.toFixed(2) ?? barnAdjustedPrice(b.basePrice);
-      } else {
-        adjPrice = barnAdjustedPrice(b.basePrice);
-        adjPriceDisplay = adjPrice;
-      }
-    } else if (scrapedFinish) {
+    let adjPrice, adjPriceDisplay, slaughterSubtitle = '';
+    if (scrapedFinish) {
       adjPriceDisplay = formatRange(b.finishPrices[cattleType]);
       adjPrice = priceMid(b.finishPrices[cattleType])?.toFixed(2) ?? barnAdjustedPrice(b.basePrice);
     } else {
@@ -1233,32 +1219,28 @@ function buildBarnTable() {
     }
 
     const discStr = scrapedFinish
-      ? '<span style="color:var(--up);font-size:11px;">actual</span>'
+      ? '<span style="color:var(--up);font-size:13px;">actual</span>'
       : disc > 0
-        ? `<span style="color:var(--down);font-size:11px;">−${disc.toFixed(2)}</span>`
-        : '<span style="color:var(--up);font-size:11px;">baseline</span>';
+        ? `<span style="color:var(--down);font-size:13px;">−${disc.toFixed(2)}</span>`
+        : '<span style="color:var(--up);font-size:13px;">baseline</span>';
 
-    // ── Feeder avg: weighted average from rep sales if available ──
+    // ── Feeder avg: scraped range is primary ──
     const repFeederAll = b.repSales && b.repSales.feederWeightAvgs;
-    let barnFeederAvg;
-    let barnFeederSrc;
-    if (repFeederAll && repFeederAll.length) {
+    let barnFeederAvg, barnFeederSrc, feederSubtitle = '';
+    if (b._feederScraped && b._feederScraped[cattleType] != null) {
+      barnFeederAvg = formatRange(b._feederScraped[cattleType]) + '¢';
+      barnFeederSrc = 'live';
+    } else if (repFeederAll && repFeederAll.length) {
       const typeRows = repFeederAll.filter(r => r.type === cattleType);
       const totalHead = typeRows.reduce((s, r) => s + r.head, 0);
       const weightedSum = typeRows.reduce((s, r) => s + r.avgPrice * r.head, 0);
       if (totalHead > 0) {
         barnFeederAvg = (weightedSum / totalHead).toFixed(2) + '¢';
         barnFeederSrc = 'live';
-      } else if (b._feederScraped && b._feederScraped[cattleType] != null) {
-        barnFeederAvg = formatRange(b._feederScraped[cattleType]) + '¢';
-        barnFeederSrc = 'live';
       } else {
         barnFeederAvg = feederAvg;
         barnFeederSrc = (b.feederWeights && b.feederWeights.length) ? 'barn' : feederDataSource;
       }
-    } else if (b._feederScraped && b._feederScraped[cattleType] != null) {
-      barnFeederAvg = formatRange(b._feederScraped[cattleType]) + '¢';
-      barnFeederSrc = 'live';
     } else if (b.feederWeights && b.feederWeights.length) {
       barnFeederAvg = feederAvg;
       barnFeederSrc = 'barn';
@@ -1282,12 +1264,12 @@ function buildBarnTable() {
       if (typeRows.length) {
         finishRows = typeRows.map(r => {
           return `<tr>
-            <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${r.range} <span style="font-size:9px;opacity:.6;">${r.head} hd</span></td>
+            <td style="font-size:13px;color:var(--txt3);padding:5px 8px;">${r.range} <span style="font-size:13px;opacity:.6;">${r.head} hd</span></td>
             <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${r.avgPrice.toFixed(2)}¢</td>
           </tr>`;
         }).join('');
       } else {
-        finishRows = `<tr><td colspan="2" style="font-size:11px;color:var(--txt3);padding:8px;text-align:center;">No ${typeLabel} finish sales reported</td></tr>`;
+        finishRows = `<tr><td colspan="2" style="font-size:13px;color:var(--txt3);padding:8px;text-align:center;">No ${typeLabel} finish sales reported</td></tr>`;
       }
       finishFoot = `${b.name} · rep. sales sample avg`;
     } else {
@@ -1302,9 +1284,9 @@ function buildBarnTable() {
           price = (b.basePrice + w.adj - disc).toFixed(2);
         }
         const isBase = w.adj === 0;
-        const srcNote = scrapedFinish && isBase ? ' <span style="font-size:9px;color:var(--up);opacity:.8;">barn reported</span>' : isBase ? ' <span style="font-size:9px;opacity:.6;">baseline</span>' : '';
+        const srcNote = scrapedFinish && isBase ? ' <span style="font-size:13px;color:var(--up);opacity:.8;">barn reported</span>' : isBase ? ' <span style="font-size:13px;opacity:.6;">baseline</span>' : '';
         return `<tr${isBase ? ' style="background:var(--bg3);"' : ''}>
-          <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}${srcNote}</td>
+          <td style="font-size:13px;color:var(--txt3);padding:5px 8px;">${w.range}${srcNote}</td>
           <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${price}¢</td>
         </tr>`;
       }).join('');
@@ -1324,12 +1306,12 @@ function buildBarnTable() {
       if (typeRows.length) {
         feederRows = typeRows.map(r => {
           return `<tr>
-            <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${r.range} <span style="font-size:9px;opacity:.6;">${r.head} hd</span></td>
+            <td style="font-size:13px;color:var(--txt3);padding:5px 8px;">${r.range} <span style="font-size:13px;opacity:.6;">${r.head} hd</span></td>
             <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${r.avgPrice.toFixed(2)}¢</td>
           </tr>`;
         }).join('');
       } else {
-        feederRows = `<tr><td colspan="2" style="font-size:11px;color:var(--txt3);padding:8px;text-align:center;">No ${typeLabel} feeder sales reported</td></tr>`;
+        feederRows = `<tr><td colspan="2" style="font-size:13px;color:var(--txt3);padding:8px;text-align:center;">No ${typeLabel} feeder sales reported</td></tr>`;
       }
       feederFoot = `${b.name} · rep. sales sample avg`;
     } else if(b.feederWeights && b.feederWeights.length) {
@@ -1339,13 +1321,13 @@ function buildBarnTable() {
         feederRows = relevantWeights.map(w => {
           const adjP = w.price.toFixed(2);
           return `<tr>
-            <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}</td>
+            <td style="font-size:13px;color:var(--txt3);padding:5px 8px;">${w.range}</td>
             <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${adjP}¢</td>
           </tr>`;
         }).join('');
         feederFoot = `${b.name} sale report · price ceiling`;
       } else {
-        feederRows = `<tr><td colspan="2" style="font-size:11px;color:var(--txt3);padding:8px;text-align:center;">No ${typeLabel} feeder data reported</td></tr>`;
+        feederRows = `<tr><td colspan="2" style="font-size:13px;color:var(--txt3);padding:8px;text-align:center;">No ${typeLabel} feeder data reported</td></tr>`;
         feederFoot = `${b.name} sale report`;
       }
     } else if(FEEDER_WEIGHT_DATA) {
@@ -1357,23 +1339,23 @@ function buildBarnTable() {
         const priceColor = (rawPrice && isReal) ? 'var(--txt1)' : 'var(--txt3)';
         const priceFw   = (rawPrice && isReal) ? '700' : '400';
         return `<tr${isTarget ? ' style="background:var(--bg3);"' : ''}>
-          <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${bucket} lbs</td>
+          <td style="font-size:13px;color:var(--txt3);padding:5px 8px;">${bucket} lbs</td>
           <td style="font-size:12px;color:${priceColor};font-weight:${priceFw};padding:5px 8px;text-align:right;">${displayPrice}</td>
         </tr>`;
       }).join('');
       feederFoot = feederSource;
     } else {
       feederRows = buckets.map(bucket => `<tr>
-        <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${bucket} lbs</td>
+        <td style="font-size:13px;color:var(--txt3);padding:5px 8px;">${bucket} lbs</td>
         <td style="font-size:12px;color:var(--txt3);padding:5px 8px;text-align:right;">—</td>
       </tr>`).join('');
       feederFoot = 'USDA sj_ls850.txt · loading…';
     }
 
     const discNote = scrapedFinish
-      ? (cattleType !== 'beef' ? `<div style="font-size:10px;color:var(--txt3);padding:3px 8px 5px;border-top:1px solid var(--border);font-style:italic;">${typeLabel} · actual barn-reported price</div>` : '')
+      ? (cattleType !== 'beef' ? `<div style="font-size:12px;color:var(--txt3);padding:3px 8px 5px;border-top:1px solid var(--border);font-style:italic;">${typeLabel} · actual barn-reported price</div>` : '')
       : disc > 0
-        ? `<div style="font-size:10px;color:var(--txt3);padding:3px 8px 5px;border-top:1px solid var(--border);font-style:italic;">${typeLabel} · −${disc.toFixed(2)}¢/cwt applied</div>`
+        ? `<div style="font-size:12px;color:var(--txt3);padding:3px 8px 5px;border-top:1px solid var(--border);font-style:italic;">${typeLabel} · −${disc.toFixed(2)}¢/cwt applied</div>`
         : '';
 
     // ── Bulls & Cows rows ──
@@ -1383,22 +1365,22 @@ function buildBarnTable() {
     const repCows = b.repSales && b.repSales.cowsWeightAvgs;
     if ((repBulls && repBulls.length) || (repCows && repCows.length)) {
       if (repBulls && repBulls.length) {
-        bullsCowsRows += `<tr><td colspan="2" style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt2);padding:5px 8px 2px;text-transform:uppercase;">Bulls</td></tr>`;
+        bullsCowsRows += `<tr><td colspan="2" style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--txt2);padding:5px 8px 2px;text-transform:uppercase;">Bulls</td></tr>`;
         bullsCowsRows += repBulls.map(r => `<tr>
-          <td style="font-size:11px;color:var(--txt3);padding:3px 8px;">${r.range} <span style="font-size:9px;opacity:.6;">${r.head} hd</span></td>
+          <td style="font-size:13px;color:var(--txt3);padding:3px 8px;">${r.range} <span style="font-size:13px;opacity:.6;">${r.head} hd</span></td>
           <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:3px 8px;text-align:right;">${r.avgPrice.toFixed(2)}¢</td>
         </tr>`).join('');
       }
       if (repCows && repCows.length) {
-        bullsCowsRows += `<tr><td colspan="2" style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt2);padding:5px 8px 2px;text-transform:uppercase;">Cows</td></tr>`;
+        bullsCowsRows += `<tr><td colspan="2" style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--txt2);padding:5px 8px 2px;text-transform:uppercase;">Cows</td></tr>`;
         bullsCowsRows += repCows.map(r => `<tr>
-          <td style="font-size:11px;color:var(--txt3);padding:3px 8px;">${r.range} <span style="font-size:9px;opacity:.6;">${r.head} hd</span></td>
+          <td style="font-size:13px;color:var(--txt3);padding:3px 8px;">${r.range} <span style="font-size:13px;opacity:.6;">${r.head} hd</span></td>
           <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:3px 8px;text-align:right;">${r.avgPrice.toFixed(2)}¢</td>
         </tr>`).join('');
       }
       bullsCowsFoot = `${b.name} · rep. sales sample avg`;
     } else {
-      bullsCowsRows = `<tr><td colspan="2" style="font-size:11px;color:var(--txt3);padding:8px;text-align:center;">No bull/cow data</td></tr>`;
+      bullsCowsRows = `<tr><td colspan="2" style="font-size:13px;color:var(--txt3);padding:8px;text-align:center;">No bull/cow data</td></tr>`;
       bullsCowsFoot = '';
     }
 
@@ -1407,23 +1389,23 @@ function buildBarnTable() {
         <div class="barn-detail-inner">
           <div class="barn-drawer-mini">
             <div class="barn-drawer-mini-header">Market Summary</div>
-            <div style="padding:6px 8px;font-size:11px;color:var(--txt2);line-height:1.6;">
+            <div style="padding:6px 8px;font-size:13px;color:var(--txt2);line-height:1.6;">
               ${(b.slaughterSaleDay && b.feederSaleDay && b.slaughterSaleDay !== b.feederSaleDay)
                 ? `<div><span style="color:var(--txt3);">Slaughter:</span> ${b.slaughterSaleDay} ${b.slaughterReportDate || ''}</div><div><span style="color:var(--txt3);">Feeder:</span> ${b.feederSaleDay} ${b.feederReportDate || ''}</div>`
                 : `${b.saleDay ? `<div><span style="color:var(--txt3);">Sale Day:</span> ${b.saleDay}</div>` : ''}${b.reportDate ? `<div><span style="color:var(--txt3);">Report Date:</span> ${b.reportDate}</div>` : ''}`
               }
-              ${b.repSales && b.repSales.headCount ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Rep. Sales:</span> ${b.repSales.headCount.finished + b.repSales.headCount.feeder + b.repSales.headCount.bulls + (b.repSales.headCount.cows || 0)} hd reported</div><div style="padding-left:8px;font-size:10px;color:var(--txt3);">${b.repSales.headCount.finished} finished · ${b.repSales.headCount.feeder} feeder · ${b.repSales.headCount.bulls} bulls · ${b.repSales.headCount.cows || 0} cows</div>` : ''}
+              ${b.repSales && b.repSales.headCount ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Rep. Sales:</span> ${b.repSales.headCount.finished + b.repSales.headCount.feeder + b.repSales.headCount.bulls + (b.repSales.headCount.cows || 0)} hd reported</div><div style="padding-left:8px;font-size:12px;color:var(--txt3);">${b.repSales.headCount.finished} finished · ${b.repSales.headCount.feeder} feeder · ${b.repSales.headCount.bulls} bulls · ${b.repSales.headCount.cows || 0} cows</div>` : ''}
               ${scrapedFinish ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Slaughter:</span> ${b.finishPrices.beef != null ? formatRange(b.finishPrices.beef) + '¢ beef' : '—'}${b.finishPrices.crossbred != null ? ' · ' + formatRange(b.finishPrices.crossbred) + '¢ cross' : ''}${b.finishPrices.holstein != null ? ' · ' + formatRange(b.finishPrices.holstein) + '¢ holstein' : ''}</div>` : ''}
-              ${b.liteTestNote ? `<div style="margin-top:4px;color:var(--corn);font-style:italic;">${b.liteTestNote}</div>` : ''}
+              ${b.liteTestNote ? `<div style="margin-top:4px;color:var(--corn)">${b.liteTestNote}</div>` : ''}
             </div>
-            <div class="barn-drawer-mini-foot">${scrapedFinish ? b.name + ' · rep. sales sample, not all transactions' : b.name + ' · estimated'}</div>
+            <div class="barn-drawer-mini-foot">${scrapedFinish ? b.name + ' · rep. sales sample, not all transactions' + (b.url ? ' · <a href="' + b.url + '" target="_blank" rel="noopener" style="color:var(--corn);text-decoration:none;">view report ↗</a>' : '') + ' · <a href="#" onclick="openBarnTrend(\'' + key + '\');return false;" style="color:var(--corn);text-decoration:none;">trend 📈</a>' : b.name + ' · estimated'}</div>
           </div>
           <div class="barn-drawer-mini">
             <div class="barn-drawer-mini-header">Finish Weights <span style="font-weight:400;color:var(--txt3);">slaughter ¢/lb</span></div>
             <table style="width:100%;border-collapse:collapse;">
               <thead><tr>
-                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">LBS</th>
-                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
+                <th style="font-size:13px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">LBS</th>
+                <th style="font-size:13px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
               </tr></thead>
               <tbody>${finishRows}</tbody>
             </table>
@@ -1434,8 +1416,8 @@ function buildBarnTable() {
             <div class="barn-drawer-mini-header">Feeder Weights <span style="font-weight:400;color:var(--txt3);">buy price ¢/lb</span></div>
             <table style="width:100%;border-collapse:collapse;">
               <thead><tr>
-                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">LBS</th>
-                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
+                <th style="font-size:13px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">LBS</th>
+                <th style="font-size:13px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
               </tr></thead>
               <tbody>${feederRows}</tbody>
             </table>
@@ -1445,8 +1427,8 @@ function buildBarnTable() {
             <div class="barn-drawer-mini-header">Market Bulls & Cows <span style="font-weight:400;color:var(--txt3);">¢/lb</span></div>
             <table style="width:100%;border-collapse:collapse;">
               <thead><tr>
-                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">LBS</th>
-                <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
+                <th style="font-size:13px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">LBS</th>
+                <th style="font-size:13px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
               </tr></thead>
               <tbody>${bullsCowsRows}</tbody>
             </table>
@@ -1461,8 +1443,12 @@ function buildBarnTable() {
         <div class="elev-name-cell">${b.name} <span class="barn-chevron" id="chevron-${key}">›</span></div>
         <div class="elev-loc-cell">${b.loc} · ${b.freq}</div>
       </td>
-      <td class="cash-price-cell">${adjPriceDisplay}¢ ${slaughterBadge} <span style="font-size:10px;color:var(--txt3);white-space:nowrap;">${b.slaughterReportDate ? b.slaughterReportDate + (b.slaughterSaleDay ? ' ' + b.slaughterSaleDay.slice(0,3) : '') : (b.reportDate || '')}</span>${b._scrapeError ? ` <span title="${b._scrapeError}" style="font-size:9px;color:var(--down);border:1px solid var(--down);border-radius:2px;padding:1px 4px;cursor:help;">ERR</span>` : ''}</td>
-      <td class="cash-price-cell">${barnFeederAvg} ${feederBadge} <span style="font-size:10px;color:var(--txt3);white-space:nowrap;">${b.feederReportDate ? b.feederReportDate + (b.feederSaleDay ? ' ' + b.feederSaleDay.slice(0,3) : '') : (b.reportDate || '')}</span></td>
+      <td class="cash-price-cell">
+        ${adjPriceDisplay}¢ ${slaughterBadge} <span style="font-size:12px;color:var(--txt3);white-space:nowrap;">${b.slaughterReportDate ? b.slaughterReportDate + (b.slaughterSaleDay ? ' ' + b.slaughterSaleDay.slice(0,3) : '') : (b.reportDate || '')}</span>${b._scrapeError ? ` <span title="${b._scrapeError}" style="font-size:13px;color:var(--down);border:1px solid var(--down);border-radius:2px;padding:1px 4px;cursor:help;">ERR</span>` : ''}
+      </td>
+      <td class="cash-price-cell">
+        ${barnFeederAvg} ${feederBadge} <span style="font-size:12px;color:var(--txt3);white-space:nowrap;">${b.feederReportDate ? b.feederReportDate + (b.feederSaleDay ? ' ' + b.feederSaleDay.slice(0,3) : '') : (b.reportDate || '')}</span>
+      </td>
       <td>${discStr}</td>
     </tr>${drawerHtml}`;
   });
@@ -1637,7 +1623,7 @@ function buildBarnDirectory() {
     const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(b.address)}`;
 
     const distBadge = dist !== null
-      ? `<span style="font-size:11px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest ? ' ★' : ''}</span>`
+      ? `<span style="font-size:13px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest ? ' ★' : ''}</span>`
       : '';
 
     const extraLinks = b.links.map(l =>
@@ -1650,7 +1636,7 @@ function buildBarnDirectory() {
       <div class="auction-header" style="margin-bottom:6px;">
         <div>
           <div class="auction-name">${b.name}</div>
-          <div style="font-size:11px;color:var(--cattle);margin-top:2px;font-weight:600;">${b.freq}</div>
+          <div style="font-size:13px;color:var(--cattle);margin-top:2px;font-weight:600;">${b.freq}</div>
         </div>
         <div style="flex-shrink:0;">${distBadge}</div>
       </div>
@@ -1695,11 +1681,11 @@ function buildLockerDirectory() {
     const isNearest = idx === 0 && dist !== null;
 
     const distBadge = dist !== null
-      ? `<span style="font-size:11px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest ? ' ★' : ''}</span>`
+      ? `<span style="font-size:13px;color:var(--corn);background:var(--corn-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest ? ' ★' : ''}</span>`
       : '';
 
     const usdaBadge = l.usda
-      ? `<span style="font-size:9px;letter-spacing:2px;padding:2px 7px;border-radius:2px;background:var(--up-dim);color:var(--up);text-transform:uppercase;font-weight:700;">USDA</span>`
+      ? `<span style="font-size:13px;letter-spacing:2px;padding:2px 7px;border-radius:2px;background:var(--up-dim);color:var(--up);text-transform:uppercase;font-weight:700;">USDA</span>`
       : '';
 
     const websiteLink = l.url
@@ -1720,7 +1706,7 @@ function buildLockerDirectory() {
       <div class="auction-header" style="margin-bottom:6px;">
         <div>
           <div class="auction-name">${l.name}</div>
-          <div style="font-size:11px;color:var(--txt3);margin-top:2px;">📍 ${l.loc}</div>
+          <div style="font-size:13px;color:var(--txt3);margin-top:2px;">📍 ${l.loc}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
           ${distBadge}
@@ -1901,13 +1887,13 @@ function updateFeederCard() {
     const isTarget = range === '700-799' || range === '800-899';
     const isEst = FEEDER_WEIGHT_DATA.sparse && sparseKeys && !sparseKeys.includes(range);
     return `<tr style="${isTarget ? 'background:var(--bg3);' : ''}">
-      <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${range} lbs${isEst ? ' <span style="font-size:9px;color:var(--txt3);opacity:.7;">est</span>' : ' <span style="font-size:9px;color:var(--txt3);opacity:.7;">actual</span>'}</td>
+      <td style="font-size:13px;color:var(--txt3);padding:5px 8px;">${range} lbs${isEst ? ' <span style="font-size:13px;color:var(--txt3);opacity:.7;">est</span>' : ' <span style="font-size:13px;color:var(--txt3);opacity:.7;">actual</span>'}</td>
       <td style="font-size:13px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${adjPrice}¢</td>
     </tr>`;
   }).join('');
 
   const discNote = feederDisc > 0 
-    ? `<div style="font-size:10px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);">
+    ? `<div style="font-size:12px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);">
         ${typeLabel} · est. −${feederDisc.toFixed(2)}¢/cwt vs beef steer
       </div>`
     : '';
@@ -1921,18 +1907,18 @@ function updateFeederCard() {
   const sourceTag  = isUsda ? 'Med/Lg #1 · USDA AMS National Feeder Summary' : 'Based on CME feeder index';
 
   container.innerHTML = `
-    <div style="font-size:9px;letter-spacing:1px;color:${headerColor};text-transform:uppercase;padding:8px 8px 4px;font-weight:700;">
+    <div style="font-size:13px;letter-spacing:1px;color:${headerColor};text-transform:uppercase;padding:8px 8px 4px;font-weight:700;">
       ${headerText}
     </div>
     <table style="width:100%;border-collapse:collapse;">
       <thead><tr>
-        <th style="font-size:9px;color:var(--txt3);letter-spacing:2px;text-align:left;padding:4px 8px;border-bottom:1px solid var(--border);">WEIGHT</th>
-        <th style="font-size:9px;color:var(--txt3);letter-spacing:2px;text-align:right;padding:4px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
+        <th style="font-size:13px;color:var(--txt3);letter-spacing:2px;text-align:left;padding:4px 8px;border-bottom:1px solid var(--border);">WEIGHT</th>
+        <th style="font-size:13px;color:var(--txt3);letter-spacing:2px;text-align:right;padding:4px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
     ${discNote}
-    <div style="font-size:9px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);font-style:italic;">
+    <div style="font-size:13px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);font-style:italic;">
       ${sourceTag}
     </div>
   `;
@@ -1966,31 +1952,31 @@ function updateSlaughterWeightTable() {
     const isBaseline = w.adj === 0;
     const adjColor = w.adj > 0 ? 'var(--up)' : w.adj < 0 ? 'var(--down)' : 'var(--txt1)';
     return `<tr style="${isBaseline ? 'background:var(--bg3);' : ''}">
-      <td style="font-size:11px;color:var(--txt3);padding:5px 8px;">${w.range}${isBaseline ? ' <span style="font-size:9px;color:var(--txt3);opacity:.7;">baseline</span>' : ' <span style="font-size:9px;color:var(--txt3);opacity:.7;">est</span>'}</td>
+      <td style="font-size:13px;color:var(--txt3);padding:5px 8px;">${w.range}${isBaseline ? ' <span style="font-size:13px;color:var(--txt3);opacity:.7;">baseline</span>' : ' <span style="font-size:13px;color:var(--txt3);opacity:.7;">est</span>'}</td>
       <td style="font-size:13px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${price}¢</td>
-      <td style="font-size:10px;color:${adjColor};padding:5px 8px;text-align:right;">${w.adj > 0 ? '+' : ''}${w.adj !== 0 ? w.adj.toFixed(2) : '—'}</td>
+      <td style="font-size:12px;color:${adjColor};padding:5px 8px;text-align:right;">${w.adj > 0 ? '+' : ''}${w.adj !== 0 ? w.adj.toFixed(2) : '—'}</td>
     </tr>`;
   }).join('');
 
   const discNote = disc > 0
-    ? `<div style="font-size:10px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);">
+    ? `<div style="font-size:12px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);">
         ${typeLabel} · −${disc.toFixed(2)}¢/cwt applied
        </div>` : '';
 
   container.innerHTML = `
-    <div style="font-size:10px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;padding:4px 8px;">
+    <div style="font-size:12px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;padding:4px 8px;">
       Finish Weight Premiums
     </div>
     <table style="width:100%;border-collapse:collapse;">
       <thead><tr>
-        <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">WEIGHT</th>
-        <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
-        <th style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">ADJ</th>
+        <th style="font-size:13px;color:var(--txt3);letter-spacing:1px;text-align:left;padding:3px 8px;border-bottom:1px solid var(--border);">WEIGHT</th>
+        <th style="font-size:13px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">¢/LB</th>
+        <th style="font-size:13px;color:var(--txt3);letter-spacing:1px;text-align:right;padding:3px 8px;border-bottom:1px solid var(--border);">ADJ</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
     ${discNote}
-    <div style="font-size:9px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);">
+    <div style="font-size:13px;color:var(--txt3);padding:4px 8px;border-top:1px solid var(--border);">
       est · anchored to CME nearby · premiums per USDA grade schedule
     </div>
   `;
@@ -2282,9 +2268,9 @@ function buildDairyPlantTable() {
     const pmStr = (p.premium>=0?'+':'')+p.premium.toFixed(2);
     const pmClass = p.premium>=0?'basis-pos':'basis-neg';
     const dist = userLat ? Math.round(distMiles(userLat,userLon,p.lat,p.lon)) : null;
-    const distBadge = dist!==null ? (idx===0?`<span style="color:var(--dairy);background:var(--dairy-dim);padding:2px 7px;border-radius:3px;font-size:11px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`) : '—';
+    const distBadge = dist!==null ? (idx===0?`<span style="color:var(--dairy);background:var(--dairy-dim);padding:2px 7px;border-radius:3px;font-size:13px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`) : '—';
     return `<tr data-key="${key}" onclick="document.getElementById('dairy-plant-select').value='${key}';onDairyPlantChange()">
-      <td><div class="elev-name-cell">${p.name}</div><div class="elev-loc-cell">${p.loc} · <span style="color:var(--txt3);font-size:11px;">${p.type}</span></div></td>
+      <td><div class="elev-name-cell">${p.name}</div><div class="elev-loc-cell">${p.loc} · <span style="color:var(--txt3);font-size:13px;">${p.type}</span></div></td>
       <td style="color:var(--dairy);font-weight:700;">$${mailbox}</td>
       <td class="${pmClass}">${pmStr}</td>
       <td>${distBadge}</td></tr>`;
@@ -2308,7 +2294,7 @@ function buildDairyPlantDirectory() {
     const p = DAIRY_PLANTS[key];
     const dist = userLat ? Math.round(distMiles(userLat,userLon,p.lat,p.lon)) : null;
     const isNearest = idx===0&&dist!==null;
-    const distBadge = dist!==null ? `<span style="font-size:11px;color:var(--dairy);background:var(--dairy-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest?' ★':''}</span>` : '';
+    const distBadge = dist!==null ? `<span style="font-size:13px;color:var(--dairy);background:var(--dairy-dim);padding:3px 9px;border-radius:3px;white-space:nowrap;">${dist} mi${isNearest?' ★':''}</span>` : '';
     const mailbox = basePrice + p.premium;
     const pmStr = (p.premium>=0?'+':'')+p.premium.toFixed(2);
     const borderStyle = isNearest?'border-color:rgba(74,159,212,.3);':'';
@@ -2318,7 +2304,7 @@ function buildDairyPlantDirectory() {
       <div class="auction-header" style="margin-bottom:6px;">
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
-            <span style="font-size:9px;letter-spacing:2px;color:var(--dairy);background:var(--dairy-dim);padding:2px 8px;border-radius:3px;">${gradeLabel} · ${p.type.toUpperCase()}</span>
+            <span style="font-size:13px;letter-spacing:2px;color:var(--dairy);background:var(--dairy-dim);padding:2px 8px;border-radius:3px;">${gradeLabel} · ${p.type.toUpperCase()}</span>
           </div>
           <div class="auction-name">${p.name}</div>
         </div>
@@ -2645,5 +2631,274 @@ function calcDairy() {
     else if(margin>=0)  {v.textContent='Tight margin — covering feed but little cushion.';v.className='verdict neutral';}
     else if(marginCwt>=-2){v.textContent='Margin negative — review feed efficiency or forward price milk.';v.className='verdict down';}
     else                {v.textContent='Margin well below feed cost — consider DMC coverage level.';v.className='verdict down';}
+  }
+}
+
+// ── BARN TREND CHART ──────────────────────────────────────────────────────────
+var _barnTrendData = null;    // { id, name, history[] }
+var _barnTrendCat = 'slaughter';
+var _barnTrendType = 'beef';
+var _barnTrendChart = null;
+
+async function openBarnTrend(barnKey) {
+  var b = BARNS_DATA[barnKey];
+  if (!b) return;
+  document.getElementById('barn-trend-title').textContent = b.name + ' — Price Trend';
+  document.getElementById('barn-trend-overlay').classList.add('open');
+
+  // Reset toggles to match current cattle type
+  _barnTrendCat = 'slaughter';
+  _barnTrendType = typeof cattleType !== 'undefined' ? cattleType : 'beef';
+  document.getElementById('trend-slaughter-btn').classList.add('active');
+  document.getElementById('trend-feeder-btn').classList.remove('active');
+  document.querySelectorAll('#trend-beef-btn,#trend-cross-btn,#trend-hol-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.id === 'trend-' + (_barnTrendType === 'crossbred' ? 'cross' : _barnTrendType === 'holstein' ? 'hol' : 'beef') + '-btn');
+  });
+
+  // Fetch history file
+  try {
+    var r = await fetch('data/prices/' + barnKey + '.json');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var data = await r.json();
+    _barnTrendData = data;
+    renderBarnTrend();
+  } catch (e) {
+    console.warn('[barn-trend] failed to load history:', e.message);
+    document.getElementById('barn-trend-foot').textContent = 'Could not load history data';
+  }
+}
+
+function closeBarnTrend() {
+  document.getElementById('barn-trend-overlay').classList.remove('open');
+  if (_barnTrendChart) { _barnTrendChart.destroy(); _barnTrendChart = null; }
+}
+
+function setBarnTrendCategory(cat, btn) {
+  _barnTrendCat = cat;
+  document.getElementById('trend-slaughter-btn').classList.toggle('active', cat === 'slaughter');
+  document.getElementById('trend-feeder-btn').classList.toggle('active', cat === 'feeder');
+  renderBarnTrend();
+}
+
+function setBarnTrendType(type, btn) {
+  _barnTrendType = type;
+  document.querySelectorAll('#trend-beef-btn,#trend-cross-btn,#trend-hol-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  renderBarnTrend();
+}
+
+// Chart.js plugin: draw whisker bars for low/high ranges
+var whiskerPlugin = {
+  id: 'whiskerBars',
+  afterDatasetsDraw: function(chart) {
+    var meta = chart.getDatasetMeta(0);
+    if (!meta || !meta.data) return;
+    var ctx = chart.ctx;
+    var rawData = chart.data.datasets[0]._rawRanges;
+    if (!rawData) return;
+    var yScale = chart.scales.y;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(212,160,39,0.6)';
+    ctx.lineWidth = 1.5;
+    meta.data.forEach(function(pt, i) {
+      var range = rawData[i];
+      if (!range || range.low == null || range.high == null) return;
+      if (range.low === range.high) return;
+      var x = pt.x;
+      var yLow = yScale.getPixelForValue(range.low);
+      var yHigh = yScale.getPixelForValue(range.high);
+      var capW = 4;
+      // Vertical line
+      ctx.beginPath();
+      ctx.moveTo(x, yHigh);
+      ctx.lineTo(x, yLow);
+      ctx.stroke();
+      // Top cap
+      ctx.beginPath();
+      ctx.moveTo(x - capW, yHigh);
+      ctx.lineTo(x + capW, yHigh);
+      ctx.stroke();
+      // Bottom cap
+      ctx.beginPath();
+      ctx.moveTo(x - capW, yLow);
+      ctx.lineTo(x + capW, yLow);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+};
+
+function renderBarnTrend() {
+  if (!_barnTrendData || !_barnTrendData.history) return;
+  var cat = _barnTrendCat;
+  var type = _barnTrendType;
+  var foot = document.getElementById('barn-trend-foot');
+
+  // Filter history to scraped entries, dedup by date+saleDay (keep latest)
+  var scraped = _barnTrendData.history
+    .filter(function(e) { return e.source === 'scraped' && e[cat]; });
+  var byKey = {};
+  scraped.forEach(function(e) {
+    var key = e.date + '|' + (e.saleDay || '');
+    byKey[key] = e; // last one wins
+  });
+  // Remove entries without saleDay if a saleDay entry exists for the same date
+  var dates = {};
+  Object.keys(byKey).forEach(function(k) { var d = k.split('|')[0], s = k.split('|')[1]; if (s) dates[d] = true; });
+  Object.keys(byKey).forEach(function(k) { var d = k.split('|')[0], s = k.split('|')[1]; if (!s && dates[d]) delete byKey[k]; });
+  var entries = Object.values(byKey)
+    .sort(function(a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+
+  // Build chart data
+  var labels = [];
+  var midpoints = [];
+  var rawRanges = [];
+
+  entries.forEach(function(e) {
+    var val = e[cat][type];
+    if (val == null) return;
+    var p = priceObj(val);
+    if (!p) return;
+    var mid = priceMid(val);
+    if (mid == null) return;
+
+    var d = new Date(e.date + 'T12:00:00');
+    var dayLabel = e.saleDay ? e.saleDay.slice(0, 3) : '';
+    var dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    labels.push(dayLabel ? dayLabel + ' ' + dateLabel : dateLabel);
+    midpoints.push(parseFloat(mid.toFixed(2)));
+    rawRanges.push({ low: p.low, high: p.high });
+  });
+
+  if (midpoints.length === 0) {
+    if (foot) foot.textContent = 'No ' + cat + ' data for ' + type + ' in history';
+    if (_barnTrendChart) { _barnTrendChart.destroy(); _barnTrendChart = null; }
+    return;
+  }
+
+  // Compute y-axis range with padding
+  var allVals = [];
+  rawRanges.forEach(function(r) {
+    if (r.low != null) allVals.push(r.low);
+    if (r.high != null) allVals.push(r.high);
+  });
+  midpoints.forEach(function(v) { allVals.push(v); });
+  var yMin = Math.floor(Math.min.apply(null, allVals) - 5);
+  var yMax = Math.ceil(Math.max.apply(null, allVals) + 5);
+
+  var typeLabels = { beef: 'Beef Steer', crossbred: 'Beef x Dairy', holstein: 'Holstein' };
+  var catLabel = cat === 'slaughter' ? 'Slaughter' : 'Feeder';
+  if (foot) foot.textContent = _barnTrendData.name + ' · ' + catLabel + ' · ' + (typeLabels[type] || type) + ' · ' + entries.length + ' sale days · ¢/lb';
+
+  if (_barnTrendChart) _barnTrendChart.destroy();
+
+  var ctx = document.getElementById('barn-trend-chart');
+  _barnTrendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: catLabel + ' ' + (typeLabels[type] || type),
+        data: midpoints,
+        _rawRanges: rawRanges,
+        borderColor: '#d4a027',
+        backgroundColor: 'rgba(212,160,39,0.15)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: '#d4a027',
+        pointBorderColor: '#d4a027',
+        tension: 0.2,
+        fill: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var r = rawRanges[ctx.dataIndex];
+              var mid = ctx.parsed.y;
+              if (r && r.low != null && r.high != null && r.low !== r.high) {
+                return catLabel + ': ' + r.low.toFixed(2) + ' – ' + r.high.toFixed(2) + '¢ (avg ' + mid.toFixed(2) + ')';
+              }
+              if (r && r.low == null && r.high != null) {
+                return catLabel + ': up to ' + r.high.toFixed(2) + '¢';
+              }
+              return catLabel + ': ' + mid.toFixed(2) + '¢';
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          min: yMin,
+          max: yMax,
+          ticks: { color: '#ffffff', font: { size: 14, family: 'Courier New' }, callback: function(v) { return v + '¢'; } },
+          grid: { color: 'rgba(255,255,255,.06)' }
+        },
+        x: {
+          ticks: { color: '#ffffff', font: { size: 13, family: 'Courier New' }, maxRotation: 45 },
+          grid: { display: false }
+        }
+      }
+    },
+    plugins: [whiskerPlugin]
+  });
+
+  // ── Trend insight ──
+  var insightEl = document.getElementById('barn-trend-insight');
+  if (insightEl) {
+    var typeLabelsI = { beef: 'beef steer', crossbred: 'beef x dairy', holstein: 'holstein' };
+    var catLabelI = cat === 'slaughter' ? 'slaughter' : 'feeder';
+    var typeLabelI = typeLabelsI[type] || type;
+
+    if (midpoints.length < 2) {
+      insightEl.innerHTML = '<span style="color:var(--txt3);">Not enough data points to determine trend.</span>';
+    } else {
+      var first = midpoints[0], last = midpoints[midpoints.length - 1];
+      var totalChange = last - first;
+      var pctChange = ((totalChange / first) * 100);
+
+      // Check for volatility — std dev of consecutive changes
+      var changes = [];
+      for (var ci = 1; ci < midpoints.length; ci++) changes.push(midpoints[ci] - midpoints[ci - 1]);
+      var avgChange = changes.reduce(function(s, v) { return s + v; }, 0) / changes.length;
+      var variance = changes.reduce(function(s, v) { return s + (v - avgChange) * (v - avgChange); }, 0) / changes.length;
+      var stdDev = Math.sqrt(variance);
+      var directionChanges = 0;
+      for (var di = 1; di < changes.length; di++) {
+        if ((changes[di] > 0 && changes[di - 1] < 0) || (changes[di] < 0 && changes[di - 1] > 0)) directionChanges++;
+      }
+
+      var msg = '', color = 'var(--txt3)';
+      var absChange = Math.abs(totalChange);
+      var absPct = Math.abs(pctChange);
+
+      if (directionChanges >= 2 && stdDev > 3) {
+        msg = 'Volatile — ' + typeLabelI + ' ' + catLabelI + ' showing yo-yo pattern. Spread: ' + absChange.toFixed(1) + '¢ over ' + midpoints.length + ' sales.';
+        color = 'var(--corn)';
+      } else if (totalChange > 0 && absPct > 1.5) {
+        msg = 'Increasing — ' + typeLabelI + ' ' + catLabelI + ' up ' + absChange.toFixed(1) + '¢ (+' + absPct.toFixed(1) + '%) over ' + midpoints.length + ' sales.';
+        color = 'var(--up)';
+      } else if (totalChange < 0 && absPct > 1.5) {
+        msg = 'Declining — ' + typeLabelI + ' ' + catLabelI + ' down ' + absChange.toFixed(1) + '¢ (' + pctChange.toFixed(1) + '%) over ' + midpoints.length + ' sales.';
+        color = 'var(--down)';
+      } else {
+        msg = 'Stable — ' + typeLabelI + ' ' + catLabelI + ' holding steady. Change: ' + (totalChange >= 0 ? '+' : '') + totalChange.toFixed(1) + '¢ over ' + midpoints.length + ' sales.';
+        color = 'var(--txt2)';
+      }
+
+      // Add range spread info if whiskers exist
+      var rangeEntries = rawRanges.filter(function(r) { return r.low != null && r.high != null && r.low !== r.high; });
+      if (rangeEntries.length > 0) {
+        var avgSpread = rangeEntries.reduce(function(s, r) { return s + (r.high - r.low); }, 0) / rangeEntries.length;
+        msg += ' Avg spread: ' + avgSpread.toFixed(1) + '¢.';
+      }
+
+      insightEl.innerHTML = '<span style="color:' + color + ';">' + msg + '</span>';
+    }
   }
 }
