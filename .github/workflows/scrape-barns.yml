@@ -1,6 +1,7 @@
 name: Scrape Auction Barn Prices
 on:
   schedule:
+    - cron: '0 10 * * *'
     - cron: '0 12 * * *'
   workflow_dispatch:
 
