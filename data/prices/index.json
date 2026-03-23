@@ -5,16 +5,34 @@
     "location": "Zumbrota MN",
     "lastSuccess": "2026-03-18",
     "slaughter": {
-      "beef": 237.5,
-      "crossbred": 233.5,
-      "holstein": 228.5
+      "beef": {
+        "low": 230,
+        "high": 245
+      },
+      "crossbred": {
+        "low": 225,
+        "high": 242
+      },
+      "holstein": {
+        "low": 220,
+        "high": 237
+      }
     },
     "slaughterSaleDay": "Wednesday",
     "slaughterDate": "2026-03-18",
     "feeder": {
-      "beef": 405,
-      "crossbred": 401.2,
-      "holstein": 203,
+      "beef": {
+        "low": null,
+        "high": 405
+      },
+      "crossbred": {
+        "low": null,
+        "high": 401.2
+      },
+      "holstein": {
+        "low": 203,
+        "high": 203
+      },
       "liteTest": true
     },
     "feederWeights": [
@@ -218,9 +236,18 @@
         "day": "Wednesday",
         "date": "2026-03-18",
         "slaughter": {
-          "beef": 237.5,
-          "crossbred": 233.5,
-          "holstein": 228.5
+          "beef": {
+            "low": 230,
+            "high": 245
+          },
+          "crossbred": {
+            "low": 225,
+            "high": 242
+          },
+          "holstein": {
+            "low": 220,
+            "high": 237
+          }
         },
         "feeder": {
           "beef": null,
@@ -343,8 +370,14 @@
         },
         "hogs": {
           "marketHogs": null,
-          "sows": 228.5,
-          "boars": 144.5
+          "sows": {
+            "low": 220,
+            "high": 237
+          },
+          "boars": {
+            "low": 135,
+            "high": 154
+          }
         },
         "liteTestNote": null
       },
@@ -352,14 +385,32 @@
         "day": "Monday",
         "date": "2026-03-09",
         "slaughter": {
-          "beef": 231.5,
-          "crossbred": 227.5,
-          "holstein": 205.5
+          "beef": {
+            "low": 224,
+            "high": 239
+          },
+          "crossbred": {
+            "low": 220,
+            "high": 235
+          },
+          "holstein": {
+            "low": 204,
+            "high": 207
+          }
         },
         "feeder": {
-          "beef": 405,
-          "crossbred": 401.2,
-          "holstein": 203,
+          "beef": {
+            "low": null,
+            "high": 405
+          },
+          "crossbred": {
+            "low": null,
+            "high": 401.2
+          },
+          "holstein": {
+            "low": 203,
+            "high": 203
+          },
           "liteTest": true
         },
         "feederWeights": [
