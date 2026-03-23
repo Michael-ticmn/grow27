@@ -34,7 +34,7 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.57%0A%0AFeedback%3A%0A">Feedback</a>
+    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.59%0A%0AFeedback%3A%0A">Feedback</a>
     <div class="clock-bar">
       <span><span class="status-dot"></span><span id="status-txt">Loading...</span></span>
       <div style="font-size:12px;color:var(--txt3);" id="last-updated-txt">—</div>
@@ -89,9 +89,9 @@
             <option value="">Select local buyer…</option>
           </select>
           <div class="elev-basis" id="elev-basis-display" style="display:none;"></div>
-          <div id="discovery-status" style="font-size:11px;color:var(--txt3);margin-left:auto;font-style:italic;"></div>
+          <div id="discovery-status" style="font-size:13px;color:var(--txt3);margin-left:auto;font-style:italic;"></div>
         </div>
-        <div style="font-size:11px;color:var(--txt3);margin:-12px 0 16px;padding-left:4px;" id="active-region-label"></div>
+        <div style="font-size:13px;color:var(--txt3);margin:-12px 0 16px;padding-left:4px;" id="active-region-label"></div>
 
         <div class="insight-strip" id="grain-insight">Loading best local prices…</div>
 
@@ -103,7 +103,7 @@
           <div class="card sb2"><div class="card-label">CBOT · Soybean Futures</div><div class="card-name">New Crop Beans</div><div class="card-price" id="p-sb2">—</div><div class="card-unit">$ / bushel</div><div class="badge flat" id="b-sb2">— —</div><div class="card-meta"><div class="meta-item">HIGH<strong id="h-sb2">—</strong></div><div class="meta-item">LOW<strong id="l-sb2">—</strong></div><div class="meta-item">PREV<strong id="v-sb2">—</strong></div></div><div class="cbot-ts" id="cbot-ts-sb2" style="font-size:9px;color:var(--txt3);text-align:center;margin-top:6px;"></div></div>
         </div>
 
-        <div class="section-divider">Local Cash Prices — All Buyers <span style="font-size:10px;font-weight:400;color:var(--txt3);letter-spacing:0;">Always confirm with your buyer before delivering.</span></div>
+        <div class="section-divider">Local Cash Prices — All Buyers <span style="font-size:12px;font-weight:400;color:var(--txt3);letter-spacing:0;">Always confirm with your buyer before delivering.</span></div>
         <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
           <div class="table-scroll"><table class="cash-table"><thead><tr><th>Local Buyer</th><th>Corn Cash</th><th>Corn Basis</th><th>Soy Cash</th><th>Soy Basis</th><th>Distance</th></tr></thead><tbody id="cash-table-body"><tr><td colspan="6" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody></table></div>
         </div>
@@ -265,7 +265,7 @@
           <select class="elevator-select" id="cattle-barn-select" onchange="onCattleBarnChange()">
             <option value="">Select auction barn…</option>
           </select>
-          <div id="barn-price-status" style="font-size:11px;color:var(--txt3);font-style:italic;margin-left:auto;"></div>
+          <div id="barn-price-status" style="font-size:13px;color:var(--txt3);font-style:italic;margin-left:auto;"></div>
         </div>
 
         <div class="insight-strip" id="cattle-insight">Loading best barn prices…</div>
@@ -278,7 +278,7 @@
             <div class="badge flat" id="b-lc">— —</div>
             <div class="card-meta"><div class="meta-item">HIGH<strong id="h-lc">—</strong></div><div class="meta-item">LOW<strong id="l-lc">—</strong></div><div class="meta-item">PREV<strong id="v-lc">—</strong></div></div>
             <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
-              <div id="slaughter-weight-table" style="font-size:11px;color:var(--txt3);">Loading weight class prices…</div>
+              <div id="slaughter-weight-table" style="font-size:13px;color:var(--txt3);">Loading weight class prices…</div>
             </div>
           </div>
           <div class="card fc" style="grid-row:span 1;">
@@ -289,7 +289,7 @@
             <div class="badge flat" id="b-fc">— —</div>
             <div class="card-meta"><div class="meta-item">HIGH<strong id="h-fc">—</strong></div><div class="meta-item">LOW<strong id="l-fc">—</strong></div><div class="meta-item">PREV<strong id="v-fc">—</strong></div></div>
             <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
-              <div id="feeder-weight-table" style="font-size:11px;color:var(--txt3);">Loading weight class prices…</div>
+              <div id="feeder-weight-table" style="font-size:13px;color:var(--txt3);">Loading weight class prices…</div>
             </div>
           </div>
           <div class="card cn">
@@ -301,19 +301,19 @@
             <div class="card-meta"><div class="meta-item">HIGH<strong id="h-cn-c">—</strong></div><div class="meta-item">LOW<strong id="l-cn-c">—</strong></div><div class="meta-item">PREV<strong id="v-cn-c">—</strong></div></div>
             <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
               <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
-                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">LOCAL BASIS <span id="cn-c-basis-label" style="color:var(--txt3);font-style:italic;"></span></div>
+                <div style="font-size:12px;color:var(--txt3);letter-spacing:1px;">LOCAL BASIS <span id="cn-c-basis-label" style="color:var(--txt3);font-style:italic;"></span></div>
                 <div style="font-size:13px;font-weight:700;" id="cn-c-basis">—</div>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
-                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">LOCAL CASH</div>
+                <div style="font-size:12px;color:var(--txt3);letter-spacing:1px;">LOCAL CASH</div>
                 <div style="font-size:13px;font-weight:700;color:var(--corn);" id="cn-c-cash">—</div>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
-                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">NEW CROP</div>
+                <div style="font-size:12px;color:var(--txt3);letter-spacing:1px;">NEW CROP</div>
                 <div style="font-size:13px;font-weight:700;" id="cn-c-newcrop">—</div>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
-                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">CARRY</div>
+                <div style="font-size:12px;color:var(--txt3);letter-spacing:1px;">CARRY</div>
                 <div style="font-size:13px;font-weight:700;" id="cn-c-carry">—</div>
               </div>
               <div style="font-size:9px;color:var(--txt3);margin-top:5px;" id="cn-c-source">Nearest elevator basis</div>
@@ -325,32 +325,32 @@
               <div class="card-label" style="margin-bottom:10px;">Feed Input Costs</div>
               <div class="feed-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
                 <div>
-                  <div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">SOYBEAN MEAL</div>
-                  <div style="font-size:10px;color:var(--txt3);">CBOT futures · $/ton</div>
+                  <div style="font-size:13px;color:var(--txt3);letter-spacing:1px;">SOYBEAN MEAL</div>
+                  <div style="font-size:12px;color:var(--txt3);">CBOT futures · $/ton</div>
                 </div>
                 <div style="text-align:right;">
                   <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="p-sbm">—</div>
-                  <div id="b-sbm" class="badge flat" style="font-size:10px;padding:2px 6px;">— —</div>
+                  <div id="b-sbm" class="badge flat" style="font-size:12px;padding:2px 6px;">— —</div>
                 </div>
               </div>
               <div class="feed-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
                 <div>
-                  <div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">DISTILLERS (DDG)</div>
-                  <div style="font-size:10px;color:var(--txt3);">USDA IA/MN spot · $/ton</div>
+                  <div style="font-size:13px;color:var(--txt3);letter-spacing:1px;">DISTILLERS (DDG)</div>
+                  <div style="font-size:12px;color:var(--txt3);">USDA IA/MN spot · $/ton</div>
                 </div>
                 <div style="text-align:right;">
                   <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="p-ddg">—</div>
-                  <div style="font-size:10px;color:var(--txt3);" id="src-ddg">—</div>
+                  <div style="font-size:12px;color:var(--txt3);" id="src-ddg">—</div>
                 </div>
               </div>
               <div class="feed-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;">
                 <div>
-                  <div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">ALFALFA HAY</div>
-                  <div style="font-size:10px;color:var(--txt3);">USDA IA/MN spot · $/ton</div>
+                  <div style="font-size:13px;color:var(--txt3);letter-spacing:1px;">ALFALFA HAY</div>
+                  <div style="font-size:12px;color:var(--txt3);">USDA IA/MN spot · $/ton</div>
                 </div>
                 <div style="text-align:right;">
                   <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="p-hay">—</div>
-                  <div style="font-size:10px;color:var(--txt3);" id="src-hay">—</div>
+                  <div style="font-size:12px;color:var(--txt3);" id="src-hay">—</div>
                 </div>
               </div>
             </div>
@@ -364,7 +364,7 @@
             <thead><tr><th>Barn</th><th>Slaughter avg</th><th>Feeder avg</th><th>Type adj</th></tr></thead>
             <tbody id="barn-table-body"><tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading prices…</td></tr></tbody>
           </table></div>
-          <div id="barn-price-source" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;"></div>
+          <div id="barn-price-source" style="font-size:12px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;"></div>
         </div>
 
         <div class="two-col">
@@ -384,9 +384,9 @@
       <!-- CATTLE CHARTS -->
       <div class="section" id="cattle-charts">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Type</div>
-          <div id="cattle-type-badge-charts" style="font-size:11px;letter-spacing:1px;padding:4px 12px;border-radius:3px;background:var(--cattle-dim);color:var(--cattle);text-transform:uppercase;font-weight:700;">Beef Steer</div>
-          <div style="font-size:11px;color:var(--txt3);">— change on Prices tab</div>
+          <div style="font-size:12px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Type</div>
+          <div id="cattle-type-badge-charts" style="font-size:13px;letter-spacing:1px;padding:4px 12px;border-radius:3px;background:var(--cattle-dim);color:var(--cattle);text-transform:uppercase;font-weight:700;">Beef Steer</div>
+          <div style="font-size:13px;color:var(--txt3);">— change on Prices tab</div>
         </div>
         <div class="hist-controls"><button class="hist-btn" onclick="setRange(7,this)">7D</button><button class="hist-btn" onclick="setRange(30,this)">30D</button><button class="hist-btn active" onclick="setRange(90,this)">90D</button><button class="hist-btn" onclick="setRange(180,this)">180D</button></div>
         <div class="panel full" style="margin-bottom:16px;"><div class="panel-title">Live Cattle — Historical (¢/lb)</div><div style="position:relative;width:100%;height:210px;"><canvas id="hist-lc"></canvas></div></div>
@@ -397,9 +397,9 @@
       <!-- CATTLE MARGIN CALC -->
       <div class="section" id="cattle-margin">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Type</div>
-          <div id="cattle-type-badge-margin" style="font-size:11px;letter-spacing:1px;padding:4px 12px;border-radius:3px;background:var(--cattle-dim);color:var(--cattle);text-transform:uppercase;font-weight:700;">Beef Steer</div>
-          <div style="font-size:11px;color:var(--txt3);">— change on Prices tab</div>
+          <div style="font-size:12px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Type</div>
+          <div id="cattle-type-badge-margin" style="font-size:13px;letter-spacing:1px;padding:4px 12px;border-radius:3px;background:var(--cattle-dim);color:var(--cattle);text-transform:uppercase;font-weight:700;">Beef Steer</div>
+          <div style="font-size:13px;color:var(--txt3);">— change on Prices tab</div>
         </div>
         <div class="two-col" style="align-items:start;">
           <div class="panel">
@@ -408,7 +408,7 @@
 
             <div class="calc-grid" id="cattle-calc-grid"></div>
 
-            <div class="panel" style="margin-top:12px;background:var(--bg1);border-color:var(--border);"><div class="panel-title">Seasonal Price Patterns</div><div style="position:relative;width:100%;height:150px;"><canvas id="seasonal-chart"></canvas></div><div style="font-size:11px;color:var(--txt3);margin-top:8px;line-height:1.6;">Cattle prices historically peak Mar–May and Oct–Nov. Current month highlighted in amber.</div></div>
+            <div class="panel" style="margin-top:12px;background:var(--bg1);border-color:var(--border);"><div class="panel-title">Seasonal Price Patterns</div><div style="position:relative;width:100%;height:150px;"><canvas id="seasonal-chart"></canvas></div><div style="font-size:13px;color:var(--txt3);margin-top:8px;line-height:1.6;">Cattle prices historically peak Mar–May and Oct–Nov. Current month highlighted in amber.</div></div>
           </div>
           <div style="display:flex;flex-direction:column;gap:16px;">
             <div class="panel"><div class="panel-title">Per Head — Results</div><div class="result-box" style="margin-top:0;"><div class="result-row"><span>Buy cost</span><span id="r-buy">—</span></div><div class="result-row"><span>Total feed cost</span><span id="r-corn">—</span></div><div class="result-row"><span>Other costs</span><span id="r-other">—</span></div><div class="result-row total"><span>Total cost</span><span id="r-total">—</span></div><div class="result-row"><span>Gross revenue</span><span id="r-rev">—</span></div><div class="result-row total" id="r-margin-row"><span>Net margin / head</span><span id="r-margin">—</span></div></div><div class="verdict neutral" id="verdict">Adjust sliders to see recommendation</div></div>
@@ -496,10 +496,10 @@
 
         <!-- Grade + Plant selector bar -->
         <div class="elevator-bar">
-          <div class="elevator-label">Grade</div>
+          <div class="elevator-label">Class</div>
           <div style="display:flex;border:1px solid var(--border2);border-radius:3px;overflow:hidden;">
-            <button id="dairy-grade-a-btn" class="cattle-type-btn active" onclick="setDairyGrade('A',this)" style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;">Grade A</button>
-            <button id="dairy-grade-b-btn" class="cattle-type-btn"        onclick="setDairyGrade('B',this)" style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Grade B</button>
+            <button id="dairy-grade-b-btn" class="cattle-type-btn active" onclick="setDairyGrade('B',this)" style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;">Class III</button>
+            <button id="dairy-grade-a-btn" class="cattle-type-btn"        onclick="setDairyGrade('A',this)" style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;border-left:1px solid var(--border);">Class I</button>
           </div>
           <div class="elevator-label" style="margin-left:8px;">My Plant</div>
           <select class="elevator-select" id="dairy-plant-select" onchange="onDairyPlantChange()">
@@ -515,7 +515,7 @@
         <div class="section-divider">Minnesota Milk Prices</div>
         <div class="cards">
           <div class="card dc2">
-            <div class="card-label">Grade A · Class 1 · Est.</div>
+            <div class="card-label">Class I · Fluid Milk · Est.</div>
             <div class="card-name">Fluid Milk · Order 30</div>
             <div class="card-price" id="p-dc2">—</div>
             <div class="card-unit">$ / cwt · est.</div>
@@ -527,7 +527,7 @@
             </div>
           </div>
           <div class="card dc">
-            <div class="card-label">Grade B · Class 3 · CME</div>
+            <div class="card-label">Class III · Cheese Milk · CME</div>
             <div class="card-name">Cheese Milk · Nearby</div>
             <div class="card-price" id="p-dc">—</div>
             <div class="card-unit">$ / cwt</div>
@@ -536,17 +536,17 @@
           </div>
           <div class="card dc">
             <div class="card-label" id="ord30-card-label">USDA · Order 30 · Class 1</div>
-            <div class="card-name" id="ord30-card-name">Grade A · Upper Midwest</div>
+            <div class="card-name" id="ord30-card-name">Class I · Upper Midwest</div>
             <div class="card-price" id="p-ord30">—</div>
-            <div class="card-unit" id="ord30-card-unit">$ / cwt · Grade A Class 1 est.</div>
+            <div class="card-unit" id="ord30-card-unit">$ / cwt · Class I est.</div>
             <div class="badge flat" id="b-ord30"></div>
             <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
               <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
-                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">EST. MAILBOX</div>
+                <div style="font-size:12px;color:var(--txt3);letter-spacing:1px;">EST. MAILBOX</div>
                 <div style="font-size:13px;font-weight:700;color:var(--dairy);" id="dairy-plant-mailbox">—</div>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
-                <div style="font-size:10px;color:var(--txt3);letter-spacing:1px;">PLANT PREMIUM</div>
+                <div style="font-size:12px;color:var(--txt3);letter-spacing:1px;">PLANT PREMIUM</div>
                 <div style="font-size:13px;font-weight:700;" id="dairy-plant-premium">select plant ↑</div>
               </div>
               <div style="font-size:9px;color:var(--txt3);margin-top:5px;" id="dairy-blend-date">USDA Order 30 · updated monthly</div>
@@ -557,15 +557,15 @@
             <div class="card-name">Key Cost Drivers</div>
             <div style="margin-top:8px;">
               <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
-                <div><div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">CORN</div><div style="font-size:10px;color:var(--txt3);">CBOT nearby · $/bu</div></div>
+                <div><div style="font-size:13px;color:var(--txt3);letter-spacing:1px;">CORN</div><div style="font-size:12px;color:var(--txt3);">CBOT nearby · $/bu</div></div>
                 <div style="font-size:18px;font-weight:700;color:var(--corn);" id="dairy-corn-price">—</div>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
-                <div><div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">SOYBEAN MEAL</div><div style="font-size:10px;color:var(--txt3);">CBOT nearby · $/ton</div></div>
+                <div><div style="font-size:13px;color:var(--txt3);letter-spacing:1px;">SOYBEAN MEAL</div><div style="font-size:12px;color:var(--txt3);">CBOT nearby · $/ton</div></div>
                 <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="dairy-sbm-price">—</div>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;">
-                <div><div style="font-size:11px;color:var(--txt3);letter-spacing:1px;">ALFALFA HAY</div><div style="font-size:10px;color:var(--txt3);">USDA MN spot · $/ton</div></div>
+                <div><div style="font-size:13px;color:var(--txt3);letter-spacing:1px;">ALFALFA HAY</div><div style="font-size:12px;color:var(--txt3);">USDA MN spot · $/ton</div></div>
                 <div style="font-size:18px;font-weight:700;color:var(--txt1);" id="dairy-hay-price">—</div>
               </div>
             </div>
@@ -576,10 +576,10 @@
         <div class="section-divider">All Plants — Est. Mailbox Price</div>
         <div class="panel full" style="margin-bottom:18px;padding:0 0 6px;">
           <div class="table-scroll"><table class="cash-table">
-            <thead><tr><th>Plant</th><th id="dairy-mailbox-col-header">Est. Grade A Mailbox</th><th>Est. Premium ($/cwt)</th><th>Distance</th></tr></thead>
+            <thead><tr><th>Plant</th><th id="dairy-mailbox-col-header">Est. Class I Mailbox</th><th>Est. Premium ($/cwt)</th><th>Distance</th></tr></thead>
             <tbody id="dairy-plant-table-body"><tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:18px;font-size:13px;">Loading plant data…</td></tr></tbody>
           </table></div>
-          <div id="dairy-table-footnote" style="font-size:10px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;">Grade A mailbox = Class 1 est. + plant premium · premiums estimated — verify with your plant's monthly announcement</div>
+          <div id="dairy-table-footnote" style="font-size:12px;color:var(--txt3);padding:8px 12px;border-top:1px solid var(--border);letter-spacing:1px;">Class I mailbox = Class I est. + plant premium · premiums estimated — verify with your plant's monthly announcement</div>
         </div>
 
         <div class="two-col">
@@ -591,9 +591,9 @@
             <div class="cal-item"><div class="cal-date">May 2</div><div><span class="cal-tag usda">USDA</span><div class="cal-text">Order 30 April Blend Price Announced</div><div class="cal-sub">Upper Midwest uniform price — basis for your April milk check.</div></div></div>
           </div>
           <div class="panel"><div class="panel-title">How to Read This Dashboard</div>
-            <div class="guide-section"><div class="guide-heading">Minnesota Milk Grades</div><div class="guide-row"><span class="guide-label">Grade A (Class 1)</span><span class="guide-desc">Fluid milk — highest sanitation standard. Commands a premium over Grade B. Estimated as CME Class 3 + USDA Order 30 Class 1 differential (~$2.00–$3.50/cwt).</span></div><div class="guide-row"><span class="guide-label">Grade B (Class 3)</span><span class="guide-desc">Manufacturing milk — cheese, butter, powder. Most southern MN dairy farmers ship Grade B. Price tracks CME Class 3 futures directly.</span></div></div>
+            <div class="guide-section"><div class="guide-heading">Minnesota Milk Classes</div><div class="guide-row"><span class="guide-label">Class I</span><span class="guide-desc">Fluid milk — highest sanitation standard. Commands a premium over Class III. Estimated as CME Class III + USDA Order 30 Class I differential (~$2.00–$3.50/cwt).</span></div><div class="guide-row"><span class="guide-label">Class III</span><span class="guide-desc">Manufacturing milk — cheese, butter, powder. Most southern MN dairy farmers ship Class III. Price tracks CME Class III futures directly.</span></div></div>
             <div class="guide-section"><div class="guide-heading">Your Mailbox Price</div><div class="guide-row"><span class="guide-desc">Order 30 blend + your plant's premium = estimated mailbox price. The premium covers hauling, quality bonuses, and co-op deductions. Verify monthly with your plant or fieldman.</span></div></div>
-            <div class="guide-section"><div class="guide-heading">DMC Program</div><div class="guide-row"><span class="guide-desc">Dairy Margin Coverage uses the Class 3 (Grade B) price. If it drops below your coverage level, DMC pays the difference. See the Margin Calc tab.</span></div></div>
+            <div class="guide-section"><div class="guide-heading">DMC Program</div><div class="guide-row"><span class="guide-desc">Dairy Margin Coverage uses the Class III price. If it drops below your coverage level, DMC pays the difference. See the Margin Calc tab.</span></div></div>
           </div>
         </div>
       </div>
@@ -603,9 +603,9 @@
 
         <!-- Plant context badge -->
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
-          <div style="font-size:10px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">My Plant</div>
-          <div id="dairy-chart-plant-badge" style="font-size:11px;letter-spacing:1px;padding:4px 14px;border-radius:3px;background:var(--dairy-dim);color:var(--dairy);text-transform:uppercase;font-weight:700;">No plant selected</div>
-          <div style="font-size:11px;color:var(--txt3);">— select on Prices tab</div>
+          <div style="font-size:12px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">My Plant</div>
+          <div id="dairy-chart-plant-badge" style="font-size:13px;letter-spacing:1px;padding:4px 14px;border-radius:3px;background:var(--dairy-dim);color:var(--dairy);text-transform:uppercase;font-weight:700;">No plant selected</div>
+          <div style="font-size:13px;color:var(--txt3);">— select on Prices tab</div>
         </div>
 
         <!-- Range buttons -->
@@ -619,11 +619,11 @@
         <!-- Main chart -->
         <div class="panel full" style="margin-bottom:16px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <div id="dairy-main-title" class="panel-title" style="margin:0;">Grade A Mailbox — Your Plant vs Others ($/cwt)</div>
-            <div style="display:flex;gap:14px;font-size:11px;color:var(--txt3);">
+            <div id="dairy-main-title" class="panel-title" style="margin:0;">Class I Mailbox — Your Plant vs Others ($/cwt)</div>
+            <div style="display:flex;gap:14px;font-size:13px;color:var(--txt3);">
               <span><span style="display:inline-block;width:18px;height:2px;background:var(--dairy);vertical-align:middle;margin-right:4px;"></span>Your plant</span>
               <span><span style="display:inline-block;width:18px;height:2px;background:rgba(74,159,212,.3);vertical-align:middle;margin-right:4px;"></span>Other plants</span>
-              <span><span style="display:inline-block;width:18px;height:2px;background:rgba(180,180,180,.4);vertical-align:middle;margin-right:4px;border-top:2px dashed rgba(180,180,180,.4);"></span><span id="dairy-legend-base">Grade A base</span></span>
+              <span><span style="display:inline-block;width:18px;height:2px;background:rgba(180,180,180,.4);vertical-align:middle;margin-right:4px;border-top:2px dashed rgba(180,180,180,.4);"></span><span id="dairy-legend-base">Class I base</span></span>
             </div>
           </div>
           <div style="position:relative;width:100%;height:240px;"><canvas id="dairy-hist-main"></canvas></div>
@@ -632,13 +632,13 @@
         <!-- Bottom row: Premium band + Seasonal pattern -->
         <div class="two-col">
           <div class="panel">
-            <div id="dairy-prem-title" class="panel-title">Your Plant Premium Over Grade A ($/cwt)</div>
-            <div id="dairy-prem-sub" style="font-size:11px;color:var(--txt3);margin-bottom:8px;">Rolling 13 months · monthly · shaded band = premium vs Grade A base</div>
+            <div id="dairy-prem-title" class="panel-title">Your Plant Premium Over Class I ($/cwt)</div>
+            <div id="dairy-prem-sub" style="font-size:13px;color:var(--txt3);margin-bottom:8px;">Rolling 13 months · monthly · shaded band = premium vs Class I base</div>
             <div style="position:relative;width:100%;height:200px;"><canvas id="dairy-hist-premium"></canvas></div>
           </div>
           <div class="panel">
-            <div class="panel-title">Seasonal Grade A Price Pattern — MN</div>
-            <div style="font-size:11px;color:var(--txt3);margin-bottom:8px;">Historical average % deviation from annual average · current month highlighted</div>
+            <div class="panel-title">Seasonal Class I Price Pattern — MN</div>
+            <div style="font-size:13px;color:var(--txt3);margin-bottom:8px;">Historical average % deviation from annual average · current month highlighted</div>
             <div style="position:relative;width:100%;height:200px;"><canvas id="dairy-seasonal"></canvas></div>
           </div>
         </div>
@@ -647,7 +647,7 @@
 
       <!-- DAIRY LOCAL PLANTS -->
       <div class="section" id="dairy-plants">
-        <div class="insight-strip">Grade A dairy plants and cooperatives serving southern Minnesota. Premiums are estimates — verify the exact amount with your plant's monthly price announcement or fieldman. Select your plant on the Prices tab to set it as your anchor.</div>
+        <div class="insight-strip">Dairy plants and cooperatives serving southern Minnesota. Premiums are estimates — verify the exact amount with your plant's monthly price announcement or fieldman. Select your plant on the Prices tab to set it as your anchor.</div>
         <div class="barn-grid">
           <div id="dairy-dir-col-1" style="display:flex;flex-direction:column;gap:14px;"><div style="text-align:center;padding:40px;color:var(--txt3);font-size:13px;">Loading plant directory…</div></div>
           <div id="dairy-dir-col-2" style="display:flex;flex-direction:column;gap:14px;"></div>
@@ -659,7 +659,7 @@
         <div class="two-col" style="align-items:start;">
           <div class="panel">
             <div class="panel-title">Dairy Margin — Feed Cost vs Milk Price</div>
-            <div style="font-size:11px;color:var(--txt3);margin-bottom:16px;">Mirrors the USDA Dairy Margin Coverage (DMC) program logic. Adjust inputs to your operation.</div>
+            <div style="font-size:13px;color:var(--txt3);margin-bottom:16px;">Mirrors the USDA Dairy Margin Coverage (DMC) program logic. Adjust inputs to your operation.</div>
 
             <div class="calc-grid" id="dairy-calc-grid"></div>
           </div>
@@ -707,8 +707,8 @@
         <div class="news-panel active" id="panel-dairy-brief">
           <div class="brief-wip"><div class="brief-wip-icon">🚧</div><div class="brief-wip-body"><div class="brief-wip-title">Work in Progress</div><div class="brief-wip-text">The goal is to have real, curated dairy market insights ready for you here every morning — pulled from live sources and tailored to southern MN. The content below is placeholder only.</div></div></div>
           <div class="brief-grid">
-            <div class="brief-item"><div class="brief-tag cattle" style="background:var(--dairy-dim);color:var(--dairy);">Milk</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>CME Class 3 milk futures strengthen as cheese demand outpaces seasonal expectations heading into spring</div><div class="brief-meta">2h ago · CME</div><div class="brief-note"><strong>What it means for you:</strong> Rising Class 3 prices lift your Grade A estimate by the same amount. Check your plant's monthly announcement — a strong futures close often leads to a better blend price.</div></div></div>
-            <div class="brief-item"><div class="brief-tag cattle" style="background:var(--dairy-dim);color:var(--dairy);">USDA</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>USDA Order 30 Upper Midwest blend price announced — Class 1 differential holds at $2.10/cwt above Class 3</div><div class="brief-meta">4h ago · USDA AMS</div><div class="brief-note"><strong>What it means for you:</strong> The Class 1 differential is the premium Grade A producers earn over cheese milk. Stable differential means your Grade A estimate is a reliable planning number this month.</div></div></div>
+            <div class="brief-item"><div class="brief-tag cattle" style="background:var(--dairy-dim);color:var(--dairy);">Milk</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>CME Class 3 milk futures strengthen as cheese demand outpaces seasonal expectations heading into spring</div><div class="brief-meta">2h ago · CME</div><div class="brief-note"><strong>What it means for you:</strong> Rising Class III prices lift your Class I estimate by the same amount. Check your plant's monthly announcement — a strong futures close often leads to a better blend price.</div></div></div>
+            <div class="brief-item"><div class="brief-tag cattle" style="background:var(--dairy-dim);color:var(--dairy);">USDA</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>USDA Order 30 Upper Midwest blend price announced — Class 1 differential holds at $2.10/cwt above Class 3</div><div class="brief-meta">4h ago · USDA AMS</div><div class="brief-note"><strong>What it means for you:</strong> The Class I differential is the premium fluid milk producers earn over cheese milk. Stable differential means your Class I estimate is a reliable planning number this month.</div></div></div>
             <div class="brief-item"><div class="brief-tag corn">Feed</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>Soybean meal prices ease as South American harvest advances — could reduce ration costs 3–5% in coming weeks</div><div class="brief-meta">5h ago · CBOT</div><div class="brief-note"><strong>What it means for you:</strong> Lower SBM prices directly improve your milk margin. Update the Margin Calc with current feed prices to see the impact on your per-cow profitability.</div></div></div>
             <div class="brief-item"><div class="brief-tag market">Policy</div><div><div class="brief-headline"><span class="brief-example-badge">Example</span>USDA Dairy Margin Coverage (DMC) enrollment window open — 2025 production history deadline approaching</div><div class="brief-meta">8h ago · USDA FSA</div><div class="brief-note"><strong>What it means for you:</strong> DMC Tier 1 covers the first 5 million lbs at low premium cost. If margins narrow, DMC pays the difference. Run the Margin Calc to see where your breakeven sits.</div></div></div>
           </div>
@@ -722,7 +722,7 @@
             <a class="source-link" href="https://www.nass.usda.gov/Surveys/Guide_to_NASS_Surveys/Milk/index.php" target="_blank" rel="noopener"><div class="source-link-icon">📊</div><div class="source-link-body"><div class="source-link-title">USDA NASS — Milk Production Surveys</div><div class="source-link-desc">Milk Production, Dairy Products, and Cold Storage reports as released</div></div><span class="source-link-tag gov">GOV</span><div class="source-link-arrow">↗</div></a>
           </div></div>
           <div class="source-section"><div class="source-section-title">Exchanges &amp; Market Data</div><div class="source-links">
-            <a class="source-link" href="https://www.cmegroup.com/markets/agriculture/dairy/class-iii-milk.html" target="_blank" rel="noopener"><div class="source-link-icon">📉</div><div class="source-link-body"><div class="source-link-title">CME Group — Class III Milk Futures</div><div class="source-link-desc">Official CME Class III (dc.f) quotes, settlement prices, and options — the Grade B/Class 3 benchmark</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
+            <a class="source-link" href="https://www.cmegroup.com/markets/agriculture/dairy/class-iii-milk.html" target="_blank" rel="noopener"><div class="source-link-icon">📉</div><div class="source-link-body"><div class="source-link-title">CME Group — Class III Milk Futures</div><div class="source-link-desc">Official CME Class III (dc.f) quotes, settlement prices, and options — the Class III benchmark</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
             <a class="source-link" href="https://www.cmegroup.com/markets/agriculture/dairy/class-iv-milk.html" target="_blank" rel="noopener"><div class="source-link-icon">🧈</div><div class="source-link-body"><div class="source-link-title">CME Group — Class IV Milk Futures</div><div class="source-link-desc">Butter and nonfat dry milk benchmark — influences Order 30 blend price</div></div><span class="source-link-tag free">FREE</span><div class="source-link-arrow">↗</div></a>
           </div></div>
           <div class="source-section"><div class="source-section-title">Dairy Industry News</div><div class="source-links">
@@ -800,14 +800,14 @@
     </div>
 
     <div id="about-platform" style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
-      <div style="font-size:11px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">The Platform</div>
+      <div style="font-size:13px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">The Platform</div>
       <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
         grow27 is the platform. #27Markets is the first piece of it —watching the boards so you don't have to— with live grain and cattle market data, local buyer prices, and margin calculators built for working farmers. #27Herd, #27Fields, and #27Finance are coming, each adding another layer of intelligence to the operation.
       </div>
     </div>
 
     <div id="about-free" style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
-      <div style="font-size:11px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Why It's Free</div>
+      <div style="font-size:13px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Why It's Free</div>
       <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
         grow27 is hosted directly on GitHub Pages and doesn't store any personal information. There are no accounts, no tracking, and no data leaving your device. Because we don't hold your data, we don't charge for access. Everything runs directly in your browser.
       </div>
@@ -817,7 +817,7 @@
     </div>
 
     <div id="about-ai" style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
-      <div style="font-size:11px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Built with AI</div>
+      <div style="font-size:13px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Built with AI</div>
       <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
         grow27 was designed and built using AI-assisted development, proving that powerful, professional tools don't require a large team or budget to build. That's the point.
       </div>
@@ -825,7 +825,7 @@
     </div>
 
     <div id="about-sources" style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
-      <div style="font-size:11px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Data Sources</div>
+      <div style="font-size:13px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Data Sources</div>
       <div style="font-size:14px;color:var(--txt2);line-height:1.9;margin-bottom:16px;">
         grow27 is transparent about where our data comes from. All market data is gathered from publicly available sources and refreshed automatically.
       </div>
@@ -875,7 +875,7 @@
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:24px;font-size:12px;color:var(--txt3);letter-spacing:1px;text-align:center;">
-      grow27 · southern Minnesota · <span class="app-version">v1.57</span> · © 2026
+      grow27 · southern Minnesota · <span class="app-version">v1.59</span> · © 2026
     </div>
 
   </div>
@@ -885,8 +885,31 @@
 <footer class="g27-footer">
   <div class="g27-footer-wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="24" style="display:inline-block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg></div>
   <div class="g27-footer-tagline">#27 — worth more than its weight</div>
-  <div class="g27-footer-copy"><span class="app-version">v1.57</span> · © 2026 grow27 · All rights reserved</div>
+  <div class="g27-footer-copy"><span class="app-version">v1.59</span> · © 2026 grow27 · All rights reserved</div>
 </footer>
+
+<!-- ── BARN TREND MODAL ── -->
+<div class="barn-trend-overlay" id="barn-trend-overlay" onclick="if(event.target===this)closeBarnTrend()">
+  <div class="barn-trend-modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="barn-trend-title">Price Trend</div>
+        <div id="barn-trend-insight" style="font-size:14px;color:var(--txt3);margin-top:4px;line-height:1.5;"></div>
+      </div>
+      <button class="modal-close" onclick="closeBarnTrend()">&times;</button>
+    </div>
+    <div class="trend-toggles">
+      <button class="trend-btn active" id="trend-slaughter-btn" onclick="setBarnTrendCategory('slaughter',this)">Slaughter</button>
+      <button class="trend-btn" id="trend-feeder-btn" onclick="setBarnTrendCategory('feeder',this)">Feeder</button>
+      <span style="width:1px;background:var(--border);margin:0 4px;"></span>
+      <button class="trend-btn active" id="trend-beef-btn" onclick="setBarnTrendType('beef',this)">Beef</button>
+      <button class="trend-btn" id="trend-cross-btn" onclick="setBarnTrendType('crossbred',this)">Cross</button>
+      <button class="trend-btn" id="trend-hol-btn" onclick="setBarnTrendType('holstein',this)">Holstein</button>
+    </div>
+    <div style="position:relative;width:100%;height:280px;"><canvas id="barn-trend-chart"></canvas></div>
+    <div id="barn-trend-foot" style="font-size:14px;color:var(--txt3);margin-top:8px;letter-spacing:1px;"></div>
+  </div>
+</div>
 
 <!-- ── BOTTOM NAV ── -->
 <nav class="bottom-nav">
@@ -913,14 +936,16 @@
 </nav>
 
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script defer src="js/markets.js?v=1.57"></script>
-<script defer src="js/data-loader.js?v=1.57"></script>
-<script defer src="js/app.js?v=1.57"></script>
+<script defer src="js/markets.js?v=1.59"></script>
+<script defer src="js/data-loader.js?v=1.59"></script>
+<script defer src="js/app.js?v=1.59"></script>
 
 <!-- ── MOBILE FEEDBACK FAB ── -->
-<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.57%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
+<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.59%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
 </body>
 </html>
+
+
 
 
 

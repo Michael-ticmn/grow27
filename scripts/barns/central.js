@@ -14,7 +14,7 @@ function ensureDeps() {
 
 // Import shared helpers from the orchestrator
 const {
-  normalizePrice, extractLinePrice, RANGE_RE, SPACE_RANGE_RE, SINGLE_RE
+  normalizePrice, extractLinePrice, extractLinePriceMid, RANGE_RE, SPACE_RANGE_RE, SINGLE_RE
 } = require('../scrape-barns');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -31,9 +31,25 @@ function extractUptoPrice(line) {
   const m = line.match(/upto\s*[-–]?\s*(\d{3,5}(?:\.\d{2})?)/i);
   if (m) {
     const v = normalizePrice(m[1]);
-    if (v !== null) return parseFloat(v.toFixed(2));
+    if (v !== null) return { low: null, high: parseFloat(v.toFixed(2)) };
   }
   return null;
+}
+
+// Apply a discount to a {low, high} price range
+function discountRange(range, discount) {
+  if (!range) return null;
+  return {
+    low:  range.low  != null ? parseFloat((range.low  - discount).toFixed(2)) : null,
+    high: range.high != null ? parseFloat((range.high - discount).toFixed(2)) : null,
+  };
+}
+
+// Get midpoint from a {low, high} range for logging
+function mid(range) {
+  if (!range) return null;
+  if (range.low != null && range.high != null) return (range.low + range.high) / 2;
+  return range.high ?? range.low;
 }
 
 // Normalize OCR text: force ASCII English characters
@@ -245,18 +261,18 @@ async function parse({ id, browser, html, $ }) {
         }
       }
 
-      // Slaughter headers
+      // Slaughter headers — prices are {low, high} ranges
       if (/finished\s+beef\s+steers/i.test(line)) {
         const price = extractPriceSkipWeights(line);
-        if (price !== null) { slaughter.beef = price; console.log(`[${id}] slaughter.beef = ${price}`); }
+        if (price !== null) { slaughter.beef = price; console.log(`[${id}] slaughter.beef = ${JSON.stringify(price)}`); }
       }
       else if (/finished\s+dairy[\s-]*x/i.test(line) || /dairy[\s-]*x\s+steers/i.test(line)) {
         const price = extractPriceSkipWeights(line);
-        if (price !== null) { slaughter.crossbred = price; console.log(`[${id}] slaughter.crossbred = ${price}`); }
+        if (price !== null) { slaughter.crossbred = price; console.log(`[${id}] slaughter.crossbred = ${JSON.stringify(price)}`); }
       }
       else if (/finished\s+dairy\s+steers/i.test(line)) {
         const price = extractPriceSkipWeights(line);
-        if (price !== null) { slaughter.holstein = price; console.log(`[${id}] slaughter.holstein = ${price}`); }
+        if (price !== null) { slaughter.holstein = price; console.log(`[${id}] slaughter.holstein = ${JSON.stringify(price)}`); }
       }
 
       // Feeder section
@@ -278,14 +294,14 @@ async function parse({ id, browser, html, $ }) {
         feederBeefHeader = i;
         currentFeederTypes = ['beef', 'crossbred'];
         const price = extractPriceSkipWeights(line);
-        if (price !== null) { feeder.beef = price; console.log(`[${id}] feeder.beef = ${price} (same line)`); }
+        if (price !== null) { feeder.beef = price; console.log(`[${id}] feeder.beef = ${JSON.stringify(price)} (same line)`); }
       }
 
       if (inFeederSection && /dairy\s+steers/i.test(line) && !/finished/i.test(line)) {
         feederHolsteinHeader = i;
         currentFeederTypes = ['holstein'];
         const price = extractPriceSkipWeights(line);
-        if (price !== null) { feeder.holstein = price; console.log(`[${id}] feeder.holstein = ${price} (same line)`); }
+        if (price !== null) { feeder.holstein = price; console.log(`[${id}] feeder.holstein = ${JSON.stringify(price)} (same line)`); }
       }
 
       // Feeder weight ranges with upto prices
@@ -294,17 +310,17 @@ async function parse({ id, browser, html, $ }) {
         const price = extractUptoPrice(line);
         if (wm && price !== null) {
           const range = wm[1] + '–' + wm[2] + '#';
-          feederWeights.push({ range, price, types: [...currentFeederTypes] });
-          console.log(`[${id}] feederWeight: ${range} → ${price} [${currentFeederTypes}]`);
+          feederWeights.push({ range, price: price.high, types: [...currentFeederTypes] });
+          console.log(`[${id}] feederWeight: ${range} → ${price.high} [${currentFeederTypes}]`);
         }
         if (price !== null) {
           if (feeder.beef === null && currentFeederTypes.includes('beef')) {
             feeder.beef = price;
-            console.log(`[${id}] feeder.beef = ${price} (from upto line ${i})`);
+            console.log(`[${id}] feeder.beef = ${JSON.stringify(price)} (from upto line ${i})`);
           }
           if (feeder.holstein === null && currentFeederTypes.includes('holstein')) {
             feeder.holstein = price;
-            console.log(`[${id}] feeder.holstein = ${price} (from upto line ${i})`);
+            console.log(`[${id}] feeder.holstein = ${JSON.stringify(price)} (from upto line ${i})`);
           }
         }
       }
@@ -323,30 +339,28 @@ async function parse({ id, browser, html, $ }) {
       }
 
       if (inHogSection) {
-        // Market hogs / butcher hogs
+        // Market hogs / butcher hogs — store as {low, high}
         if (/market\s*hog|butcher/i.test(lower) && hogs.marketHogs === null) {
           const price = extractLinePrice(line);
-          if (price !== null) { hogs.marketHogs = price; console.log(`[${id}] hogs.marketHogs = ${price}`); }
+          if (price !== null) { hogs.marketHogs = price; console.log(`[${id}] hogs.marketHogs = ${JSON.stringify(price)}`); }
         }
         // Sows
         if (/sow/i.test(lower) && hogs.sows === null) {
           const price = extractLinePrice(line);
-          if (price !== null) { hogs.sows = price; console.log(`[${id}] hogs.sows = ${price}`); }
+          if (price !== null) { hogs.sows = price; console.log(`[${id}] hogs.sows = ${JSON.stringify(price)}`); }
         }
         // Boars
         if (/boar/i.test(lower) && hogs.boars === null) {
           const price = extractLinePrice(line);
-          if (price !== null) { hogs.boars = price; console.log(`[${id}] hogs.boars = ${price}`); }
+          if (price !== null) { hogs.boars = price; console.log(`[${id}] hogs.boars = ${JSON.stringify(price)}`); }
         }
       }
     }
 
     // Derive crossbred feeder from beef feeder
     if (feeder.beef !== null) {
-      feeder.crossbred = parseFloat(
-        (feeder.beef - SLAUGHTER_DISC.crossbred * FEEDER_FACTOR).toFixed(2)
-      );
-      console.log(`[${id}] feeder.crossbred = ${feeder.crossbred} (derived)`);
+      feeder.crossbred = discountRange(feeder.beef, SLAUGHTER_DISC.crossbred * FEEDER_FACTOR);
+      console.log(`[${id}] feeder.crossbred = ${JSON.stringify(feeder.crossbred)} (derived)`);
     }
 
     const hasSlaughter = Object.values(slaughter).some(v => v !== null);
