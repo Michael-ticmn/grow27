@@ -1,4 +1,11 @@
 
+// ── FETCH WITH TIMEOUT ───────────────────────────────────────────────────────
+function fetchTimeout(url, ms) {
+  var c = new AbortController();
+  var t = setTimeout(function() { c.abort(); }, ms);
+  return fetch(url, { signal: c.signal }).finally(function() { clearTimeout(t); });
+}
+
 // ── FIELD SYNC (slider ↔ number input) ───────────────────────────────────────
 // Safely update a calc field value label without destroying the unit span
 function setFieldVal(id, text) {
@@ -175,7 +182,7 @@ let GRAIN_DATA={cn:{price:4.35,open:4.31,high:4.42,low:4.28,change:0.04,pct:0.93
 
 async function loadGrainPrices(){
   const fb={cn:{price:4.3475,open:4.3100,high:4.3775,low:4.2875,change:0.0375,pct:0.87},cn2:{price:4.5225,open:4.4900,high:4.5500,low:4.4750,change:0.0325,pct:0.72},sb:{price:9.7225,open:9.6800,high:9.8100,low:9.6200,change:0.0425,pct:0.44},sb2:{price:10.045,open:10.010,high:10.120,low:9.970,change:0.0350,pct:0.35}};
-  async function fetchOne(sym){try{const r=await fetch('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv');const t=await r.text();const cols=t.trim().split('\n')[1]?.split(',');if(!cols)throw 0;const[open,high,low,close]=[3,4,5,6].map(i=>parseFloat(cols[i]));if(isNaN(close))throw 0;return{price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};}catch{return null;}}
+  async function fetchOne(sym){try{const r=await fetchTimeout('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv',5000);const t=await r.text();const cols=t.trim().split('\n')[1]?.split(',');if(!cols)throw 0;const[open,high,low,close]=[3,4,5,6].map(i=>parseFloat(cols[i]));if(isNaN(close))throw 0;return{price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};}catch{return null;}}
   const[cn,cn2,sb,sb2]=await Promise.all([fetchOne('c.f'),fetchOne('ch.f'),fetchOne('s.f'),fetchOne('sh.f')]);
   GRAIN_DATA={cn:cn||fb.cn,cn2:cn2||fb.cn2,sb:sb||fb.sb,sb2:sb2||fb.sb2};
   const isLive=[cn,cn2,sb,sb2].some(Boolean);document.getElementById('status-txt').textContent=isLive?'Live data':'Recent values';cbotNow=new Date();const cbotTs='as of '+cbotNow.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' '+cbotNow.toLocaleDateString('en-US',{month:'short',day:'numeric'});['cn','cn2','sb','sb2'].forEach(id=>{const el=document.getElementById('cbot-ts-'+id);if(el)el.textContent=cbotTs;});
@@ -191,7 +198,7 @@ let CATTLE_DATA={lc:null,fc:null,cn:null},histRange=90,charts={};
 
 async function loadCattlePrices(){
   const fb={lc:{price:231.50,open:230.90,high:232.10,low:229.80,change:0.60,pct:0.26},fc:{price:354.50,open:349.85,high:355.35,low:345.08,change:4.65,pct:1.33},cn:{price:4.5250,open:4.4875,high:4.5750,low:4.4600,change:0.0375,pct:0.84}};
-  async function fetchOne(sym){try{const r=await fetch('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv');const t=await r.text();const cols=t.trim().split('\n')[1]?.split(',');if(!cols)throw 0;const[open,high,low,close]=[3,4,5,6].map(i=>parseFloat(cols[i]));if(isNaN(close))throw 0;return{price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};}catch{return null;}}
+  async function fetchOne(sym){try{const r=await fetchTimeout('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv',5000);const t=await r.text();const cols=t.trim().split('\n')[1]?.split(',');if(!cols)throw 0;const[open,high,low,close]=[3,4,5,6].map(i=>parseFloat(cols[i]));if(isNaN(close))throw 0;return{price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};}catch{return null;}}
   const[lc,fc,cn]=await Promise.all([fetchOne('lc.f'),fetchOne('fc.f'),fetchOne('c.f')]);
   CATTLE_DATA={lc:lc||fb.lc,fc:fc||fb.fc,cn:cn||fb.cn};
   function set(id,suffix,d,isCorn){const fmt=v=>isCorn?v.toFixed(4):v.toFixed(2);const el=document.getElementById('p-'+id+suffix);if(!el)return;el.textContent=isCorn?'$'+fmt(d.price):fmt(d.price);el.style.color=d.change>0.005?'var(--up)':d.change<-0.005?'var(--down)':'var(--corn)';const h=document.getElementById('h-'+id+suffix);const l=document.getElementById('l-'+id+suffix);const v=document.getElementById('v-'+id+suffix);if(h)h.textContent=fmt(d.high);if(l)l.textContent=fmt(d.low);if(v)v.textContent=fmt(d.open);setBadge('b-'+id+suffix,d.change,d.pct);}
@@ -446,7 +453,7 @@ async function loadGrainScrapedData() {
 
 function getCuratedForRegion(k){if(k==='A')return REGION_A.elevators;if(k==='B')return REGION_B.elevators;return{...REGION_A.elevators,...REGION_B.elevators};}
 function autoDetectRegion(){if(!userLat||!userLon)return'both';const dA=distMiles(userLat,userLon,REGION_A.centerLat,REGION_A.centerLon),dB=distMiles(userLat,userLon,REGION_B.centerLat,REGION_B.centerLon);if(Math.abs(dA-dB)<25)return'both';return dA<dB?'A':'B';}
-function setRegion(k){activeRegion=k;const discovered=Object.fromEntries(Object.entries(ELEVATORS).filter(([,e])=>e.discovered));CURATED=getCuratedForRegion(k==='auto'?autoDetectRegion():k);ELEVATORS=Object.assign({},CURATED,discovered);document.querySelectorAll('.region-btn').forEach(b=>b.classList.toggle('active',b.dataset.region===k));rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();updateRegionBadge();}
+function setRegion(k){activeRegion=k;const discovered=Object.fromEntries(Object.entries(ELEVATORS).filter(([,e])=>e.discovered));CURATED=getCuratedForRegion(k==='auto'?autoDetectRegion():k);ELEVATORS=Object.assign({},CURATED,discovered);document.querySelectorAll('.region-btn').forEach(b=>b.classList.toggle('active',b.dataset.region===k));rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();updateRegionBadge();updateGrainInsight();}
 function updateRegionBadge(){const el=document.getElementById('active-region-label');if(!el)return;const eff=activeRegion==='auto'?(userLat?autoDetectRegion():'both'):activeRegion;if(eff==='A')el.textContent=REGION_A.label+' — '+REGION_A.sublabel;else if(eff==='B')el.textContent=REGION_B.label+' — '+REGION_B.sublabel;else el.textContent='All regions — '+REGION_A.label+' + '+REGION_B.label;}
 function sortedElevatorKeys(){const keys=Object.keys(ELEVATORS);if(!userLat)return keys;return keys.slice().sort((a,b)=>distMiles(userLat,userLon,ELEVATORS[a].lat,ELEVATORS[a].lon)-distMiles(userLat,userLon,ELEVATORS[b].lat,ELEVATORS[b].lon));}
 function onElevChange(){const key=document.getElementById('elev-select').value;const disp=document.getElementById('elev-basis-display');const distEl=document.getElementById('elev-dist-display');if(!key){disp.style.display='none';distEl.textContent='';updateGrainInsight();return;}const e=ELEVATORS[key];let html='<strong>'+e.name+'</strong> — Corn basis: ';const cb=e.cornBasis;html+='<span style="color:'+(cb>=0?'var(--up)':'var(--down)')+'">'+(cb>=0?'+':'')+cb.toFixed(2)+'</span>';if(e.soyBasis!==null){const sb=e.soyBasis;html+='  &nbsp;·&nbsp;  Soy basis: <span style="color:'+(sb>=0?'var(--up)':'var(--down)')+'">'+(sb>=0?'+':'')+sb.toFixed(2)+'</span>';}else{html+='  &nbsp;·&nbsp;  <span style="color:var(--txt3)">Soy: N/A</span>';}disp.innerHTML=html;disp.style.display='';if(userLat&&userLon){const d=Math.round(distMiles(userLat,userLon,e.lat,e.lon));distEl.textContent='~'+d+' mi away';}highlightTableRow(key);updateGrainInsight();}
@@ -772,6 +779,11 @@ async function loadBarnPrices() {
 // Fetches data/prices/index.json written by scripts/scrape-barns.js
 // Populates BARNS_DATA with slaughter finishPrices for any barn with source='scraped'
 async function loadScrapedBarnData() {
+  // Skip if data-loader.js already populated barn data
+  if (BARNS_DATA.central && BARNS_DATA.central.dataSource === 'live') {
+    console.log('[scraped-barn] skipping — data-loader.js already loaded');
+    return;
+  }
   try {
     const r = await fetch('data/prices/index.json');
     if (!r.ok) throw new Error('fetch ' + r.status);
@@ -2059,7 +2071,7 @@ async function loadDairyPrices() {
   const fb = {dc:{price:18.45,open:18.20,high:18.70,low:18.00,change:0.25,pct:1.37}};
   async function fetchOne(sym) {
     try {
-      const r = await fetch('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv');
+      const r = await fetchTimeout('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv',5000);
       const t = await r.text();
       const cols = t.trim().split('\n')[1]?.split(',');
       if(!cols) throw 0;
