@@ -196,6 +196,7 @@ const GRAIN_SCRAPE_MAP = {
   mnvg_lecenter:     { source: 'mvg', location: 'le-center' },
   agpartners_gd:     { source: 'agp', location: 'goodhue' },
   agpartners_bc:     { source: 'agp', location: 'bellechester' },
+  chs:               { source: 'chs', location: 'fairmont' },
 };
 let GRAIN_SCRAPED = {}; // populated by loadGrainScrapedData()
 let GRAIN_SCRAPE_DATES = {}; // { sourceId: "2026-03-22" }
