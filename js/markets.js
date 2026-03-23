@@ -30,6 +30,142 @@ function syncField(id, val, decimals, prefix) {
     }
   }
 }
+
+// ── CALC FIELD RENDERER ──────────────────────────────────────────────────────
+// Generates calc-grid HTML from a field config array.
+// Each entry is either { section: 'Label' } or a field definition:
+//   { id, label, val, min, max, step, unit, prefix, dec, fn, fullWidth, numberOnly }
+// `mode` determines the oninput wiring:
+//   'grain'  — inline getElementById sync + fn()
+//   'cattle' — syncField(id,val,dec,prefix) + fn()
+//   'dairy'  — syncDMCField(id,val,prefix,dec) + fn()
+function renderCalcFields(containerId, fields, mode, fnName) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = fields.map(function(f) {
+    if (f.section) return '<div class="calc-section-label">' + f.section + '</div>';
+    var id = f.id;
+    // Cattle syncField uses id.replace('-','') + '-val'; dairy syncDMCField uses id + '-val'
+    var vid = f.vid || (mode === 'dairy' ? id + '-val' : id.replace(/-/g,'') + '-val');
+    var dec = f.dec || 0, prefix = f.prefix || '', step = f.step || 1;
+    var dispVal = prefix + (dec > 0 ? parseFloat(f.val).toFixed(dec) : f.val);
+    var fw = f.fullWidth ? ' style="grid-column:1/-1;"' : '';
+
+    // Build oninput handlers based on mode
+    var rangeHandler, numHandler;
+    if (mode === 'grain') {
+      var numId = id + '-n', valId = 'cv-' + id.replace(/^[cs]-/, '');
+      if (f.vid) valId = f.vid;
+      var fmt = dec > 0
+        ? "'" + prefix + "'+parseFloat(this.value).toFixed(" + dec + ")"
+        : (prefix ? "'" + prefix + "'+this.value" : "this.value");
+      rangeHandler = "document.getElementById('" + numId + "').value=this.value;document.getElementById('" + valId + "').textContent=" + fmt + ";" + fnName + "()";
+      numHandler = "document.getElementById('" + id + "').value=this.value;document.getElementById('" + valId + "').textContent=" + fmt + ";" + fnName + "()";
+    } else if (mode === 'cattle') {
+      var args = "'" + id + "',this.value," + dec + (prefix ? ",'" + prefix + "'" : '');
+      rangeHandler = "syncField(" + args + ");" + fnName + "()";
+      numHandler = rangeHandler;
+    } else { // dairy
+      var args = "'" + id + "',this.value,'" + prefix + "'," + dec;
+      rangeHandler = "syncDMCField(" + args + ");" + fnName + "()";
+      numHandler = rangeHandler;
+    }
+
+    // Label with display value
+    var labelInner;
+    if (mode === 'grain') {
+      var valId2 = 'cv-' + id.replace(/^[cs]-/, '');
+      if (f.vid) valId2 = f.vid;
+      labelInner = f.label + ' <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="' + valId2 + '">' + dispVal + '</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">' + f.unit + '</span></span>';
+    } else if (mode === 'cattle') {
+      labelInner = f.label + ' <span class="fv" id="' + vid + '">' + dispVal + ' <span style="font-size:10px;color:var(--txt3);font-weight:400;">' + f.unit + '</span></span>';
+    } else {
+      labelInner = f.label + ' <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="' + vid + '">' + dispVal + '</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">' + f.unit + '</span></span>';
+    }
+
+    if (f.numberOnly) {
+      return '<div class="calc-field"' + fw + '><label>' + labelInner + '</label>' +
+        '<input type="number" id="' + id + '" value="' + f.val + '" min="' + f.min + '" max="' + f.max + '" oninput="' + (mode === 'grain'
+          ? "document.getElementById('" + (f.vid || 'cv-' + id.replace(/^[cs]-/, '')) + "').textContent=this.value;" + fnName + "()"
+          : numHandler) + '" style="margin-top:4px;"></div>';
+    }
+
+    return '<div class="calc-field"' + fw + '><label>' + labelInner + '</label>' +
+      '<input type="range" id="' + id + '" min="' + f.min + '" max="' + f.max + '" value="' + f.val + '" step="' + step + '" oninput="' + rangeHandler + '">' +
+      '<input type="number" min="' + f.min + '" max="' + f.max + '" value="' + f.val + '" step="' + step + '" id="' + id + '-n" oninput="' + numHandler + '"></div>';
+  }).join('');
+}
+
+// ── CALC FIELD DEFINITIONS ───────────────────────────────────────────────────
+var CORN_CALC_FIELDS = [
+  { section: 'Production Costs (per acre)' },
+  { id:'c-yield', label:'Expected yield', val:180, min:100, max:260, unit:'bu/ac', fn:'calcGrain' },
+  { id:'c-seed',  label:'Seed cost',      val:110, min:60,  max:250, unit:'$/ac', prefix:'$' },
+  { id:'c-fert',  label:'Fertilizer',     val:180, min:60,  max:400, unit:'$/ac', prefix:'$' },
+  { id:'c-chem',  label:'Chemicals',      val:60,  min:20,  max:200, unit:'$/ac', prefix:'$' },
+  { id:'c-land',  label:'Land / cash rent',val:220, min:50, max:500, unit:'$/ac', prefix:'$' },
+  { id:'c-mach',  label:'Machinery / labor',val:85, min:30, max:200, unit:'$/ac', prefix:'$' },
+  { section: 'Sale' },
+  { id:'c-dry',   label:'Drying',           val:0.10, min:0, max:0.60, step:0.01, unit:'$/bu', prefix:'$', dec:2 },
+  { id:'c-sale',  label:'Target sale price', val:4.30, min:3.00, max:8.00, step:0.01, unit:'$/bu', prefix:'$', dec:2 },
+  { id:'c-acres', label:'Acres', val:400, min:1, max:5000, unit:'ac', numberOnly:true, fullWidth:true }
+];
+
+var SOY_CALC_FIELDS = [
+  { section: 'Production Costs (per acre)' },
+  { id:'s-yield', label:'Expected yield', val:50, min:25, max:90, unit:'bu/ac' },
+  { id:'s-seed',  label:'Seed cost',      val:65, min:30, max:150, unit:'$/ac', prefix:'$' },
+  { id:'s-fert',  label:'Fertilizer / lime',val:60, min:0, max:200, unit:'$/ac', prefix:'$' },
+  { id:'s-chem',  label:'Chemicals',      val:55, min:20, max:150, unit:'$/ac', prefix:'$' },
+  { id:'s-land',  label:'Land / cash rent',val:220, min:50, max:500, unit:'$/ac', prefix:'$' },
+  { id:'s-mach',  label:'Machinery / labor',val:70, min:30, max:200, unit:'$/ac', prefix:'$' },
+  { section: 'Sale' },
+  { id:'s-sale',  label:'Target sale price', val:9.75, min:7.00, max:16.00, step:0.01, unit:'$/bu', prefix:'$', dec:2 },
+  { id:'s-acres', label:'Acres', val:400, min:1, max:5000, unit:'ac', numberOnly:true }
+];
+
+var CATTLE_CALC_FIELDS = [
+  { section: 'Animal In' },
+  { id:'bw', label:'Buy weight', val:500, min:200, max:800, step:10, unit:'lbs' },
+  { id:'bp', label:'Buy price',  val:350, min:200, max:600, unit:'\u00a2/lb' },
+  { section: 'Daily Feed (per head)' },
+  { id:'cf',   label:'Corn',         val:0.25, min:0, max:1.5,  step:0.05, unit:'bu/day', dec:2 },
+  { id:'cp',   label:'Corn price',   val:4.53, min:0, max:9.0,  step:0.01, unit:'$/bu', prefix:'$', dec:2 },
+  { id:'sbm',  label:'Soybean meal',  val:0,   min:0, max:10,   step:0.25, unit:'lbs/day', dec:2 },
+  { id:'sbmp', label:'SBM price',     val:320, min:0, max:600,  step:5, unit:'$/ton', prefix:'$' },
+  { id:'ddg',  label:'Distillers',    val:0,   min:0, max:15,   step:0.25, unit:'lbs/day', dec:2 },
+  { id:'ddgp', label:'DDG price',     val:180, min:0, max:400,  step:5, unit:'$/ton', prefix:'$' },
+  { id:'pro',  label:'Protein supp',  val:0,   min:0, max:5,    step:0.1, unit:'lbs/day', dec:2 },
+  { id:'prop', label:'Protein price', val:450, min:0, max:900,  step:10, unit:'$/ton', prefix:'$' },
+  { id:'hay',  label:'Alfalfa hay',   val:0,   min:0, max:30,   step:0.5, unit:'lbs/day', dec:2 },
+  { id:'hayp', label:'Hay price',     val:200, min:0, max:500,  step:5, unit:'$/ton', prefix:'$' },
+  { section: 'Other Costs' },
+  { id:'oc',  label:'Other costs',  val:1.5, min:0, max:10,  step:0.25, unit:'$/day', prefix:'$', dec:2 },
+  { id:'dof', label:'Days on feed', val:180, min:1, max:400, step:5, unit:'days' },
+  { section: 'Animal Out' },
+  { id:'sw', label:'Sell weight', val:1200, min:800, max:1800, step:10, unit:'lbs' },
+  { id:'sp', label:'Sell price',  val:231,  min:150, max:400,  unit:'\u00a2/lb' }
+];
+
+var DAIRY_CALC_FIELDS = [
+  { section: 'Milk Revenue' },
+  { id:'dmc-mp',   label:'Milk price',  val:18, min:10, max:30, step:0.25, unit:'$/cwt', prefix:'$', dec:2 },
+  { id:'dmc-prod', label:'Production',  val:75, min:40, max:120, unit:'lbs/cow/day' },
+  { section: 'Feed Costs (per cow per day)' },
+  { id:'dmc-corn',  label:'Corn',         val:0.20, min:0, max:0.60, step:0.01, unit:'bu/day', dec:2 },
+  { id:'dmc-hay',   label:'Alfalfa hay',  val:30,   min:0, max:60, unit:'lb/day' },
+  { id:'dmc-sbm',   label:'Soybean meal', val:4,    min:0, max:15, step:0.5, unit:'lb/day', dec:1 },
+  { id:'dmc-other', label:'Other feed',   val:1.0,  min:0, max:6, step:0.25, unit:'$/cow/day', prefix:'$', dec:2 },
+  { section: 'Herd' },
+  { id:'dmc-cows', label:'Number of cows', val:100, min:1, max:5000, unit:'head', numberOnly:true, fullWidth:true }
+];
+
+// Render all calc grids on load
+renderCalcFields('corn-calc-grid',   CORN_CALC_FIELDS,   'grain',  'calcGrain');
+renderCalcFields('soy-calc-grid',    SOY_CALC_FIELDS,    'grain',  'calcSoy');
+renderCalcFields('cattle-calc-grid', CATTLE_CALC_FIELDS,  'cattle', 'calc');
+renderCalcFields('dairy-calc-grid',  DAIRY_CALC_FIELDS,   'dairy',  'calcDairy');
+
 // grow27 — markets.js
 // Grain prices, cattle prices, charts, margin calculators, local buyers, OSM discovery
 // ─────────────────────────────────────────────────────────────────────────────
@@ -341,8 +477,10 @@ function rebuildElevatorDirectory() {
     // Basis block
     const cornBasisStr = (e.cornBasis >= 0 ? '+' : '') + e.cornBasis.toFixed(2);
     const soyBasisStr  = e.soyBasis !== null ? (e.soyBasis >= 0 ? '+' : '') + e.soyBasis.toFixed(2) : null;
-    const cornTag = e.cornActual ? ' <span class="barn-src-badge barn-src-live" style="font-size:8px;">ACTUAL</span>' : e.curated ? '' : ' est.';
-    const soyTag  = e.soyActual  ? ' <span class="barn-src-badge barn-src-live" style="font-size:8px;">ACTUAL</span>' : e.curated ? '' : ' est.';
+    const cornAging = e.cornActual && e.cornActualDate && (Date.now() - new Date(e.cornActualDate + 'T12:00:00').getTime()) / 86400000 > 8;
+    const soyAging  = e.soyActual  && e.soyActualDate  && (Date.now() - new Date(e.soyActualDate  + 'T12:00:00').getTime()) / 86400000 > 8;
+    const cornTag = e.cornActual ? ' <span class="barn-src-badge ' + (cornAging ? 'barn-src-aging' : 'barn-src-live') + '" style="font-size:8px;">' + (cornAging ? 'AGING' : 'ACTUAL') + '</span>' : e.curated ? '' : ' est.';
+    const soyTag  = e.soyActual  ? ' <span class="barn-src-badge ' + (soyAging  ? 'barn-src-aging' : 'barn-src-live') + '" style="font-size:8px;">' + (soyAging  ? 'AGING' : 'ACTUAL') + '</span>' : e.curated ? '' : ' est.';
     const basisBlock = `<div class="elev-details-row" style="margin-top:10px;">
       <div class="elev-detail-item">CORN BASIS
         <strong style="color:${e.cornActual?'var(--corn)':e.curated?'var(--corn)':'var(--txt3)'}">
@@ -938,6 +1076,20 @@ function buildBarnTable() {
     return `<span class="barn-src-badge ${cls}">${lbl}</span>`;
   }
 
+  // Age-aware badge: green ACTUAL if ≤8 days old, gold AGING if older
+  function ageBadge(src, dateStr) {
+    if (!src) return '';
+    if (src !== 'live' && src !== 'actual') return makeBadge(src);
+    var aging = false;
+    if (dateStr) {
+      var age = (Date.now() - new Date(dateStr + 'T12:00:00').getTime()) / 86400000;
+      aging = age > 8;
+    }
+    var cls = aging ? 'barn-src-aging' : 'barn-src-live';
+    var lbl = aging ? 'AGING' : 'ACTUAL';
+    return '<span class="barn-src-badge ' + cls + '">' + lbl + '</span>';
+  }
+
   // Finish weight classes — grade schedule adjustments off each barn's own reported price
   const weightClasses = [
     { range: '1000–1099 lbs', adj: +2.50 },
@@ -1003,8 +1155,8 @@ function buildBarnTable() {
     // ── Per-column source badges ──
     // Slaughter: LIVE if barn has scraped finishPrices, else barn's dataSource (usda/cme)
     const slaughterSrc = b.finishPrices ? 'live' : b.dataSource;
-    const slaughterBadge = makeBadge(slaughterSrc);
-    const feederBadge = makeBadge(barnFeederSrc);
+    const slaughterBadge = ageBadge(slaughterSrc, b.slaughterDate);
+    const feederBadge = ageBadge(barnFeederSrc, b.feederDate);
 
     // ── Finish weight rows ──
     let finishRows, finishFoot;

@@ -34,7 +34,7 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.51%0A%0AFeedback%3A%0A">Feedback</a>
+    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.54%0A%0AFeedback%3A%0A">Feedback</a>
     <div class="clock-bar">
       <span><span class="status-dot"></span><span id="status-txt">Loading...</span></span>
       <div style="font-size:12px;color:var(--txt3);" id="last-updated-txt">—</div>
@@ -126,54 +126,7 @@
           <div class="two-col">
             <div class="panel">
               <div class="panel-title">Corn Production Inputs</div>
-              <div class="calc-grid">
-                <div class="calc-section-label">Production Costs (per acre)</div>
-                <div class="calc-field">
-                  <label>Expected yield <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-yield">180</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">bu/ac</span></span></label>
-                  <input type="range" id="c-yield" min="100" max="260" value="180" oninput="document.getElementById('c-yield-n').value=this.value;document.getElementById('cv-yield').textContent=this.value;calcGrain()">
-                  <input type="number" min="100" max="260" value="180" step="1" id="c-yield-n" oninput="document.getElementById('c-yield').value=this.value;document.getElementById('cv-yield').textContent=this.value;calcGrain()">
-                </div>
-                <div class="calc-field">
-                  <label>Seed cost <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-seed">$110</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
-                  <input type="range" id="c-seed" min="60" max="250" value="110" oninput="document.getElementById('c-seed-n').value=this.value;document.getElementById('cv-seed').textContent='$'+this.value;calcGrain()">
-                  <input type="number" min="60" max="250" value="110" step="1" id="c-seed-n" oninput="document.getElementById('c-seed').value=this.value;document.getElementById('cv-seed').textContent='$'+this.value;calcGrain()">
-                </div>
-                <div class="calc-field">
-                  <label>Fertilizer <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-fert">$180</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
-                  <input type="range" id="c-fert" min="60" max="400" value="180" oninput="document.getElementById('c-fert-n').value=this.value;document.getElementById('cv-fert').textContent='$'+this.value;calcGrain()">
-                  <input type="number" min="60" max="400" value="180" step="1" id="c-fert-n" oninput="document.getElementById('c-fert').value=this.value;document.getElementById('cv-fert').textContent='$'+this.value;calcGrain()">
-                </div>
-                <div class="calc-field">
-                  <label>Chemicals <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-chem">$60</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
-                  <input type="range" id="c-chem" min="20" max="200" value="60" oninput="document.getElementById('c-chem-n').value=this.value;document.getElementById('cv-chem').textContent='$'+this.value;calcGrain()">
-                  <input type="number" min="20" max="200" value="60" step="1" id="c-chem-n" oninput="document.getElementById('c-chem').value=this.value;document.getElementById('cv-chem').textContent='$'+this.value;calcGrain()">
-                </div>
-                <div class="calc-field">
-                  <label>Land / cash rent <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-land">$220</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
-                  <input type="range" id="c-land" min="50" max="500" value="220" oninput="document.getElementById('c-land-n').value=this.value;document.getElementById('cv-land').textContent='$'+this.value;calcGrain()">
-                  <input type="number" min="50" max="500" value="220" step="1" id="c-land-n" oninput="document.getElementById('c-land').value=this.value;document.getElementById('cv-land').textContent='$'+this.value;calcGrain()">
-                </div>
-                <div class="calc-field">
-                  <label>Machinery / labor <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-mach">$85</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
-                  <input type="range" id="c-mach" min="30" max="200" value="85" oninput="document.getElementById('c-mach-n').value=this.value;document.getElementById('cv-mach').textContent='$'+this.value;calcGrain()">
-                  <input type="number" min="30" max="200" value="85" step="1" id="c-mach-n" oninput="document.getElementById('c-mach').value=this.value;document.getElementById('cv-mach').textContent='$'+this.value;calcGrain()">
-                </div>
-                <div class="calc-section-label">Sale</div>
-                <div class="calc-field">
-                  <label>Drying <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-dry">$0.10</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/bu</span></span></label>
-                  <input type="range" id="c-dry" min="0" max="0.60" value="0.10" step="0.01" oninput="document.getElementById('c-dry-n').value=this.value;document.getElementById('cv-dry').textContent='$'+parseFloat(this.value).toFixed(2);calcGrain()">
-                  <input type="number" min="0" max="0.60" value="0.10" step="0.01" id="c-dry-n" oninput="document.getElementById('c-dry').value=this.value;document.getElementById('cv-dry').textContent='$'+parseFloat(this.value).toFixed(2);calcGrain()">
-                </div>
-                <div class="calc-field">
-                  <label>Target sale price <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-sale">$4.30</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/bu</span></span></label>
-                  <input type="range" id="c-sale" min="3.00" max="8.00" value="4.30" step="0.01" oninput="document.getElementById('c-sale-n').value=this.value;document.getElementById('cv-sale').textContent='$'+parseFloat(this.value).toFixed(2);calcGrain()">
-                  <input type="number" min="3.00" max="8.00" value="4.30" step="0.01" id="c-sale-n" oninput="document.getElementById('c-sale').value=this.value;document.getElementById('cv-sale').textContent='$'+parseFloat(this.value).toFixed(2);calcGrain()">
-                </div>
-                <div class="calc-field" style="grid-column:1/-1;">
-                  <label>Acres <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="cv-acres">400</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">ac</span></span></label>
-                  <input type="number" id="c-acres" value="400" min="1" max="5000" oninput="document.getElementById('cv-acres').textContent=this.value;calcGrain()" style="margin-top:4px;">
-                </div>
-              </div>
+              <div class="calc-grid" id="corn-calc-grid"></div>
             </div>
             <div>
               <div class="panel" style="margin-bottom:18px;">
@@ -200,49 +153,7 @@
           <div class="two-col">
             <div class="panel">
               <div class="panel-title">Soybean Production Inputs</div>
-              <div class="calc-grid">
-                <div class="calc-section-label">Production Costs (per acre)</div>
-                <div class="calc-field">
-                  <label>Expected yield <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-yield">50</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">bu/ac</span></span></label>
-                  <input type="range" id="s-yield" min="25" max="90" value="50" oninput="document.getElementById('s-yield-n').value=this.value;document.getElementById('sv-yield').textContent=this.value;calcSoy()">
-                  <input type="number" min="25" max="90" value="50" step="1" id="s-yield-n" oninput="document.getElementById('s-yield').value=this.value;document.getElementById('sv-yield').textContent=this.value;calcSoy()">
-                </div>
-                <div class="calc-field">
-                  <label>Seed cost <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-seed">$65</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
-                  <input type="range" id="s-seed" min="30" max="150" value="65" oninput="document.getElementById('s-seed-n').value=this.value;document.getElementById('sv-seed').textContent='$'+this.value;calcSoy()">
-                  <input type="number" min="30" max="150" value="65" step="1" id="s-seed-n" oninput="document.getElementById('s-seed').value=this.value;document.getElementById('sv-seed').textContent='$'+this.value;calcSoy()">
-                </div>
-                <div class="calc-field">
-                  <label>Fertilizer / lime <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-fert">$60</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
-                  <input type="range" id="s-fert" min="0" max="200" value="60" oninput="document.getElementById('s-fert-n').value=this.value;document.getElementById('sv-fert').textContent='$'+this.value;calcSoy()">
-                  <input type="number" min="0" max="200" value="60" step="1" id="s-fert-n" oninput="document.getElementById('s-fert').value=this.value;document.getElementById('sv-fert').textContent='$'+this.value;calcSoy()">
-                </div>
-                <div class="calc-field">
-                  <label>Chemicals <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-chem">$55</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
-                  <input type="range" id="s-chem" min="20" max="150" value="55" oninput="document.getElementById('s-chem-n').value=this.value;document.getElementById('sv-chem').textContent='$'+this.value;calcSoy()">
-                  <input type="number" min="20" max="150" value="55" step="1" id="s-chem-n" oninput="document.getElementById('s-chem').value=this.value;document.getElementById('sv-chem').textContent='$'+this.value;calcSoy()">
-                </div>
-                <div class="calc-field">
-                  <label>Land / cash rent <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-land">$220</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
-                  <input type="range" id="s-land" min="50" max="500" value="220" oninput="document.getElementById('s-land-n').value=this.value;document.getElementById('sv-land').textContent='$'+this.value;calcSoy()">
-                  <input type="number" min="50" max="500" value="220" step="1" id="s-land-n" oninput="document.getElementById('s-land').value=this.value;document.getElementById('sv-land').textContent='$'+this.value;calcSoy()">
-                </div>
-                <div class="calc-field">
-                  <label>Machinery / labor <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-mach">$70</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ac</span></span></label>
-                  <input type="range" id="s-mach" min="30" max="200" value="70" oninput="document.getElementById('s-mach-n').value=this.value;document.getElementById('sv-mach').textContent='$'+this.value;calcSoy()">
-                  <input type="number" min="30" max="200" value="70" step="1" id="s-mach-n" oninput="document.getElementById('s-mach').value=this.value;document.getElementById('sv-mach').textContent='$'+this.value;calcSoy()">
-                </div>
-                <div class="calc-section-label">Sale</div>
-                <div class="calc-field">
-                  <label>Target sale price <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-sale">$9.75</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/bu</span></span></label>
-                  <input type="range" id="s-sale" min="7.00" max="16.00" value="9.75" step="0.01" oninput="document.getElementById('s-sale-n').value=this.value;document.getElementById('sv-sale').textContent='$'+parseFloat(this.value).toFixed(2);calcSoy()">
-                  <input type="number" min="7.00" max="16.00" value="9.75" step="0.01" id="s-sale-n" oninput="document.getElementById('s-sale').value=this.value;document.getElementById('sv-sale').textContent='$'+parseFloat(this.value).toFixed(2);calcSoy()">
-                </div>
-                <div class="calc-field">
-                  <label>Acres <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="sv-acres">400</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">ac</span></span></label>
-                  <input type="number" id="s-acres" value="400" min="1" max="5000" oninput="document.getElementById('sv-acres').textContent=this.value;calcSoy()" style="margin-top:4px;">
-                </div>
-              </div>
+              <div class="calc-grid" id="soy-calc-grid"></div>
             </div>
             <div>
               <div class="panel" style="margin-bottom:18px;">
@@ -492,109 +403,7 @@
             <div class="panel-title">Steer — Feed to Finish</div>
 
 
-            <div class="calc-grid">
-
-              <!-- BUY -->
-              <div class="calc-section-label">Animal In</div>
-
-              <div class="calc-field">
-                <label>Buy weight <span class="fv" id="bw-val">500 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs</span></span></label>
-                <input type="range" min="200" max="800" value="500" step="10" id="bw" oninput="syncField('bw',this.value,0);calc()">
-                <input type="number" min="200" max="800" value="500" step="10" id="bw-n" oninput="syncField('bw',this.value,0);calc()">
-              </div>
-              <div class="calc-field">
-                <label>Buy price <span class="fv" id="bp-val">350 <span style="font-size:10px;color:var(--txt3);font-weight:400;">¢/lb</span></span></label>
-                <input type="range" min="200" max="600" value="350" step="1" id="bp" oninput="syncField('bp',this.value,0);calc()">
-                <input type="number" min="200" max="600" value="350" step="1" id="bp-n" oninput="syncField('bp',this.value,0);calc()">
-              </div>
-
-              <!-- FEED -->
-              <div class="calc-section-label">Daily Feed (per head)</div>
-
-              <div class="calc-field">
-                <label>Corn <span class="fv" id="cf-val">0.25 <span style="font-size:10px;color:var(--txt3);font-weight:400;">bu/day</span></span></label>
-                <input type="range" min="0" max="1.5" value="0.25" step="0.05" id="cf" oninput="syncField('cf',this.value,2);calc()">
-                <input type="number" min="0" max="1.5" value="0.25" step="0.05" id="cf-n" oninput="syncField('cf',this.value,2);calc()">
-              </div>
-              <div class="calc-field">
-                <label>Corn price <span class="fv" id="cp-val">$4.53 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/bu</span></span></label>
-                <input type="range" min="0" max="9.0" value="4.53" step="0.01" id="cp" oninput="syncField('cp',this.value,2,'$');calc()">
-                <input type="number" min="0" max="9.0" value="4.53" step="0.01" id="cp-n" oninput="syncField('cp',this.value,2,'$');calc()">
-              </div>
-
-              <div class="calc-field">
-                <label>Soybean meal <span class="fv" id="sbm-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
-                <input type="range" min="0" max="10" value="0" step="0.25" id="sbm" oninput="syncField('sbm',this.value,2);calc()">
-                <input type="number" min="0" max="10" value="0" step="0.25" id="sbm-n" oninput="syncField('sbm',this.value,2);calc()">
-              </div>
-              <div class="calc-field">
-                <label>SBM price <span class="fv" id="sbmp-val">$320 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
-                <input type="range" min="0" max="600" value="320" step="5" id="sbmp" oninput="syncField('sbmp',this.value,0,'$');calc()">
-                <input type="number" min="0" max="600" value="320" step="5" id="sbmp-n" oninput="syncField('sbmp',this.value,0,'$');calc()">
-              </div>
-
-              <div class="calc-field">
-                <label>Distillers <span class="fv" id="ddg-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
-                <input type="range" min="0" max="15" value="0" step="0.25" id="ddg" oninput="syncField('ddg',this.value,2);calc()">
-                <input type="number" min="0" max="15" value="0" step="0.25" id="ddg-n" oninput="syncField('ddg',this.value,2);calc()">
-              </div>
-              <div class="calc-field">
-                <label>DDG price <span class="fv" id="ddgp-val">$180 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
-                <input type="range" min="0" max="400" value="180" step="5" id="ddgp" oninput="syncField('ddgp',this.value,0,'$');calc()">
-                <input type="number" min="0" max="400" value="180" step="5" id="ddgp-n" oninput="syncField('ddgp',this.value,0,'$');calc()">
-              </div>
-
-              <div class="calc-field">
-                <label>Protein supp <span class="fv" id="pro-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
-                <input type="range" min="0" max="5" value="0" step="0.1" id="pro" oninput="syncField('pro',this.value,2);calc()">
-                <input type="number" min="0" max="5" value="0" step="0.1" id="pro-n" oninput="syncField('pro',this.value,2);calc()">
-              </div>
-              <div class="calc-field">
-                <label>Protein price <span class="fv" id="prop-val">$450 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
-                <input type="range" min="0" max="900" value="450" step="10" id="prop" oninput="syncField('prop',this.value,0,'$');calc()">
-                <input type="number" min="0" max="900" value="450" step="10" id="prop-n" oninput="syncField('prop',this.value,0,'$');calc()">
-              </div>
-
-              <div class="calc-field">
-                <label>Alfalfa hay <span class="fv" id="hay-val">0.00 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/day</span></span></label>
-                <input type="range" min="0" max="30" value="0" step="0.5" id="hay" oninput="syncField('hay',this.value,2);calc()">
-                <input type="number" min="0" max="30" value="0" step="0.5" id="hay-n" oninput="syncField('hay',this.value,2);calc()">
-              </div>
-              <div class="calc-field">
-                <label>Hay price <span class="fv" id="hayp-val">$200 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/ton</span></span></label>
-                <input type="range" min="0" max="500" value="200" step="5" id="hayp" oninput="syncField('hayp',this.value,0,'$');calc()">
-                <input type="number" min="0" max="500" value="200" step="5" id="hayp-n" oninput="syncField('hayp',this.value,0,'$');calc()">
-              </div>
-
-              <!-- OTHER COSTS -->
-              <div class="calc-section-label">Other Costs</div>
-
-              <div class="calc-field">
-                <label>Other costs <span class="fv" id="oc-val">$1.50 <span style="font-size:10px;color:var(--txt3);font-weight:400;">$/day</span></span></label>
-                <input type="range" min="0" max="10" value="1.5" step="0.25" id="oc" oninput="syncField('oc',this.value,2,'$');calc()">
-                <input type="number" min="0" max="10" value="1.5" step="0.25" id="oc-n" oninput="syncField('oc',this.value,2,'$');calc()">
-              </div>
-              <div class="calc-field">
-                <label>Days on feed <span class="fv" id="dof-val">180 <span style="font-size:10px;color:var(--txt3);font-weight:400;">days</span></span></label>
-                <input type="range" min="1" max="400" value="180" step="5" id="dof" oninput="syncField('dof',this.value,0);calc()">
-                <input type="number" min="1" max="400" value="180" step="5" id="dof-n" oninput="syncField('dof',this.value,0);calc()">
-              </div>
-
-              <!-- SELL -->
-              <div class="calc-section-label">Animal Out</div>
-
-              <div class="calc-field">
-                <label>Sell weight <span class="fv" id="sw-val">1200 <span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs</span></span></label>
-                <input type="range" min="800" max="1800" value="1200" step="10" id="sw" oninput="syncField('sw',this.value,0);calc()">
-                <input type="number" min="800" max="1800" value="1200" step="10" id="sw-n" oninput="syncField('sw',this.value,0);calc()">
-              </div>
-              <div class="calc-field">
-                <label>Sell price <span class="fv" id="sp-val">231 <span style="font-size:10px;color:var(--txt3);font-weight:400;">¢/lb</span></span></label>
-                <input type="range" min="150" max="400" value="231" step="1" id="sp" oninput="syncField('sp',this.value,0);calc()">
-                <input type="number" min="150" max="400" value="231" step="1" id="sp-n" oninput="syncField('sp',this.value,0);calc()">
-              </div>
-
-            </div><!-- /calc-grid -->
+            <div class="calc-grid" id="cattle-calc-grid"></div>
 
             <div class="panel" style="margin-top:12px;background:var(--bg1);border-color:var(--border);"><div class="panel-title">Seasonal Price Patterns</div><div style="position:relative;width:100%;height:150px;"><canvas id="seasonal-chart"></canvas></div><div style="font-size:11px;color:var(--txt3);margin-top:8px;line-height:1.6;">Cattle prices historically peak Mar–May and Oct–Nov. Current month highlighted in amber.</div></div>
           </div>
@@ -849,47 +658,7 @@
             <div class="panel-title">Dairy Margin — Feed Cost vs Milk Price</div>
             <div style="font-size:11px;color:var(--txt3);margin-bottom:16px;">Mirrors the USDA Dairy Margin Coverage (DMC) program logic. Adjust inputs to your operation.</div>
 
-            <div class="calc-grid">
-              <div class="calc-section-label">Milk Revenue</div>
-              <div class="calc-field">
-                <label>Milk price <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-mp-val">18.00</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/cwt</span></span></label>
-                <input type="range" min="10" max="30" value="18" step="0.25" id="dmc-mp" oninput="syncDMCField('dmc-mp',this.value,'$',2);calcDairy()">
-                <input type="number" min="10" max="30" value="18" step="0.25" id="dmc-mp-n" oninput="syncDMCField('dmc-mp',this.value,'$',2);calcDairy()">
-              </div>
-              <div class="calc-field">
-                <label>Production <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-prod-val">75</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">lbs/cow/day</span></span></label>
-                <input type="range" min="40" max="120" value="75" step="1" id="dmc-prod" oninput="syncDMCField('dmc-prod',this.value,'',0);calcDairy()">
-                <input type="number" min="40" max="120" value="75" step="1" id="dmc-prod-n" oninput="syncDMCField('dmc-prod',this.value,'',0);calcDairy()">
-              </div>
-
-              <div class="calc-section-label">Feed Costs (per cow per day)</div>
-              <div class="calc-field">
-                <label>Corn <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-corn-val">0.20</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">bu/day</span></span></label>
-                <input type="range" min="0" max="0.60" value="0.20" step="0.01" id="dmc-corn" oninput="syncDMCField('dmc-corn',this.value,'',2);calcDairy()">
-                <input type="number" min="0" max="0.60" value="0.20" step="0.01" id="dmc-corn-n" oninput="syncDMCField('dmc-corn',this.value,'',2);calcDairy()">
-              </div>
-              <div class="calc-field">
-                <label>Alfalfa hay <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-hay-val">30</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">lb/day</span></span></label>
-                <input type="range" min="0" max="60" value="30" step="1" id="dmc-hay" oninput="syncDMCField('dmc-hay',this.value,'',0);calcDairy()">
-                <input type="number" min="0" max="60" value="30" step="1" id="dmc-hay-n" oninput="syncDMCField('dmc-hay',this.value,'',0);calcDairy()">
-              </div>
-              <div class="calc-field">
-                <label>Soybean meal <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-sbm-val">4</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">lb/day</span></span></label>
-                <input type="range" min="0" max="15" value="4" step="0.5" id="dmc-sbm" oninput="syncDMCField('dmc-sbm',this.value,'',1);calcDairy()">
-                <input type="number" min="0" max="15" value="4" step="0.5" id="dmc-sbm-n" oninput="syncDMCField('dmc-sbm',this.value,'',1);calcDairy()">
-              </div>
-              <div class="calc-field">
-                <label>Other feed <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-other-val">$1.00</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">$/cow/day</span></span></label>
-                <input type="range" min="0" max="6" value="1.0" step="0.25" id="dmc-other" oninput="syncDMCField('dmc-other',this.value,'$',2);calcDairy()">
-                <input type="number" min="0" max="6" value="1.0" step="0.25" id="dmc-other-n" oninput="syncDMCField('dmc-other',this.value,'$',2);calcDairy()">
-              </div>
-
-              <div class="calc-section-label">Herd</div>
-              <div class="calc-field" style="grid-column:1/-1;">
-                <label>Number of cows <span style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><span class="fv" id="dmc-cows-val">100</span><span style="font-size:10px;color:var(--txt3);font-weight:400;">head</span></span></label>
-                <input type="number" min="1" max="5000" value="100" id="dmc-cows" oninput="syncDMCField('dmc-cows',this.value,'',0);calcDairy()" style="margin-top:4px;">
-              </div>
-            </div>
+            <div class="calc-grid" id="dairy-calc-grid"></div>
           </div>
 
           <div style="display:flex;flex-direction:column;gap:16px;">
@@ -1047,7 +816,7 @@
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:24px;font-size:12px;color:var(--txt3);letter-spacing:1px;">
-      grow27 · southern Minnesota · <span class="app-version">v1.51</span> · © 2026
+      grow27 · southern Minnesota · <span class="app-version">v1.54</span> · © 2026
     </div>
 
   </div>
@@ -1057,7 +826,7 @@
 <footer class="g27-footer">
   <div class="g27-footer-wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="24" style="display:inline-block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg></div>
   <div class="g27-footer-tagline">#27 — worth more than its weight</div>
-  <div class="g27-footer-copy"><span class="app-version">v1.51</span> · © 2026 grow27 · All rights reserved</div>
+  <div class="g27-footer-copy"><span class="app-version">v1.54</span> · © 2026 grow27 · All rights reserved</div>
 </footer>
 
 <!-- ── BOTTOM NAV ── -->
@@ -1085,175 +854,12 @@
 </nav>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/markets.js?v=1.51"></script>
-<script>
-// Load pre-scraped barn data from GitHub Actions bot (inline to bypass JS cache)
-// Self-executing: loads data immediately AND patches the CORS scraper to skip
-(async function() {
-  try {
-    const r = await fetch('data/prices/index.json');
-    if (!r.ok) throw new Error('fetch ' + r.status);
-    const index = await r.json();
-    for (const entry of index) {
-      const b = BARNS_DATA[entry.id];
-      if (!b || entry.source !== 'scraped') continue;
-      if (entry.slaughter) {
-        b.finishPrices = { beef: entry.slaughter.beef, crossbred: entry.slaughter.crossbred, holstein: entry.slaughter.holstein };
-        if (entry.slaughter.beef != null) b.basePrice = entry.slaughter.beef;
-      }
-      // Store scraped feeder prices per type
-      if (entry.feeder) {
-        b._feederScraped = { beef: entry.feeder.beef, crossbred: entry.feeder.crossbred, holstein: entry.feeder.holstein };
-      }
-      // Load feeder weight ranges into b.feederWeights (used by drawer detail table)
-      if (entry.feederWeights && entry.feederWeights.length) {
-        // Dedup: keep highest price per range+types combo
-        var seen = {};
-        var deduped = [];
-        entry.feederWeights.forEach(function(fw) {
-          var key = fw.range + '|' + (fw.types || []).sort().join(',');
-          if (!seen[key] || fw.price > seen[key].price) {
-            seen[key] = fw;
-          }
-        });
-        for (var k in seen) deduped.push(seen[k]);
-        // Sort by weight low bound
-        deduped.sort(function(a, b) {
-          var aNum = parseInt(a.range) || 0;
-          var bNum = parseInt(b.range) || 0;
-          return aNum - bNum;
-        });
-        b.feederWeights = deduped;
-        console.log('[barn-data] loaded ' + deduped.length + ' feeder weight ranges for ' + entry.id + ' (deduped from ' + entry.feederWeights.length + ')');
-      }
-      b.dataSource = 'live';
-      b._scrapeError = null;
-      if (entry.saleDay) b.saleDay = entry.saleDay;
-      if (entry.liteTestNote) b.liteTestNote = entry.liteTestNote;
-      if (entry.repSales) b.repSales = entry.repSales;
-      // Per-category sale day and date (slaughter/feeder may come from different days)
-      if (entry.slaughterSaleDay) b.slaughterSaleDay = entry.slaughterSaleDay;
-      if (entry.slaughterDate) b.slaughterDate = entry.slaughterDate;
-      if (entry.feederSaleDay) b.feederSaleDay = entry.feederSaleDay;
-      if (entry.feederDate) b.feederDate = entry.feederDate;
-      // Report date: use slaughter date, then feeder date, then lastSuccess
-      var dateStr = entry.slaughterDate || entry.feederDate || entry.lastSuccess;
-      if (dateStr) {
-        const d = new Date(dateStr + 'T12:00:00');
-        b.reportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      }
-      // Per-category formatted dates for display
-      if (entry.slaughterDate) {
-        const d = new Date(entry.slaughterDate + 'T12:00:00');
-        b.slaughterReportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      }
-      if (entry.feederDate) {
-        const d = new Date(entry.feederDate + 'T12:00:00');
-        b.feederReportDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      }
-    }
-    buildBarnTable();
-    console.log('[barn-data] loaded scraped prices from index.json');
-  } catch (e) {
-    console.warn('[barn-data] could not load index.json:', e.message);
-  }
-})();
-
-// Patch: replace CORS scraper so it skips when pre-scraped data is loaded
-var _origLoadCentral = loadCentralLivestockData;
-loadCentralLivestockData = async function() {
-  if (BARNS_DATA.central.finishPrices && BARNS_DATA.central.dataSource === 'live') {
-    console.log('[central] skipping CORS scraper — pre-scraped data already loaded');
-    return;
-  }
-  return _origLoadCentral();
-};
-
-// Patch: after buildBarnTable renders, update feeder cells for barns with scraped feeder data
-var _origBuildBarnTable = buildBarnTable;
-buildBarnTable = function() {
-  _origBuildBarnTable();
-  // Now patch feeder avg cells for barns with scraped feeder prices
-  var type = typeof cattleType !== 'undefined' ? cattleType : 'beef';
-  var keys = Object.keys(BARNS_DATA);
-  keys.forEach(function(key) {
-    var b = BARNS_DATA[key];
-    if (!b._feederScraped && !(b.feederWeights && b.feederWeights.length)) return;
-    var feederPrice = null;
-    var feederSrc = 'live'; // track actual source
-
-    // BEST: head-weighted average from rep sales feeder data
-    if (b.repSales && b.repSales.feederWeightAvgs && b.repSales.feederWeightAvgs.length) {
-      var typeRows = b.repSales.feederWeightAvgs.filter(function(r) { return r.type === type; });
-      var totalHead = 0, weightedSum = 0;
-      typeRows.forEach(function(r) { totalHead += r.head; weightedSum += r.avgPrice * r.head; });
-      if (totalHead > 0) feederPrice = weightedSum / totalHead;
-    }
-
-    // FALLBACK: simple average of feederWeights summary prices (barn-posted, not live sales)
-    if (feederPrice === null && b.feederWeights && b.feederWeights.length) {
-      var sum = 0, count = 0;
-      b.feederWeights.forEach(function(fw) {
-        if (fw.types && fw.types.includes(type)) {
-          sum += fw.price;
-          count++;
-        }
-      });
-      if (count > 0) { feederPrice = sum / count; feederSrc = 'barn'; }
-    }
-
-    // LAST RESORT: scraped feeder price
-    if (feederPrice === null && b._feederScraped) { feederPrice = b._feederScraped[type]; feederSrc = 'barn'; }
-    if (feederPrice == null) return;
-    // Find the barn row and update its feeder cell
-    var row = document.querySelector('tr.barn-row[data-key="' + key + '"]');
-    if (!row) return;
-    var cells = row.querySelectorAll('td.cash-price-cell');
-    if (cells.length >= 2) {
-      var dateStr = b.feederReportDate ? ' <span style="font-size:10px;color:var(--txt3);white-space:nowrap;">' + b.feederReportDate + (b.feederSaleDay ? ' ' + b.feederSaleDay.slice(0,3) : '') + '</span>' : '';
-      var badgeClass = feederSrc === 'live' ? 'barn-src-live' : 'barn-src-barn';
-      var badgeLabel = feederSrc === 'live' ? 'ACTUAL' : feederSrc.toUpperCase();
-      cells[1].innerHTML = feederPrice.toFixed(2) + '&cent; <span class="barn-src-badge ' + badgeClass + '">' + badgeLabel + '</span>' + dateStr;
-    }
-  });
-};
-</script>
-<script src="js/app.js?v=1.51"></script>
+<script src="js/markets.js?v=1.54"></script>
+<script src="js/data-loader.js?v=1.54"></script>
+<script src="js/app.js?v=1.54"></script>
 
 <!-- ── MOBILE FEEDBACK FAB ── -->
-<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.51%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
+<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.54%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -231,7 +231,7 @@ async function run() {
           const result = await parser.parse({ id, browser, html, $ });
 
           const entry = {
-            date:         todayStr,
+            date:         result.reportDate || todayStr,
             slaughter:    result.slaughter ?? { beef: null, crossbred: null, holstein: null },
             feeder:       result.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
             feederWeights: result.feederWeights ?? [],
@@ -248,7 +248,7 @@ async function run() {
 
           // Dedup by date + saleDay, then append
           barnData.history = trimHistory(barnData.history)
-            .filter(e => !(e.date === todayStr && e.saleDay === entry.saleDay));
+            .filter(e => !(e.date === entry.date && e.saleDay === entry.saleDay));
           barnData.history.push(entry);
         } finally {
           if (browser) await browser.close();
