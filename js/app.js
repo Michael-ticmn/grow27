@@ -126,13 +126,26 @@ try{
   switchSubtab('grain');
 }catch(e){}
 
-loadGrainPrices().then(() => loadGrainScrapedData());
-loadCattlePrices();
-loadDairyPrices();
-loadBarnPrices();
-loadScrapedBarnData().then(() => loadCentralLivestockData());
-loadFeedInputPrices();
-loadFeederWeightPrices();
+var _t0 = performance.now();
+// Dismiss loader as soon as grain (default tab) finishes — don't wait for cattle/dairy
+var _grainDone = loadGrainPrices().then(() => loadGrainScrapedData());
+_grainDone.then(function() {
+  var loader = document.getElementById('page-loader');
+  if (loader) { loader.classList.add('loaded'); setTimeout(function() { loader.remove(); }, 500); }
+  console.log('[perf] grain ready in ' + Math.round(performance.now() - _t0) + 'ms');
+});
+// Remaining modules load in parallel — UI updates as each completes
+Promise.all([
+  _grainDone,
+  loadCattlePrices(),
+  loadDairyPrices(),
+  loadBarnPrices(),
+  loadScrapedBarnData().then(() => loadCentralLivestockData()),
+  loadFeedInputPrices(),
+  loadFeederWeightPrices(),
+]).then(function() {
+  console.log('[perf] all data loaded in ' + Math.round(performance.now() - _t0) + 'ms');
+});
 updateSlaughterWeightTable();
 updateCornCardCattle();
 // Retry corn card after data fully loads
