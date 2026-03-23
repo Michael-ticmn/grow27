@@ -69,23 +69,31 @@ function extractLinePrice(line) {
   const range = line.match(RANGE_RE);
   if (range) {
     const a = normalizePrice(range[1]), b = normalizePrice(range[2]);
-    if (a !== null && b !== null) return parseFloat(((a + b) / 2).toFixed(2));
-    if (a !== null) return parseFloat(a.toFixed(2));
-    if (b !== null) return parseFloat(b.toFixed(2));
+    if (a !== null && b !== null) return { low: parseFloat(a.toFixed(2)), high: parseFloat(b.toFixed(2)) };
+    if (a !== null) return { low: parseFloat(a.toFixed(2)), high: parseFloat(a.toFixed(2)) };
+    if (b !== null) return { low: parseFloat(b.toFixed(2)), high: parseFloat(b.toFixed(2)) };
   }
   const spaceRange = line.match(SPACE_RANGE_RE);
   if (spaceRange) {
     const a = normalizePrice(spaceRange[1]), b = normalizePrice(spaceRange[2]);
-    if (a !== null && b !== null) return parseFloat(((a + b) / 2).toFixed(2));
-    if (a !== null) return parseFloat(a.toFixed(2));
-    if (b !== null) return parseFloat(b.toFixed(2));
+    if (a !== null && b !== null) return { low: parseFloat(a.toFixed(2)), high: parseFloat(b.toFixed(2)) };
+    if (a !== null) return { low: parseFloat(a.toFixed(2)), high: parseFloat(a.toFixed(2)) };
+    if (b !== null) return { low: parseFloat(b.toFixed(2)), high: parseFloat(b.toFixed(2)) };
   }
   const single = line.match(SINGLE_RE);
   if (single) {
     const v = normalizePrice(single[1]);
-    if (v !== null) return parseFloat(v.toFixed(2));
+    if (v !== null) return { low: parseFloat(v.toFixed(2)), high: parseFloat(v.toFixed(2)) };
   }
   return null;
+}
+
+// Legacy helper: extract midpoint as a single number (used by rep sales parsing)
+function extractLinePriceMid(line) {
+  const p = extractLinePrice(line);
+  if (!p) return null;
+  if (p.low != null && p.high != null) return parseFloat(((p.low + p.high) / 2).toFixed(2));
+  return p.high ?? p.low;
 }
 
 // ── Barn parser loader ──────────────────────────────────────────────────────
@@ -162,14 +170,31 @@ function nullEntry(dateStr, source = 'pending') {
   };
 }
 
+// Ensure a price value is in {low, high} format for index.json
+function toRange(v) {
+  if (v == null) return null;
+  if (typeof v === 'object' && ('low' in v || 'high' in v)) return v;
+  if (typeof v === 'number') return { low: v, high: v };
+  return null;
+}
+
 // ── Trend helper ────────────────────────────────────────────────────────────
+
+function priceMid(v) {
+  if (v == null) return null;
+  if (typeof v === 'object' && v.high != null) return (v.low != null ? (v.low + v.high) / 2 : v.high);
+  return typeof v === 'number' ? v : null;
+}
 
 function calcTrend(history) {
   const good = [...history]
     .reverse()
     .filter(e => (e.source === 'scraped' || e.source === 'calculated') && e.slaughter?.beef != null);
   if (good.length < 2) return null;
-  const diff = good[0].slaughter.beef - good[1].slaughter.beef;
+  const cur = priceMid(good[0].slaughter.beef);
+  const prev = priceMid(good[1].slaughter.beef);
+  if (cur == null || prev == null) return null;
+  const diff = cur - prev;
   if (diff >  0.5) return 'up';
   if (diff < -0.5) return 'down';
   return 'flat';
@@ -343,12 +368,16 @@ function buildIndexRow(barnData, id, name, location) {
     name,
     location,
     lastSuccess:  barnData.lastSuccess,
-    // Slaughter: from best slaughter entry
-    slaughter:        slaughterEntry?.slaughter ?? { beef: null, crossbred: null, holstein: null },
+    // Slaughter: from best slaughter entry (normalize to {low, high})
+    slaughter: slaughterEntry?.slaughter
+      ? { beef: toRange(slaughterEntry.slaughter.beef), crossbred: toRange(slaughterEntry.slaughter.crossbred), holstein: toRange(slaughterEntry.slaughter.holstein) }
+      : { beef: null, crossbred: null, holstein: null },
     slaughterSaleDay: slaughterEntry?.saleDay ?? null,
     slaughterDate:    slaughterEntry?.date ?? null,
     // Feeder: from best feeder entry (may be a different sale day)
-    feeder:           feederEntry?.feeder ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
+    feeder: feederEntry?.feeder
+      ? { beef: toRange(feederEntry.feeder.beef), crossbred: toRange(feederEntry.feeder.crossbred), holstein: toRange(feederEntry.feeder.holstein), liteTest: feederEntry.feeder.liteTest ?? false }
+      : { beef: null, crossbred: null, holstein: null, liteTest: false },
     feederWeights:    feederEntry?.feederWeights ?? [],
     feederSaleDay:    feederEntry?.saleDay ?? null,
     feederDate:       feederEntry?.date ?? null,
@@ -367,6 +396,7 @@ function buildIndexRow(barnData, id, name, location) {
 module.exports = {
   normalizePrice,
   extractLinePrice,
+  extractLinePriceMid,
   RANGE_RE,
   SPACE_RANGE_RE,
   SINGLE_RE,

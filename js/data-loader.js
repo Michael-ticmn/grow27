@@ -9,12 +9,12 @@
       const b = BARNS_DATA[entry.id];
       if (!b || entry.source !== 'scraped') continue;
       if (entry.slaughter) {
-        b.finishPrices = { beef: entry.slaughter.beef, crossbred: entry.slaughter.crossbred, holstein: entry.slaughter.holstein };
-        if (entry.slaughter.beef != null) b.basePrice = entry.slaughter.beef;
+        b.finishPrices = { beef: priceObj(entry.slaughter.beef), crossbred: priceObj(entry.slaughter.crossbred), holstein: priceObj(entry.slaughter.holstein) };
+        if (entry.slaughter.beef != null) b.basePrice = priceMid(entry.slaughter.beef);
       }
-      // Store scraped feeder prices per type
+      // Store scraped feeder prices per type (as {low, high} ranges)
       if (entry.feeder) {
-        b._feederScraped = { beef: entry.feeder.beef, crossbred: entry.feeder.crossbred, holstein: entry.feeder.holstein };
+        b._feederScraped = { beef: priceObj(entry.feeder.beef), crossbred: priceObj(entry.feeder.crossbred), holstein: priceObj(entry.feeder.holstein), liteTest: entry.feeder.liteTest ?? false };
       }
       // Load feeder weight ranges into b.feederWeights (used by drawer detail table)
       if (entry.feederWeights && entry.feederWeights.length) {
@@ -113,9 +113,15 @@ buildBarnTable = function() {
       if (count > 0) { feederPrice = sum / count; feederSrc = 'barn'; }
     }
 
-    // LAST RESORT: scraped feeder price
-    if (feederPrice === null && b._feederScraped) { feederPrice = b._feederScraped[type]; feederSrc = 'barn'; }
+    // LAST RESORT: scraped feeder price (may be {low, high})
+    var feederDisplay = null;
+    if (feederPrice === null && b._feederScraped && b._feederScraped[type] != null) {
+      feederDisplay = formatRange(b._feederScraped[type]);
+      feederPrice = priceHigh(b._feederScraped[type]);
+      feederSrc = 'barn';
+    }
     if (feederPrice == null) return;
+    if (!feederDisplay) feederDisplay = feederPrice.toFixed(2);
     // Find the barn row and update its feeder cell
     var row = document.querySelector('tr.barn-row[data-key="' + key + '"]');
     if (!row) return;
@@ -129,7 +135,7 @@ buildBarnTable = function() {
       var badgeClass = feederSrc !== 'live' ? 'barn-src-barn' : aging ? 'barn-src-aging' : 'barn-src-live';
       var badgeLabel = feederSrc !== 'live' ? feederSrc.toUpperCase() : aging ? 'AGING' : 'ACTUAL';
       var badgeTip = feederSrc !== 'live' ? 'Barn-posted summary price, not from live sale data' : aging ? 'Scraped from barn report but more than 8 days old' : 'Price scraped directly from this barn\u2019s report';
-      cells[1].innerHTML = feederPrice.toFixed(2) + '&cent; <span class="barn-src-badge ' + badgeClass + '" title="' + badgeTip + '">' + badgeLabel + '</span>' + dateStr;
+      cells[1].innerHTML = feederDisplay + '&cent; <span class="barn-src-badge ' + badgeClass + '" title="' + badgeTip + '">' + badgeLabel + '</span>' + dateStr;
     }
   });
 };

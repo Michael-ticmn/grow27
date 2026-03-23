@@ -65,7 +65,7 @@ Claude edits files directly in the local repo. Michael validates locally before 
 - `scripts/barns/_default.js` — fallback parser for barns without custom logic (returns `pending`).
 - `.github/workflows/scrape-barns.yml` — runs on `UserUpdates`, triggers daily 7am CT (`0 12 * * *`) and via `workflow_dispatch`. Commits price files back to `UserUpdates`.
 
-**Adding a new barn parser:** Create `scripts/barns/<id>.js` matching the id in `barns-config.json`. Export `parse({ id, browser, html, $ })`. The orchestrator picks it up automatically — no changes to `scrape-barns.js` needed.
+**Adding a new barn parser:** Create `scripts/barns/<id>.js` matching the id in `barns-config.json`. Export `parse({ id, browser, html, $ })`. The orchestrator picks it up automatically — no changes to `scrape-barns.js` needed. **Also update the Data Sources section in the About page** (`index.html` → `#mod-about` → `#about-sources`).
 
 **Multiple sale days per barn:** Use a `reports` array in `barns-config.json` instead of a single `reportUrl`. Each entry has `{ "day": "Monday", "url": "..." }`. The orchestrator loops all reports, deduplicates history by `date + saleDay`, and the index includes a `saleDays` array with per-day data. Currently: Central has Monday (cattle) and Wednesday (cattle + hogs).
 
@@ -96,7 +96,7 @@ Claude edits files directly in the local repo. Michael validates locally before 
 
 **Currently configured:** CFS (Central Farm Service) — 13 locations across southern MN. Uses DTN Cashbid widget; parser selects each location from dropdown and reads `<table id="dtn-bids">`.
 
-**Adding a new grain source:** Create `scripts/grain/<id>.js` matching the id in `grain-config.json`. Export `parse({ id, config, browser })`. The orchestrator picks it up automatically.
+**Adding a new grain source:** Create `scripts/grain/<id>.js` matching the id in `grain-config.json`. Export `parse({ id, config, browser })`. The orchestrator picks it up automatically. **Also update the Data Sources section in the About page** (`index.html` → `#mod-about` → `#about-sources`).
 
 **Grain bid data shape per location:**
 ```json
