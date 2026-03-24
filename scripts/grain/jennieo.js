@@ -55,22 +55,31 @@ async function parse({ id, config, browser }) {
 
       const trs = table.querySelectorAll('tbody tr');
       const rows = [];
+      let currentLocation = null;
 
       for (const tr of trs) {
         const cells = tr.querySelectorAll('td');
         if (cells.length < 3) continue;
 
-        const location = (cells[0]?.textContent || '').trim();
+        const locText  = (cells[0]?.textContent || '').trim();
         const delivery = (cells[1]?.textContent || '').trim();
         const cashRaw  = (cells[2]?.textContent || '').trim();
 
         // Skip header-like rows
-        if (/^location$/i.test(location)) continue;
+        if (/^location$/i.test(locText)) continue;
 
-        // Only capture configured locations
-        if (!configNames.some(cn => location.toLowerCase().includes(cn))) continue;
+        // If location cell has text, update current location
+        if (locText) {
+          const matched = configNames.some(cn => locText.toLowerCase().includes(cn));
+          currentLocation = matched ? locText : null;
+        }
 
-        rows.push({ location, delivery, cash: cashRaw });
+        // Skip rows outside configured locations
+        if (!currentLocation) continue;
+        // Skip rows without a delivery month
+        if (!delivery) continue;
+
+        rows.push({ location: currentLocation, delivery, cash: cashRaw });
       }
 
       return { rows, debug: `${trs.length} table rows, ${rows.length} matched` };
