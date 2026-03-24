@@ -33,7 +33,7 @@ $MSG = "fix: describe the change here"
 **When Claude executes PS1 scripts** — use `powershell.exe -Command` from bash. Stage files with `git add` first, then run:
 ```bash
 # push-userupdates.ps1 with commit message:
-powershell.exe -Command "\$MSG = 'fix: describe the change'; & './push-userupdates.ps1'"
+powershell.exe -Command '$MSG = "fix: describe the change"; & "./push-userupdates.ps1"'
 
 # push-main.ps1 (no message needed):
 powershell.exe -File "./push-main.ps1"
