@@ -21,7 +21,14 @@ const path = require('path');
 
 let pdfParse;
 function ensureDeps() {
-  if (!pdfParse) pdfParse = require('pdf-parse');
+  if (!pdfParse) {
+    const mod = require('pdf-parse');
+    // pdf-parse v2+ exports { default } or { PdfParse }, v1 exports a function directly
+    pdfParse = typeof mod === 'function' ? mod
+             : typeof mod.default === 'function' ? mod.default
+             : typeof mod.PdfParse === 'function' ? mod.PdfParse
+             : mod;
+  }
 }
 
 const { normalizePrice, extractLinePrice } = require('../scrape-barns');
@@ -297,6 +304,7 @@ async function parse({ id, browser, html, $ }) {
 
   let pdfData;
   try {
+    console.log(`[${id}] pdfParse type: ${typeof pdfParse}, keys: ${typeof pdfParse === 'object' ? Object.keys(pdfParse) : 'N/A'}`);
     pdfData = await pdfParse(pdfBuffer);
     console.log(`[${id}] PDF parsed — ${pdfData.numpages} pages, ${pdfData.text.length} chars`);
   } catch (parseErr) {
