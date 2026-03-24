@@ -196,26 +196,62 @@ function parsePdfText(text, id) {
   }
 
   // ── Feeder: "NNN-NNN lbs" + two prices ────────────────────────────────
-  // Negative lookbehind prevents capturing trailing digits from a preceding price
-  // e.g. "210.00600-700 lbs" should NOT match "0600-700"
+  // Rock Creek feeder section has three subsections:
+  //   Holstein Steers (wide ranges: 400-800, 800-1100)
+  //   Beef Steers & Bulls (100-lb increments: 300-400 … 800-900)
+  //   Beef Heifers (same weight ranges, lower prices)
+  //
+  // normalizePrice caps at 500¢ but light calves (300-400#) sell above that,
+  // so we use a custom validator allowing up to 600¢.
+  function normalizeFeederPrice(raw) {
+    const cleaned = raw.replace(/,/g, '');
+    const v = parseFloat(cleaned);
+    if (isNaN(v)) return null;
+    if (v >= 100 && v <= 600) return parseFloat(v.toFixed(2));
+    // PDF artifact: "3,660.00" → 3660 → /10 = 366 (left-column digit bleed)
+    if (v > 600 && v < 10000) {
+      const d10 = v / 10;
+      if (d10 >= 100 && d10 <= 600) return parseFloat(d10.toFixed(2));
+    }
+    return null;
+  }
+
   const weightRe = /(?<!\d)(\d{3,4})\s*-\s*(\d{3,4})\s*lbs\s*(\d[\d,]*\.\d{2})\s*(\d+\.\d{2})/gi;
   let wm;
+  // Track seen ranges to separate steers (first occurrence) from heifers (second)
+  const seenRanges = new Set();
   while ((wm = weightRe.exec(fullText)) !== null) {
-    const pLow  = normalizePrice(wm[3].replace(/,/g, ''));
-    const pHigh = normalizePrice(wm[4]);
+    const wLow = parseInt(wm[1]), wHigh = parseInt(wm[2]);
+    const pLow  = normalizeFeederPrice(wm[3]);
+    const pHigh = normalizeFeederPrice(wm[4]);
     if (pLow !== null && pHigh !== null) {
-      const range = `${wm[1]}–${wm[2]}#`;
-      feederWeights.push({ range, price: pHigh, types: ['beef'] });
-      console.log(`[${id}] feederWeight: ${range} → ${pLow}–${pHigh}`);
+      const range = `${wLow}–${wHigh}#`;
+      // Wide ranges (span 400+ lbs) → Holstein; narrow (100-lb) → Beef
+      const isHolstein = (wHigh - wLow) >= 300;
+      const types = isHolstein ? ['holstein'] : ['beef'];
+      // Label steers vs heifers for duplicate beef ranges
+      let label = isHolstein ? 'hol' : 'steers';
+      if (!isHolstein && seenRanges.has(range)) label = 'heifers';
+      seenRanges.add(range);
+      feederWeights.push({ range, low: pLow, price: pHigh, types, label });
+      console.log(`[${id}] feederWeight: ${range} → ${pLow}–${pHigh} [${types}, ${label}]`);
     } else {
       console.log(`[${id}] feederWeight SKIP: ${wm[1]}-${wm[2]} lbs → raw ${wm[3]}, ${wm[4]} (normalized: ${pLow}, ${pHigh})`);
     }
   }
 
-  if (feederWeights.length > 0) {
-    const prices = feederWeights.map(w => w.price);
+  // Set feeder.beef and feeder.holstein from their respective weight classes
+  const beefWeights = feederWeights.filter(w => w.types.includes('beef'));
+  const holWeights  = feederWeights.filter(w => w.types.includes('holstein'));
+  if (beefWeights.length > 0) {
+    const prices = beefWeights.map(w => w.price);
     feeder.beef = { low: Math.min(...prices), high: Math.max(...prices) };
-    console.log(`[${id}] feeder.beef = ${JSON.stringify(feeder.beef)} (from ${feederWeights.length} weight classes)`);
+    console.log(`[${id}] feeder.beef = ${JSON.stringify(feeder.beef)} (from ${beefWeights.length} weight classes)`);
+  }
+  if (holWeights.length > 0) {
+    const prices = holWeights.map(w => w.price);
+    feeder.holstein = { low: Math.min(...prices), high: Math.max(...prices) };
+    console.log(`[${id}] feeder.holstein = ${JSON.stringify(feeder.holstein)} (from ${holWeights.length} weight classes)`);
   }
 
   // ── Representative Sales ──────────────────────────────────────────────
