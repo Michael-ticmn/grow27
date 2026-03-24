@@ -157,6 +157,9 @@ function downloadPdf(browser, url, id) {
 //
 //   Feeder:    "NNN-NNN lbs" followed by two glued prices (470.00530.00)
 //              Two sets: Steers & Bulls, then Heifers
+//
+//   Rep Sales: "Representative Sales: <category>" then rows of
+//              Location+Desc+Weight(comma-fmt)+Qty+Price glued together
 
 function parsePdfText(text, id) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -170,19 +173,16 @@ function parsePdfText(text, id) {
   const fullText = lines.join('\n');
 
   // ── Slaughter: "Day Choice & Prime" + two prices ──────────────────────
-  // Matches prices glued together: "220.00232.50" or with space: "220.00 232.50"
   const primeRe = /Day Choice & Prime\s*(\d+\.\d{2})\s*(\d+\.\d{2})/gi;
   const primeHits = [...fullText.matchAll(primeRe)];
   console.log(`[${id}] "Day Choice & Prime" matches: ${primeHits.length}`);
   primeHits.forEach((m, i) => console.log(`[${id}]   [${i}] ${m[1]} – ${m[2]}`));
 
   if (primeHits.length >= 1) {
-    // First = Beef Steers
     slaughter.beef = { low: parseFloat(primeHits[0][1]), high: parseFloat(primeHits[0][2]) };
     console.log(`[${id}] slaughter.beef (steers) = ${JSON.stringify(slaughter.beef)}`);
   }
   if (primeHits.length >= 2) {
-    // Second = Beef Heifers — widen the beef range if different
     const hLow = parseFloat(primeHits[1][1]), hHigh = parseFloat(primeHits[1][2]);
     if (slaughter.beef) {
       slaughter.beef.low  = Math.min(slaughter.beef.low, hLow);
@@ -191,22 +191,18 @@ function parsePdfText(text, id) {
     console.log(`[${id}] slaughter.beef (+ heifers) = ${JSON.stringify(slaughter.beef)}`);
   }
   if (primeHits.length >= 3) {
-    // Third = Holstein Steers
     slaughter.holstein = { low: parseFloat(primeHits[2][1]), high: parseFloat(primeHits[2][2]) };
     console.log(`[${id}] slaughter.holstein = ${JSON.stringify(slaughter.holstein)}`);
   }
 
   // ── Feeder: "NNN-NNN lbs" + two prices ────────────────────────────────
-  // Prices may be glued: "400-800 lbs230.00310.00"
-  // The comma in "3,660.00" is a PDF artifact — strip commas before parsing
   const weightRe = /(\d{3,4})\s*-\s*(\d{3,4})\s*lbs\s*(\d[\d,]*\.\d{2})\s*(\d+\.\d{2})/gi;
   let wm;
   while ((wm = weightRe.exec(fullText)) !== null) {
-    const wLow = parseInt(wm[1]), wHigh = parseInt(wm[2]);
     const pLow  = normalizePrice(wm[3].replace(/,/g, ''));
     const pHigh = normalizePrice(wm[4]);
     if (pLow !== null && pHigh !== null) {
-      const range = `${wLow}–${wHigh}#`;
+      const range = `${wm[1]}–${wm[2]}#`;
       feederWeights.push({ range, price: pHigh, types: ['beef'] });
       console.log(`[${id}] feederWeight: ${range} → ${pLow}–${pHigh}`);
     } else {
@@ -214,14 +210,133 @@ function parsePdfText(text, id) {
     }
   }
 
-  // Set feeder.beef from the lightest weight classes (highest $/cwt)
   if (feederWeights.length > 0) {
     const prices = feederWeights.map(w => w.price);
     feeder.beef = { low: Math.min(...prices), high: Math.max(...prices) };
     console.log(`[${id}] feeder.beef = ${JSON.stringify(feeder.beef)} (from ${feederWeights.length} weight classes)`);
   }
 
-  return { slaughter, feeder, feederWeights };
+  // ── Representative Sales ──────────────────────────────────────────────
+  // Sections: "Representative Sales: Finished Cattle", "Market Cows",
+  //           "Market Bulls", "Sheep & Goats", "Hogs"
+  // Row format (all glued): Location + Desc + Weight(X,XXX) + Qty + Price(XXX.XX)
+  const repSales = parseRepSales(lines, id);
+
+  return { slaughter, feeder, feederWeights, repSales };
+}
+
+// ── Representative Sales parser ─────────────────────────────────────────────
+
+function parseRepSales(lines, id) {
+  const sales = { finished: [], cows: [], bulls: [] };
+
+  // Identify section boundaries
+  const SECTION_RE = /^Representative Sales:\s*(.+)/i;
+  let currentSection = null;
+
+  // Row pattern: everything ends with Weight(comma-fmt) + Qty + Price
+  // e.g. "IsleRed/RWF/Tan Steers1,62211232.50"
+  //   → weight=1622, qty=11, price=232.50
+  // Price is always NNN.NN (2-3 digits + .XX).  Qty is between weight and price.
+  const ROW_RE = /^(.+?)(\d{1,2},\d{3})(\d+?)(\d{2,3}\.\d{2})$/;
+
+  for (const line of lines) {
+    // Section header
+    const secMatch = line.match(SECTION_RE);
+    if (secMatch) {
+      const secName = secMatch[1].toLowerCase();
+      if (/finished\s*cattle/i.test(secName))       currentSection = 'finished';
+      else if (/market\s*cow/i.test(secName))        currentSection = 'cows';
+      else if (/market\s*bull/i.test(secName))       currentSection = 'bulls';
+      else if (/sheep|goat|hog/i.test(secName))      currentSection = null; // skip
+      else                                           currentSection = null;
+      if (currentSection) console.log(`[${id}] rep section: ${currentSection} ("${secMatch[0]}")`);
+      continue;
+    }
+
+    if (!currentSection) continue;
+
+    // Skip header/note lines
+    if (/^Location|^\*|^\(Sold|^Description/i.test(line)) continue;
+
+    // Try to match a sale row
+    const rm = line.match(ROW_RE);
+    if (!rm) continue;
+
+    const desc   = rm[1];
+    const weight = parseInt(rm[2].replace(/,/, ''));
+    const qty    = parseInt(rm[3]);
+    const price  = parseFloat(rm[4]);
+
+    // Sanity checks
+    if (weight < 400 || weight > 3000) continue;
+    if (qty < 1 || qty > 200) continue;
+    if (price < 50 || price > 500) continue;
+
+    // Identify cattle type from description
+    let cattleType = 'beef';
+    if (/Holstein|Hol\b/i.test(desc))                                  cattleType = 'holstein';
+    else if (/BWF|RWF|Red & White|Black & White|Tan|Cross/i.test(desc)) cattleType = 'crossbred';
+
+    // Identify sex
+    let sex = 'steer';
+    if (/Heifer|Hfr/i.test(desc))      sex = 'heifer';
+    else if (/Cow/i.test(desc))         sex = 'cow';
+    else if (/Bull/i.test(desc))        sex = 'bull';
+    else if (/St\/H|Steer.*Heifer/i.test(desc)) sex = 'mixed';
+
+    sales[currentSection].push({ desc: desc.trim(), cattleType, sex, weight, qty, price });
+    console.log(`[${id}] rep ${currentSection}: ${qty}hd ${cattleType} ${sex} ${weight}# @ ${price} ("${desc.trim().slice(0, 30)}")`);
+  }
+
+  console.log(`[${id}] rep sales — finished: ${sales.finished.length}, cows: ${sales.cows.length}, bulls: ${sales.bulls.length}`);
+
+  // Build weight-class averages (matching central.js output shape)
+  const headCount = { finished: 0, feeder: 0, bulls: 0, cows: 0 };
+
+  function buildWeightAvgs(entries, byType) {
+    const buckets = {};
+    let totalHead = 0;
+    for (const s of entries) {
+      totalHead += s.qty;
+      const bucket = Math.floor(s.weight / 100) * 100;
+      const range = `${bucket}-${bucket + 99}`;
+      const key = byType ? `${range}|${s.cattleType}` : range;
+      if (!buckets[key]) buckets[key] = { range, type: s.cattleType, sum: 0, count: 0 };
+      buckets[key].sum += s.price * s.qty;
+      buckets[key].count += s.qty;
+    }
+    const avgs = Object.values(buckets).map(b => ({
+      range: b.range + ' lbs',
+      ...(byType ? { type: b.type } : {}),
+      avgPrice: parseFloat((b.sum / b.count).toFixed(2)),
+      head: b.count,
+    })).sort((a, b) => parseInt(a.range) - parseInt(b.range));
+    return { avgs, totalHead };
+  }
+
+  const finish = buildWeightAvgs(sales.finished, true);
+  headCount.finished = finish.totalHead;
+
+  const bulls = buildWeightAvgs(sales.bulls, false);
+  headCount.bulls = bulls.totalHead;
+
+  const cows = buildWeightAvgs(sales.cows, false);
+  headCount.cows = cows.totalHead;
+
+  console.log(`[${id}] rep avgs — finish: ${finish.avgs.length} buckets (${headCount.finished} hd), bulls: ${bulls.avgs.length} (${headCount.bulls} hd), cows: ${cows.avgs.length} (${headCount.cows} hd)`);
+
+  if (headCount.finished === 0 && headCount.bulls === 0 && headCount.cows === 0) {
+    return null;
+  }
+
+  return {
+    finishWeightAvgs: finish.avgs,
+    feederWeightAvgs: [],  // Rock Creek PDF doesn't have individual feeder sale lines
+    bullsWeightAvgs: bulls.avgs,
+    cowsWeightAvgs: cows.avgs,
+    headCount,
+  };
 }
 
 // ── Main parse function (called by orchestrator) ──────────────────────────────
@@ -289,14 +404,13 @@ async function parse({ id, browser, html, $ }) {
   }
 
   // 4. Extract prices from PDF text
-  const { slaughter, feeder, feederWeights } = parsePdfText(pdfData.text, id);
+  const { slaughter, feeder, feederWeights, repSales } = parsePdfText(pdfData.text, id);
 
   const hasSlaughter = Object.values(slaughter).some(v => v !== null);
   const hasFeeder    = feeder.beef !== null || feeder.holstein !== null;
-  console.log(`[${id}] parse result — hasSlaughter=${hasSlaughter}, hasFeeder=${hasFeeder}`);
+  console.log(`[${id}] parse result — hasSlaughter=${hasSlaughter}, hasFeeder=${hasFeeder}, hasRepSales=${repSales != null}`);
 
   if (!hasSlaughter && !hasFeeder) {
-    // Dump full text for debugging — this will appear in GitHub Actions logs
     console.error(`[${id}] ✗ no prices parsed from PDF ${target.date}`);
     console.log(`[${id}] FULL PDF TEXT:\n${'─'.repeat(60)}\n${pdfData.text}\n${'─'.repeat(60)}`);
     return {
@@ -315,7 +429,7 @@ async function parse({ id, browser, html, $ }) {
     reportDate: target.date,
     saleDay:      null,
     liteTestNote: null,
-    repSales:     null,
+    repSales,
     hogs:         null,
     source:       'scraped',
     error:        null,
