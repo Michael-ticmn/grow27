@@ -350,8 +350,14 @@ async function parse({ id, browser, html, $ }) {
 
   let pdfData;
   try {
-    pdfData = await parsePdfBuffer(pdfBuffer, id);
-    console.log(`[${id}] PDF parsed — ${pdfData.numpages} pages, ${pdfData.text.length} chars`);
+    const rawResult = await parsePdfBuffer(pdfBuffer, id);
+    // Normalize: v1 returns { text, numpages }, v2 may return different shape
+    const resultKeys = rawResult ? Object.keys(rawResult) : [];
+    console.log(`[${id}] pdf-parse result type: ${typeof rawResult}, keys: ${resultKeys.slice(0, 15)}`);
+    const text = rawResult?.text ?? rawResult?.content ?? rawResult?.pages?.map(p => p.text || p.content || '').join('\n') ?? '';
+    const numpages = rawResult?.numpages ?? rawResult?.numPages ?? rawResult?.pages?.length ?? '?';
+    pdfData = { text, numpages };
+    console.log(`[${id}] PDF parsed — ${numpages} pages, ${text.length} chars`);
   } catch (parseErr) {
     console.error(`[${id}] pdf-parse failed: ${parseErr.message}`);
     return {
