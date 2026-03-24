@@ -492,7 +492,9 @@ function updateGrainInsight(){
   if(!el)return;
   const selKey=document.getElementById('elev-select')?.value;
   const selElev=selKey?ELEVATORS[selKey]:null;
-  const ts=cbotNow||new Date();
+  // Use grain scrape timestamp when actual data exists, otherwise CBOT fetch time
+  const grainScrapeTs = selElev?.cornActualDate || Object.values(GRAIN_SCRAPE_DATES).filter(Boolean).sort().pop() || null;
+  const ts = grainScrapeTs ? new Date(grainScrapeTs) : (cbotNow||new Date());
   const tsStr='<span style="color:var(--txt3);font-size:13px;"> · as of '+ts.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' '+ts.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span>';
 
   // If a buyer is selected and has actual data, show their prices
