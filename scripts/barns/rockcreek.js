@@ -216,7 +216,9 @@ function parsePdfText(text, id) {
     return null;
   }
 
-  const weightRe = /(?<!\d)(\d{3,4})\s*-\s*(\d{3,4})\s*lbs\s*(\d[\d,]*\.\d{2})\s*(\d+\.\d{2})/gi;
+  // Use lookbehind (?<!\d\.) to avoid matching "210.00600" as "0600",
+  // but still allow "00600" — parseInt strips the leading zero.
+  const weightRe = /(?<!\d\.)(\d{3,4})\s*-\s*(\d{3,4})\s*lbs\s*(\d[\d,]*\.\d{2})\s*(\d+\.\d{2})/gi;
   let wm;
   // Track seen ranges to separate steers (first occurrence) from heifers (second)
   const seenRanges = new Set();
