@@ -73,9 +73,9 @@ Show me two things before writing the full parser:
 - **Context:** All three are placeholder stubs (2-line JS files). The tab structure exists in `index.html` but no content.
 - **Decision needed:** What should these modules contain? Any priority among them?
 
-### 4. Jennie-O parser — KEEP DISABLED
-- **Context:** Parser works but disabled due to robots.txt restrictions.
-- **Decision:** Keep in config, stay disabled. Need to properly label the value so it's clear the data isn't current/dated (since scraper can't run).
+### 4. Jennie-O parser — COMPLETED 2026-03-24
+- **Context:** Old source (aghostportal.com) blocked by robots.txt. New source found: farmbucks.com.
+- **Result:** Parser rewritten for farmbucks.com, re-enabled, cash-only (no basis). Contract badge shows delivery month. v1.83–v1.85.
 
 ### 5. About page — data sources update
 - **Context:** CLAUDE.md says to update `#about-sources` when adding new parsers. Need to verify CHS, MVG, AGP, Jennie-O are listed.
@@ -94,3 +94,4 @@ Show me two things before writing the full parser:
 
 - ✅ [Chat] Rock Creek parser prompt finalized — 2026-03-24
 - ✅ [Code] Rock Creek parser built, validated, YTD catch-up complete — 2026-03-24 (v1.66–v1.82)
+- ✅ [Code] Jennie-O parser rewritten for farmbucks.com, re-enabled — 2026-03-24 (v1.83–v1.85)
