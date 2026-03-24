@@ -30,9 +30,15 @@ $MSG = "fix: describe the change here"
 .\push-main.ps1
 ```
 
-**When Claude provides PS1 commands** — always pass `$MSG` as a variable assignment on the line before the script call. Never tell the user to edit the PS1 file.
+**When Claude executes PS1 scripts** — use `powershell.exe -Command` from bash. Stage files with `git add` first, then run:
+```bash
+# push-userupdates.ps1 with commit message:
+powershell.exe -Command "\$MSG = 'fix: describe the change'; & './push-userupdates.ps1'"
 
-**When Claude provides git commands** — provide raw `git add / commit / push` steps only, no version bumping. Michael runs the PS1 scripts manually. Claude must never modify `version.json` or the `sw.js` cache string.
+# push-main.ps1 (no message needed):
+powershell.exe -File "./push-main.ps1"
+```
+Never tell the user to edit the PS1 file. Claude must never modify `version.json` or the `sw.js` cache string — the PS1 scripts handle both.
 
 ---
 
