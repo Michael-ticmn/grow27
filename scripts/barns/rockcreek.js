@@ -19,46 +19,9 @@
 const fs   = require('fs');
 const path = require('path');
 
-let pdfParseModule;
+let pdfParse;
 function ensureDeps() {
-  if (!pdfParseModule) pdfParseModule = require('pdf-parse');
-}
-
-// Wrapper: handles both pdf-parse v1 (plain function) and v2 (class constructor)
-async function parsePdfBuffer(buffer, id) {
-  const mod = pdfParseModule;
-  // v2 exports the class directly — typeof is 'function' but needs 'new'
-  // Try as plain function first; if "cannot be invoked without new", use new
-  if (typeof mod === 'function') {
-    try {
-      return await mod(buffer);                                // v1 plain function
-    } catch (e) {
-      if (/cannot be invoked without 'new'|is not a constructor/i.test(e.message)) {
-        console.log(`[${id}] pdf-parse is a class — using new`);
-        const parser = new mod(buffer);
-        // v2 class: constructor takes buffer, then call .parse() or .getText()
-        if (typeof parser.parse === 'function') return parser.parse();
-        if (typeof parser.getText === 'function') {
-          const text = await parser.getText();
-          return { text, numpages: parser.numpages || '?' };
-        }
-        // If constructor itself returns a promise-like with text
-        if (parser.text !== undefined) return parser;
-        // Log available methods for debugging
-        const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(parser))
-          .filter(m => m !== 'constructor');
-        throw new Error(`PDFParse instance has no known parse method. Methods: ${methods}`);
-      }
-      throw e;
-    }
-  }
-  if (typeof mod.default === 'function') return mod.default(buffer);
-  if (mod.PDFParse) {
-    const parser = new mod.PDFParse(buffer);
-    if (typeof parser.parse === 'function') return parser.parse();
-    return parser;
-  }
-  throw new Error(`Unknown pdf-parse export shape: ${Object.keys(mod)}`);
+  if (!pdfParse) pdfParse = require('pdf-parse'); // v1.1.1 — returns async function
 }
 
 const { normalizePrice, extractLinePrice } = require('../scrape-barns');
@@ -350,14 +313,8 @@ async function parse({ id, browser, html, $ }) {
 
   let pdfData;
   try {
-    const rawResult = await parsePdfBuffer(pdfBuffer, id);
-    // Normalize: v1 returns { text, numpages }, v2 may return different shape
-    const resultKeys = rawResult ? Object.keys(rawResult) : [];
-    console.log(`[${id}] pdf-parse result type: ${typeof rawResult}, keys: ${resultKeys.slice(0, 15)}`);
-    const text = rawResult?.text ?? rawResult?.content ?? rawResult?.pages?.map(p => p.text || p.content || '').join('\n') ?? '';
-    const numpages = rawResult?.numpages ?? rawResult?.numPages ?? rawResult?.pages?.length ?? '?';
-    pdfData = { text, numpages };
-    console.log(`[${id}] PDF parsed — ${numpages} pages, ${text.length} chars`);
+    pdfData = await pdfParse(pdfBuffer);
+    console.log(`[${id}] PDF parsed — ${pdfData.numpages} pages, ${pdfData.text.length} chars`);
   } catch (parseErr) {
     console.error(`[${id}] pdf-parse failed: ${parseErr.message}`);
     return {
