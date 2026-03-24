@@ -5,7 +5,7 @@
     "url": "https://www.cfscoop.com/products-services/grain/cash-bids",
     "lastSuccess": "2026-03-24",
     "date": "2026-03-24",
-    "scrapedAt": "2026-03-24T23:14:55.156Z",
+    "scrapedAt": "2026-03-24T23:19:09.116Z",
     "locations": {
       "randolph": {
         "name": "Randolph",
@@ -1945,7 +1945,7 @@
     "url": "https://www.mnvalleygrain.com/markets/cash.php?location_filter=&showcwt=0",
     "lastSuccess": "2026-03-24",
     "date": "2026-03-24",
-    "scrapedAt": "2026-03-24T23:15:02.096Z",
+    "scrapedAt": "2026-03-24T23:19:15.937Z",
     "locations": {
       "le-center": {
         "name": "Le Center",
@@ -2314,7 +2314,7 @@
     "url": "https://agpartners.net/markets-cashbids/",
     "lastSuccess": "2026-03-24",
     "date": "2026-03-24",
-    "scrapedAt": "2026-03-24T23:15:50.130Z",
+    "scrapedAt": "2026-03-24T23:20:04.380Z",
     "locations": {
       "red-wing-grain-llc": {
         "name": "Red Wing Grain LLC",
@@ -4508,12 +4508,80 @@
     "source": "scraped"
   },
   {
+    "id": "jennieo",
+    "name": "Jennie-O Turkey Store",
+    "url": "https://farmbucks.com/grain-prices/jennie-o/minnesota",
+    "lastSuccess": "2026-03-24",
+    "date": "2026-03-24",
+    "scrapedAt": "2026-03-24T23:20:08.263Z",
+    "locations": {
+      "atwater-feed-mill": {
+        "name": "Atwater Feed Mill",
+        "corn": [
+          {
+            "delivery": "Aug26",
+            "cash": 4.35,
+            "futuresMonth": null,
+            "basis": null,
+            "change": null,
+            "cbot": null
+          }
+        ],
+        "beans": []
+      },
+      "dawson-feed-mill": {
+        "name": "Dawson Feed Mill",
+        "corn": [
+          {
+            "delivery": "Oct26",
+            "cash": 4.49,
+            "futuresMonth": null,
+            "basis": null,
+            "change": null,
+            "cbot": null
+          }
+        ],
+        "beans": []
+      },
+      "faribault-mill": {
+        "name": "Faribault Mill",
+        "corn": [
+          {
+            "delivery": "Aug26",
+            "cash": 4.25,
+            "futuresMonth": null,
+            "basis": null,
+            "change": null,
+            "cbot": null
+          }
+        ],
+        "beans": []
+      },
+      "perham-feed-mill": {
+        "name": "Perham Feed Mill",
+        "corn": [
+          {
+            "delivery": "Feb27",
+            "cash": 4.34,
+            "futuresMonth": null,
+            "basis": null,
+            "change": null,
+            "cbot": null
+          }
+        ],
+        "beans": []
+      }
+    },
+    "trend": "up",
+    "source": "scraped"
+  },
+  {
     "id": "chs",
     "name": "CHS",
     "url": "https://chsag.com/grain/cash-bids/",
     "lastSuccess": "2026-03-24",
     "date": "2026-03-24",
-    "scrapedAt": "2026-03-24T23:15:59.439Z",
+    "scrapedAt": "2026-03-24T23:20:17.174Z",
     "locations": {
       "fairmont": {
         "name": "Fairmont",
