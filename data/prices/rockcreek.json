@@ -6,57 +6,6 @@
   "lastSuccess": "2026-03-23",
   "history": [
     {
-      "date": "2026-03-24",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "source": "pending"
-    },
-    {
-      "date": "2026-03-24",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "feederWeights": [],
-      "saleDay": null,
-      "liteTestNote": null,
-      "repSales": null,
-      "hogs": null,
-      "source": "fetch_failed",
-      "error": "no PDF links matching pattern found on index page"
-    },
-    {
-      "date": "2026-03-23",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "source": "pending"
-    },
-    {
       "date": "2026-03-23",
       "slaughter": {
         "beef": {
@@ -101,7 +50,7 @@
           ]
         },
         {
-          "range": "600–700#",
+          "range": "0600–700#",
           "price": 384,
           "types": [
             "beef"
@@ -122,21 +71,21 @@
           ]
         },
         {
-          "range": "400–500#",
+          "range": "0400–500#",
           "price": 485,
           "types": [
             "beef"
           ]
         },
         {
-          "range": "500–600#",
+          "range": "0500–600#",
           "price": 429,
           "types": [
             "beef"
           ]
         },
         {
-          "range": "600–700#",
+          "range": "0600–700#",
           "price": 345,
           "types": [
             "beef"
@@ -159,7 +108,84 @@
       ],
       "saleDay": null,
       "liteTestNote": null,
-      "repSales": null,
+      "repSales": {
+        "finishWeightAvgs": [],
+        "feederWeightAvgs": [],
+        "bullsWeightAvgs": [
+          {
+            "range": "1000-1099 lbs",
+            "avgPrice": 141.25,
+            "head": 2
+          },
+          {
+            "range": "1100-1199 lbs",
+            "avgPrice": 140,
+            "head": 7
+          },
+          {
+            "range": "1200-1299 lbs",
+            "avgPrice": 137.5,
+            "head": 3
+          },
+          {
+            "range": "1300-1399 lbs",
+            "avgPrice": 134.83,
+            "head": 3
+          },
+          {
+            "range": "1500-1599 lbs",
+            "avgPrice": 151.65,
+            "head": 10
+          },
+          {
+            "range": "1600-1699 lbs",
+            "avgPrice": 147.5,
+            "head": 2
+          },
+          {
+            "range": "1700-1799 lbs",
+            "avgPrice": 162.5,
+            "head": 2
+          },
+          {
+            "range": "1800-1899 lbs",
+            "avgPrice": 186,
+            "head": 1
+          },
+          {
+            "range": "1900-1999 lbs",
+            "avgPrice": 162.33,
+            "head": 3
+          },
+          {
+            "range": "2000-2099 lbs",
+            "avgPrice": 177.33,
+            "head": 3
+          },
+          {
+            "range": "2100-2199 lbs",
+            "avgPrice": 185,
+            "head": 2
+          },
+          {
+            "range": "2200-2299 lbs",
+            "avgPrice": 201,
+            "head": 1
+          },
+          {
+            "range": "2300-2399 lbs",
+            "avgPrice": 202,
+            "head": 1
+          }
+        ],
+        "cowsWeightAvgs": [],
+        "headCount": {
+          "finished": 0,
+          "feeder": 0,
+          "bulls": 40,
+          "cows": 0
+        }
+      },
       "hogs": null,
       "source": "scraped"
     }
