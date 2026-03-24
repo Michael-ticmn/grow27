@@ -1298,17 +1298,20 @@ function buildBarnTable() {
       }
       feederFoot = `${b.name} · rep. sales sample avg`;
     } else if(b.feederWeights && b.feederWeights.length) {
-      // Fallback: OCR feeder weights from summary table
-      const relevantWeights = b.feederWeights.filter(w => w.types.includes(cattleType));
+      // Fallback: PDF/OCR feeder weights from summary table
+      // Hide heifers — show steers/hol only (label !== 'heifers')
+      const relevantWeights = b.feederWeights.filter(w => w.types.includes(cattleType) && w.label !== 'heifers');
       if(relevantWeights.length) {
         feederRows = relevantWeights.map(w => {
-          const adjP = w.price.toFixed(2);
+          const priceDisplay = (w.low != null && w.low !== w.price)
+            ? w.low.toFixed(2) + '–' + w.price.toFixed(2)
+            : w.price.toFixed(2);
           return `<tr>
-            <td style="font-size:13px;color:var(--txt3);padding:5px 8px;">${w.range}</td>
-            <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:5px 8px;text-align:right;">${adjP}¢</td>
+            <td style="font-size:13px;color:var(--txt3);padding:3px 8px;">${w.range} <span style="font-size:13px;opacity:.6;">— hd</span></td>
+            <td style="font-size:12px;color:var(--txt1);font-weight:700;padding:3px 8px;text-align:right;">${priceDisplay}¢</td>
           </tr>`;
         }).join('');
-        feederFoot = `${b.name} sale report · price ceiling`;
+        feederFoot = `${b.name} sale report · price range`;
       } else {
         feederRows = `<tr><td colspan="2" style="font-size:13px;color:var(--txt3);padding:8px;text-align:center;">No ${typeLabel} feeder data reported</td></tr>`;
         feederFoot = `${b.name} sale report`;
