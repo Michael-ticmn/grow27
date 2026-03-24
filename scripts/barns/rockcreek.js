@@ -23,10 +23,10 @@ let pdfParse;
 function ensureDeps() {
   if (!pdfParse) {
     const mod = require('pdf-parse');
-    // pdf-parse v2+ exports { default } or { PdfParse }, v1 exports a function directly
+    // pdf-parse v2+ exports { PDFParse }, v1 exports a function directly
     pdfParse = typeof mod === 'function' ? mod
              : typeof mod.default === 'function' ? mod.default
-             : typeof mod.PdfParse === 'function' ? mod.PdfParse
+             : typeof mod.PDFParse === 'function' ? mod.PDFParse
              : mod;
   }
 }
@@ -122,19 +122,35 @@ function selectPdfs(pdfs, id) {
   return selected;
 }
 
-// ── Download a PDF via Puppeteer ──────────────────────────────────────────────
+// ── Download a PDF via native HTTPS ───────────────────────────────────────────
+// Puppeteer's page.goto() on PDF URLs triggers Chrome's PDF viewer, returning
+// the viewer HTML (~500 bytes) instead of the raw PDF.  Use Node's https module
+// to get the actual file bytes.
 
-async function downloadPdf(browser, url, id) {
-  const page = await browser.newPage();
-  try {
-    const response = await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-    if (!response.ok()) throw new Error(`HTTP ${response.status()}`);
-    const buffer = await response.buffer();
-    console.log(`[${id}] downloaded PDF — ${buffer.length} bytes`);
-    return buffer;
-  } finally {
-    await page.close();
-  }
+function downloadPdf(browser, url, id) {
+  const https = require('https');
+  const http  = require('http');
+  return new Promise((resolve, reject) => {
+    const get = url.startsWith('https') ? https.get : http.get;
+    get(url, { timeout: 30000 }, (res) => {
+      // Follow redirects
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        console.log(`[${id}] PDF redirect → ${res.headers.location}`);
+        return downloadPdf(browser, res.headers.location, id).then(resolve, reject);
+      }
+      if (res.statusCode !== 200) {
+        return reject(new Error(`HTTP ${res.statusCode}`));
+      }
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        const buffer = Buffer.concat(chunks);
+        console.log(`[${id}] downloaded PDF — ${buffer.length} bytes`);
+        resolve(buffer);
+      });
+      res.on('error', reject);
+    }).on('error', reject);
+  });
 }
 
 // ── Parse cattle prices from PDF text ─────────────────────────────────────────
