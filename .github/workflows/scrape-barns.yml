@@ -32,7 +32,7 @@ jobs:
       - name: Show git status
         run: git status
 
-      - name: Commit updated price files
+      - name: Commit updated price files to UserUpdates
         run: |
           git config user.name "grow27-bot"
           git config user.email "bot@grow27.com"
@@ -40,3 +40,14 @@ jobs:
           git diff --staged --quiet || git commit -m "data: barn prices $(date -u +%Y-%m-%dT%H:%MZ)"
           git pull --rebase origin UserUpdates
           git push --force-with-lease origin UserUpdates
+
+      - name: Push data to main for live site
+        run: |
+          COMMIT_MSG="data: barn prices $(date -u +%Y-%m-%dT%H:%MZ)"
+          git fetch origin main
+          git checkout main
+          git checkout UserUpdates -- data/prices/
+          git add data/prices/
+          git diff --staged --quiet || git commit -m "$COMMIT_MSG"
+          git push origin main
+          git checkout UserUpdates

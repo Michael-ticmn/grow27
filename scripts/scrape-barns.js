@@ -31,8 +31,7 @@ const CONFIG_PATH  = path.join(ROOT, 'data', 'barns-config.json');
 const PRICES_DIR   = path.join(ROOT, 'data', 'prices');
 const INDEX_PATH   = path.join(PRICES_DIR, 'index.json');
 
-const MAX_HISTORY  = 14;
-const MAX_AGE_DAYS = 14;
+const MAX_HISTORY = 14;  // keep last 14 unique scraped sale days
 
 // ── Shared helpers (exported for barn parsers) ──────────────────────────────
 
@@ -41,10 +40,10 @@ function today() {
 }
 
 function trimHistory(history) {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - MAX_AGE_DAYS);
-  const cutStr = cutoff.toISOString().slice(0, 10);
-  return history.filter(e => e.date >= cutStr).slice(-MAX_HISTORY);
+  // Sort newest-first, keep the last MAX_HISTORY entries by date
+  return [...history]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, MAX_HISTORY);
 }
 
 // ── Price extraction from OCR text ──────────────────────────────────────────
@@ -188,8 +187,8 @@ function priceMid(v) {
 
 function calcTrend(history) {
   const good = [...history]
-    .reverse()
-    .filter(e => (e.source === 'scraped' || e.source === 'calculated') && e.slaughter?.beef != null);
+    .filter(e => (e.source === 'scraped' || e.source === 'calculated') && e.slaughter?.beef != null)
+    .sort((a, b) => b.date.localeCompare(a.date));
   if (good.length < 2) return null;
   const cur = priceMid(good[0].slaughter.beef);
   const prev = priceMid(good[1].slaughter.beef);
@@ -267,7 +266,10 @@ async function run() {
             source:       result.source,
           };
           if (result.error) entry.error = result.error;
-          if (result.source === 'scraped') barnData.lastSuccess = result.reportDate || todayStr;
+          if (result.source === 'scraped') {
+            const successDate = result.reportDate || todayStr;
+            if (!barnData.lastSuccess || successDate > barnData.lastSuccess) barnData.lastSuccess = successDate;
+          }
 
           console.log(`[${id}:${tag}] entry: ${JSON.stringify(entry)}`);
 
@@ -307,14 +309,17 @@ function mergeRepSales(slaughterRep, feederRep) {
   if (!slaughterRep) return feederRep;
   if (!feederRep) return slaughterRep;
 
-  // Pick the array with more data for each field
-  const pick = (a, b) => (a && a.length > 0) ? a : (b || []);
+  // If both entries are the same object, don't double-count
+  if (slaughterRep === feederRep) return slaughterRep;
 
-  const merged = {
-    finishWeightAvgs: pick(slaughterRep.finishWeightAvgs, feederRep.finishWeightAvgs),
-    feederWeightAvgs: pick(feederRep.feederWeightAvgs, slaughterRep.feederWeightAvgs),
-    bullsWeightAvgs:  pick(slaughterRep.bullsWeightAvgs, feederRep.bullsWeightAvgs),
-    cowsWeightAvgs:   pick(slaughterRep.cowsWeightAvgs, feederRep.cowsWeightAvgs),
+  // Combine arrays from both sale days so no data is dropped
+  const concat = (a, b) => [...(a || []), ...(b || [])];
+
+  return {
+    finishWeightAvgs: concat(slaughterRep.finishWeightAvgs, feederRep.finishWeightAvgs),
+    feederWeightAvgs: concat(slaughterRep.feederWeightAvgs, feederRep.feederWeightAvgs),
+    bullsWeightAvgs:  concat(slaughterRep.bullsWeightAvgs, feederRep.bullsWeightAvgs),
+    cowsWeightAvgs:   concat(slaughterRep.cowsWeightAvgs, feederRep.cowsWeightAvgs),
     headCount: {
       finished: (slaughterRep.headCount?.finished || 0) + (feederRep.headCount?.finished || 0),
       feeder:   (slaughterRep.headCount?.feeder || 0) + (feederRep.headCount?.feeder || 0),
@@ -322,17 +327,12 @@ function mergeRepSales(slaughterRep, feederRep) {
       cows:     (slaughterRep.headCount?.cows || 0) + (feederRep.headCount?.cows || 0),
     },
   };
-
-  // If both entries are the same object, don't double-count heads
-  if (slaughterRep === feederRep) return slaughterRep;
-
-  return merged;
 }
 
 function buildIndexRow(barnData, id, name, location) {
   const scraped = [...barnData.history]
-    .reverse()
-    .filter(e => e.source === 'scraped' || e.source === 'calculated');
+    .filter(e => e.source === 'scraped' || e.source === 'calculated')
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   // Pick best entry for each category independently (most recent with data)
   const slaughterEntry = scraped.find(e => e.slaughter && Object.values(e.slaughter).some(v => v != null));
