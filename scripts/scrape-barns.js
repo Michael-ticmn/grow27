@@ -273,6 +273,31 @@ async function run() {
 
           console.log(`[${id}:${tag}] entry: ${JSON.stringify(entry)}`);
 
+          // Batch entries from parsers that process multiple reports (e.g. PDFs)
+          if (result._batchEntries && result._batchEntries.length) {
+            console.log(`[${id}:${tag}] merging ${result._batchEntries.length} batch entries`);
+            for (const be of result._batchEntries) {
+              const batchEntry = {
+                date:         be.reportDate || todayStr,
+                slaughter:    be.slaughter ?? { beef: null, crossbred: null, holstein: null },
+                feeder:       be.feeder    ?? { beef: null, crossbred: null, holstein: null, liteTest: false },
+                feederWeights: be.feederWeights ?? [],
+                saleDay:      be.saleDay || report.day || null,
+                liteTestNote: be.liteTestNote ?? null,
+                repSales:     be.repSales ?? null,
+                hogs:         be.hogs ?? null,
+                source:       be.source,
+              };
+              if (be.source === 'scraped') {
+                const sd = be.reportDate || todayStr;
+                if (!barnData.lastSuccess || sd > barnData.lastSuccess) barnData.lastSuccess = sd;
+              }
+              barnData.history = barnData.history
+                .filter(e => !(e.date === batchEntry.date && e.saleDay === batchEntry.saleDay));
+              barnData.history.push(batchEntry);
+            }
+          }
+
           // Dedup by date + saleDay, then append
           barnData.history = trimHistory(barnData.history)
             .filter(e => !(e.date === entry.date && e.saleDay === entry.saleDay));

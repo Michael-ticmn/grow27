@@ -30,7 +30,7 @@ const ROOT       = path.join(__dirname, '..', '..');
 const PRICES_DIR = path.join(ROOT, 'data', 'prices');
 
 // ── Configuration ─────────────────────────────────────────────────────────────
-const DEV_MODE = true;  // flip to false once parser is validated
+const DEV_MODE = false;  // validated — Phase 2/3 active
 const PDF_PATTERN = /\/wp-content\/uploads\/\d{4}\/\d{2}\/(\d{4}-\d{2}-\d{2})-mr\.pdf/i;
 
 // ── PDF link discovery ────────────────────────────────────────────────────────
@@ -414,70 +414,67 @@ async function parse({ id, browser, html, $ }) {
     };
   }
 
-  // 3. Process the most recent selected PDF
-  //    (orchestrator stores one entry per parse() call;
-  //     successive daily runs capture one new PDF each)
-  const target = selected[0]; // selected is sorted newest-first
-  console.log(`\n[${id}] ▸ processing PDF: ${target.date} — ${target.url}`);
+  // 3. Process ALL selected PDFs (oldest first for chronological history)
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const batchEntries = [];
 
-  let pdfBuffer;
-  try {
-    pdfBuffer = await downloadPdf(browser, target.url, id);
-  } catch (dlErr) {
-    console.error(`[${id}] PDF download failed: ${dlErr.message}`);
+  for (const pdf of [...selected].reverse()) {  // oldest first
+    console.log(`\n[${id}] ▸ processing PDF: ${pdf.date} — ${pdf.url}`);
+
+    let pdfBuffer;
+    try {
+      pdfBuffer = await downloadPdf(browser, pdf.url, id);
+    } catch (dlErr) {
+      console.error(`[${id}] PDF ${pdf.date} download failed: ${dlErr.message}`);
+      continue;
+    }
+
+    let pdfData;
+    try {
+      pdfData = await pdfParse(pdfBuffer);
+      console.log(`[${id}] PDF parsed — ${pdfData.numpages} pages, ${pdfData.text.length} chars`);
+    } catch (parseErr) {
+      console.error(`[${id}] PDF ${pdf.date} parse failed: ${parseErr.message}`);
+      continue;
+    }
+
+    const { slaughter, feeder, feederWeights, repSales } = parsePdfText(pdfData.text, id);
+    const hasSlaughter = Object.values(slaughter).some(v => v !== null);
+    const hasFeeder    = feeder.beef !== null || feeder.holstein !== null;
+    console.log(`[${id}] ${pdf.date} — hasSlaughter=${hasSlaughter}, hasFeeder=${hasFeeder}, hasRepSales=${repSales != null}`);
+
+    if (!hasSlaughter && !hasFeeder) {
+      console.error(`[${id}] ✗ no prices from ${pdf.date}`);
+      continue;
+    }
+
+    batchEntries.push({
+      slaughter, feeder, feederWeights,
+      reportDate: pdf.date,
+      saleDay: DAYS[new Date(pdf.date + 'T12:00:00').getDay()],
+      liteTestNote: null,
+      repSales,
+      hogs: null,
+      source: 'scraped',
+      error: null,
+    });
+  }
+
+  if (batchEntries.length === 0) {
     return {
       slaughter: null, feeder: null,
-      reportDate: target.date,
+      reportDate: selected[0].date,
       source: 'fetch_failed',
-      error: `PDF download failed: ${dlErr.message}`,
+      error: 'all PDFs failed to parse',
     };
   }
 
-  let pdfData;
-  try {
-    pdfData = await pdfParse(pdfBuffer);
-    console.log(`[${id}] PDF parsed — ${pdfData.numpages} pages, ${pdfData.text.length} chars`);
-  } catch (parseErr) {
-    console.error(`[${id}] pdf-parse failed: ${parseErr.message}`);
-    return {
-      slaughter: null, feeder: null,
-      reportDate: target.date,
-      source: 'fetch_failed',
-      error: `PDF text extraction failed: ${parseErr.message}`,
-    };
-  }
+  console.log(`[${id}] batch complete — ${batchEntries.length} entries`);
 
-  // 4. Extract prices from PDF text
-  const { slaughter, feeder, feederWeights, repSales } = parsePdfText(pdfData.text, id);
-
-  const hasSlaughter = Object.values(slaughter).some(v => v !== null);
-  const hasFeeder    = feeder.beef !== null || feeder.holstein !== null;
-  console.log(`[${id}] parse result — hasSlaughter=${hasSlaughter}, hasFeeder=${hasFeeder}, hasRepSales=${repSales != null}`);
-
-  if (!hasSlaughter && !hasFeeder) {
-    console.error(`[${id}] ✗ no prices parsed from PDF ${target.date}`);
-    console.log(`[${id}] FULL PDF TEXT:\n${'─'.repeat(60)}\n${pdfData.text}\n${'─'.repeat(60)}`);
-    return {
-      slaughter: null, feeder: null,
-      reportDate: target.date,
-      source: 'fetch_failed',
-      error: 'no prices parsed from PDF text',
-    };
-  }
-
-  // 5. Return standard result shape
-  return {
-    slaughter,
-    feeder,
-    feederWeights,
-    reportDate: target.date,
-    saleDay: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(target.date + 'T12:00:00').getDay()],
-    liteTestNote: null,
-    repSales,
-    hogs:         null,
-    source:       'scraped',
-    error:        null,
-  };
+  // Return newest as main result; older entries in _batchEntries for orchestrator
+  const newest = batchEntries[batchEntries.length - 1];
+  newest._batchEntries = batchEntries.slice(0, -1);
+  return newest;
 }
 
 module.exports = { parse };
