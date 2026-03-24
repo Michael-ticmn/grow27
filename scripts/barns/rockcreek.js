@@ -19,16 +19,21 @@
 const fs   = require('fs');
 const path = require('path');
 
-let pdfParse;
+let pdfParseModule;
 function ensureDeps() {
-  if (!pdfParse) {
-    const mod = require('pdf-parse');
-    // pdf-parse v2+ exports { PDFParse }, v1 exports a function directly
-    pdfParse = typeof mod === 'function' ? mod
-             : typeof mod.default === 'function' ? mod.default
-             : typeof mod.PDFParse === 'function' ? mod.PDFParse
-             : mod;
+  if (!pdfParseModule) pdfParseModule = require('pdf-parse');
+}
+
+// Wrapper: handles both pdf-parse v1 (function) and v2 (PDFParse class)
+async function parsePdfBuffer(buffer) {
+  const mod = pdfParseModule;
+  if (typeof mod === 'function') return mod(buffer);           // v1
+  if (typeof mod.default === 'function') return mod.default(buffer); // v1 esm
+  if (mod.PDFParse) {
+    const parser = new mod.PDFParse();
+    return parser.loadPDF(buffer);
   }
+  throw new Error(`Unknown pdf-parse export shape: ${Object.keys(mod)}`);
 }
 
 const { normalizePrice, extractLinePrice } = require('../scrape-barns');
@@ -320,8 +325,7 @@ async function parse({ id, browser, html, $ }) {
 
   let pdfData;
   try {
-    console.log(`[${id}] pdfParse type: ${typeof pdfParse}, keys: ${typeof pdfParse === 'object' ? Object.keys(pdfParse) : 'N/A'}`);
-    pdfData = await pdfParse(pdfBuffer);
+    pdfData = await parsePdfBuffer(pdfBuffer);
     console.log(`[${id}] PDF parsed — ${pdfData.numpages} pages, ${pdfData.text.length} chars`);
   } catch (parseErr) {
     console.error(`[${id}] pdf-parse failed: ${parseErr.message}`);
