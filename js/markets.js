@@ -1193,7 +1193,17 @@ function buildBarnTable() {
     const repFeederAll = b.repSales && b.repSales.feederWeightAvgs;
     let barnFeederAvg, barnFeederSrc, feederSubtitle = '';
     if (b._feederScraped && b._feederScraped[cattleType] != null) {
-      barnFeederAvg = formatRange(b._feederScraped[cattleType]) + '¢';
+      // Prefer feederWeights price for this type if available (more accurate than summary range)
+      const typeWeights = (b.feederWeights && b.feederWeights.length)
+        ? b.feederWeights.filter(w => w.types && w.types.includes(cattleType))
+        : [];
+      if (typeWeights.length) {
+        const topW = typeWeights.reduce((a, c) => c.price > a.price ? c : a, typeWeights[0]);
+        barnFeederAvg = topW.price.toFixed(2) + '¢';
+        feederSubtitle = topW.range;
+      } else {
+        barnFeederAvg = formatRange(b._feederScraped[cattleType]) + '¢';
+      }
       barnFeederSrc = 'live';
     } else if (repFeederAll && repFeederAll.length) {
       const typeRows = repFeederAll.filter(r => r.type === cattleType);
@@ -1220,9 +1230,17 @@ function buildBarnTable() {
     const slaughterBadge = ageBadge(slaughterSrc, b.slaughterDate);
     const feederBadge = ageBadge(barnFeederSrc, b.feederDate);
 
+    // ── Pick repSales from the displayed sale day (not merged) ──
+    let detailRepSales = b.repSales;
+    if (b.saleDays && b.saleDays.length) {
+      const displayDate = b.slaughterDate || b.feederDate;
+      const match = displayDate && b.saleDays.find(sd => sd.date === displayDate);
+      if (match && match.repSales) detailRepSales = match.repSales;
+    }
+
     // ── Finish weight rows ──
     let finishRows, finishFoot;
-    const repFinish = b.repSales && b.repSales.finishWeightAvgs;
+    const repFinish = detailRepSales && detailRepSales.finishWeightAvgs;
     if (repFinish && repFinish.length) {
       // Use real representative sales data — actual averages by weight class
       const typeRows = repFinish.filter(r => r.type === cattleType);
@@ -1264,7 +1282,7 @@ function buildBarnTable() {
     // Priority: rep sales → OCR feeder weights → USDA sj_ls850.txt → blank
     let feederRows = '';
     let feederFoot = '';
-    const repFeeder = b.repSales && b.repSales.feederWeightAvgs;
+    const repFeeder = detailRepSales && detailRepSales.feederWeightAvgs;
     if (repFeeder && repFeeder.length) {
       // Use real representative sales data
       const typeRows = repFeeder.filter(r => r.type === cattleType);
@@ -1326,8 +1344,8 @@ function buildBarnTable() {
     // ── Bulls & Cows rows ──
     let bullsCowsRows = '';
     let bullsCowsFoot = '';
-    const repBulls = b.repSales && b.repSales.bullsWeightAvgs;
-    const repCows = b.repSales && b.repSales.cowsWeightAvgs;
+    const repBulls = detailRepSales && detailRepSales.bullsWeightAvgs;
+    const repCows = detailRepSales && detailRepSales.cowsWeightAvgs;
     if ((repBulls && repBulls.length) || (repCows && repCows.length)) {
       if (repBulls && repBulls.length) {
         bullsCowsRows += `<tr><td colspan="2" style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--txt2);padding:5px 8px 2px;text-transform:uppercase;">Bulls</td></tr>`;
@@ -1359,7 +1377,7 @@ function buildBarnTable() {
                 ? `<div><span style="color:var(--txt3);">Slaughter:</span> ${b.slaughterSaleDay} ${b.slaughterReportDate || ''}</div><div><span style="color:var(--txt3);">Feeder:</span> ${b.feederSaleDay} ${b.feederReportDate || ''}</div>`
                 : `${b.saleDay ? `<div><span style="color:var(--txt3);">Sale Day:</span> ${b.saleDay}</div>` : ''}${b.reportDate ? `<div><span style="color:var(--txt3);">Report Date:</span> ${b.reportDate}</div>` : ''}`
               }
-              ${b.repSales && b.repSales.headCount ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Rep. Sales:</span> ${b.repSales.headCount.finished + b.repSales.headCount.feeder + b.repSales.headCount.bulls + (b.repSales.headCount.cows || 0)} hd reported</div><div style="padding-left:8px;font-size:12px;color:var(--txt3);">${b.repSales.headCount.finished} finished · ${b.repSales.headCount.feeder} feeder · ${b.repSales.headCount.bulls} bulls · ${b.repSales.headCount.cows || 0} cows</div>` : ''}
+              ${detailRepSales && detailRepSales.headCount ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Rep. Sales:</span> ${detailRepSales.headCount.finished + detailRepSales.headCount.feeder + detailRepSales.headCount.bulls + (detailRepSales.headCount.cows || 0)} hd reported</div><div style="padding-left:8px;font-size:12px;color:var(--txt3);">${detailRepSales.headCount.finished} finished · ${detailRepSales.headCount.feeder} feeder · ${detailRepSales.headCount.bulls} bulls · ${detailRepSales.headCount.cows || 0} cows</div>` : ''}
               ${scrapedFinish ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Slaughter:</span> ${b.finishPrices.beef != null ? formatRange(b.finishPrices.beef) + '¢ beef' : '—'}${b.finishPrices.crossbred != null ? ' · ' + formatRange(b.finishPrices.crossbred) + '¢ cross' : ''}${b.finishPrices.holstein != null ? ' · ' + formatRange(b.finishPrices.holstein) + '¢ holstein' : ''}</div>` : ''}
               ${b.liteTestNote ? `<div style="margin-top:4px;color:var(--corn)">${b.liteTestNote}</div>` : ''}
             </div>
@@ -1412,7 +1430,7 @@ function buildBarnTable() {
         ${adjPriceDisplay}¢ ${slaughterBadge} <span style="font-size:12px;color:var(--txt3);white-space:nowrap;">${b.slaughterReportDate ? b.slaughterReportDate + (b.slaughterSaleDay ? ' ' + b.slaughterSaleDay.slice(0,3) : '') : (b.reportDate || '')}</span>${b._scrapeError ? ` <span title="${b._scrapeError}" style="font-size:13px;color:var(--down);border:1px solid var(--down);border-radius:2px;padding:1px 4px;cursor:help;">ERR</span>` : ''}
       </td>
       <td class="cash-price-cell">
-        ${barnFeederAvg} ${feederBadge} <span style="font-size:12px;color:var(--txt3);white-space:nowrap;">${b.feederReportDate ? b.feederReportDate + (b.feederSaleDay ? ' ' + b.feederSaleDay.slice(0,3) : '') : (b.reportDate || '')}</span>
+        ${barnFeederAvg} ${feederBadge} <span style="font-size:12px;color:var(--txt3);white-space:nowrap;">${feederSubtitle ? feederSubtitle + ' · ' : ''}${b.feederReportDate ? b.feederReportDate + (b.feederSaleDay ? ' ' + b.feederSaleDay.slice(0,3) : '') : (b.reportDate || '')}</span>
       </td>
       <td>${discStr}</td>
     </tr>${drawerHtml}`;

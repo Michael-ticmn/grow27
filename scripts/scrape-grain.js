@@ -28,8 +28,7 @@ const CONFIG_PATH = path.join(ROOT, 'data', 'grain-config.json');
 const PRICES_DIR  = path.join(ROOT, 'data', 'prices', 'grain');
 const INDEX_PATH  = path.join(PRICES_DIR, 'index.json');
 
-const MAX_HISTORY  = 14;
-const MAX_AGE_DAYS = 14;
+const MAX_AGE_DAYS = 30;  // keep 30 days of scrape dates
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -41,7 +40,7 @@ function trimHistory(history) {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - MAX_AGE_DAYS);
   const cutStr = cutoff.toISOString().slice(0, 10);
-  return history.filter(e => e.date >= cutStr).slice(-MAX_HISTORY);
+  return history.filter(e => e.date >= cutStr);
 }
 
 // ── Grain parser loader ──────────────────────────────────────────────────────
