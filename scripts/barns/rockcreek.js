@@ -196,7 +196,9 @@ function parsePdfText(text, id) {
   }
 
   // ── Feeder: "NNN-NNN lbs" + two prices ────────────────────────────────
-  const weightRe = /(\d{3,4})\s*-\s*(\d{3,4})\s*lbs\s*(\d[\d,]*\.\d{2})\s*(\d+\.\d{2})/gi;
+  // Negative lookbehind prevents capturing trailing digits from a preceding price
+  // e.g. "210.00600-700 lbs" should NOT match "0600-700"
+  const weightRe = /(?<!\d)(\d{3,4})\s*-\s*(\d{3,4})\s*lbs\s*(\d[\d,]*\.\d{2})\s*(\d+\.\d{2})/gi;
   let wm;
   while ((wm = weightRe.exec(fullText)) !== null) {
     const pLow  = normalizePrice(wm[3].replace(/,/g, ''));
@@ -230,31 +232,27 @@ function parsePdfText(text, id) {
 function parseRepSales(lines, id) {
   const sales = { finished: [], cows: [], bulls: [] };
 
-  // Identify section boundaries
-  const SECTION_RE = /^Representative Sales:\s*(.+)/i;
-  let currentSection = null;
+  // Rock Creek's two-column PDF merges "Representative Sales: Market Cows"
+  // and "Market Bulls" headers on consecutive lines, then interleaves the data.
+  // Same for "Finished Cattle" + "Sheep & Goats".  Rather than tracking sections,
+  // we classify each row by its description content.
+
+  let inRepSales = false;
 
   // Row pattern: everything ends with Weight(comma-fmt) + Qty + Price
   // e.g. "IsleRed/RWF/Tan Steers1,62211232.50"
   //   → weight=1622, qty=11, price=232.50
-  // Price is always NNN.NN (2-3 digits + .XX).  Qty is between weight and price.
   const ROW_RE = /^(.+?)(\d{1,2},\d{3})(\d+?)(\d{2,3}\.\d{2})$/;
 
   for (const line of lines) {
-    // Section header
-    const secMatch = line.match(SECTION_RE);
-    if (secMatch) {
-      const secName = secMatch[1].toLowerCase();
-      if (/finished\s*cattle/i.test(secName))       currentSection = 'finished';
-      else if (/market\s*cow/i.test(secName))        currentSection = 'cows';
-      else if (/market\s*bull/i.test(secName))       currentSection = 'bulls';
-      else if (/sheep|goat|hog/i.test(secName))      currentSection = null; // skip
-      else                                           currentSection = null;
-      if (currentSection) console.log(`[${id}] rep section: ${currentSection} ("${secMatch[0]}")`);
+    // Enter rep sales mode on any "Representative Sales:" header
+    if (/^Representative Sales:/i.test(line)) {
+      inRepSales = true;
+      console.log(`[${id}] rep header: "${line}"`);
       continue;
     }
 
-    if (!currentSection) continue;
+    if (!inRepSales) continue;
 
     // Skip header/note lines
     if (/^Location|^\*|^\(Sold|^Description/i.test(line)) continue;
@@ -273,6 +271,15 @@ function parseRepSales(lines, id) {
     if (qty < 1 || qty > 200) continue;
     if (price < 50 || price > 500) continue;
 
+    // Skip non-cattle (sheep, goats, hogs)
+    if (/Goat|Lamb|Ewe|Nanny|Billy|Wether|Kid|Sow|Butcher|MKT|Hog/i.test(desc)) continue;
+
+    // Classify by description — cow, bull, or finished (steer/heifer)
+    let category;
+    if (/Cow/i.test(desc))                    category = 'cows';
+    else if (/Bull/i.test(desc) && !/Steer|Heifer/i.test(desc)) category = 'bulls';
+    else                                      category = 'finished';
+
     // Identify cattle type from description
     let cattleType = 'beef';
     if (/Holstein|Hol\b/i.test(desc))                                  cattleType = 'holstein';
@@ -285,8 +292,8 @@ function parseRepSales(lines, id) {
     else if (/Bull/i.test(desc))        sex = 'bull';
     else if (/St\/H|Steer.*Heifer/i.test(desc)) sex = 'mixed';
 
-    sales[currentSection].push({ desc: desc.trim(), cattleType, sex, weight, qty, price });
-    console.log(`[${id}] rep ${currentSection}: ${qty}hd ${cattleType} ${sex} ${weight}# @ ${price} ("${desc.trim().slice(0, 30)}")`);
+    sales[category].push({ desc: desc.trim(), cattleType, sex, weight, qty, price });
+    console.log(`[${id}] rep ${category}: ${qty}hd ${cattleType} ${sex} ${weight}# @ ${price} ("${desc.trim().slice(0, 30)}")`);
   }
 
   console.log(`[${id}] rep sales — finished: ${sales.finished.length}, cows: ${sales.cows.length}, bulls: ${sales.bulls.length}`);
