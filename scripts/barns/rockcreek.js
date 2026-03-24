@@ -169,16 +169,7 @@ function parsePdfText(text, id) {
   const slaughter = { beef: null, crossbred: null, holstein: null };
   const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
   const feederWeights = [];
-  let saleDay = null;
-
   const fullText = lines.join('\n');
-
-  // ── Sale day from header: "Rock Creek Market Report: Monday, March 23rd" ──
-  const dayMatch = fullText.match(/Market Report:\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i);
-  if (dayMatch) {
-    saleDay = dayMatch[1].charAt(0).toUpperCase() + dayMatch[1].slice(1).toLowerCase();
-    console.log(`[${id}] saleDay: ${saleDay}`);
-  }
 
   // ── Slaughter: "Day Choice & Prime" + two prices ──────────────────────
   const primeRe = /Day Choice & Prime\s*(\d+\.\d{2})\s*(\d+\.\d{2})/gi;
@@ -270,7 +261,7 @@ function parsePdfText(text, id) {
   // Row format (all glued): Location + Desc + Weight(X,XXX) + Qty + Price(XXX.XX)
   const repSales = parseRepSales(lines, id);
 
-  return { slaughter, feeder, feederWeights, repSales, saleDay };
+  return { slaughter, feeder, feederWeights, repSales };
 }
 
 // ── Representative Sales parser ─────────────────────────────────────────────
@@ -457,7 +448,7 @@ async function parse({ id, browser, html, $ }) {
   }
 
   // 4. Extract prices from PDF text
-  const { slaughter, feeder, feederWeights, repSales, saleDay } = parsePdfText(pdfData.text, id);
+  const { slaughter, feeder, feederWeights, repSales } = parsePdfText(pdfData.text, id);
 
   const hasSlaughter = Object.values(slaughter).some(v => v !== null);
   const hasFeeder    = feeder.beef !== null || feeder.holstein !== null;
@@ -480,7 +471,7 @@ async function parse({ id, browser, html, $ }) {
     feeder,
     feederWeights,
     reportDate: target.date,
-    saleDay,
+    saleDay: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(target.date + 'T12:00:00').getDay()],
     liteTestNote: null,
     repSales,
     hogs:         null,
