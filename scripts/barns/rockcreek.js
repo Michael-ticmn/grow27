@@ -24,14 +24,39 @@ function ensureDeps() {
   if (!pdfParseModule) pdfParseModule = require('pdf-parse');
 }
 
-// Wrapper: handles both pdf-parse v1 (function) and v2 (PDFParse class)
-async function parsePdfBuffer(buffer) {
+// Wrapper: handles both pdf-parse v1 (plain function) and v2 (class constructor)
+async function parsePdfBuffer(buffer, id) {
   const mod = pdfParseModule;
-  if (typeof mod === 'function') return mod(buffer);           // v1
-  if (typeof mod.default === 'function') return mod.default(buffer); // v1 esm
+  // v2 exports the class directly — typeof is 'function' but needs 'new'
+  // Try as plain function first; if "cannot be invoked without new", use new
+  if (typeof mod === 'function') {
+    try {
+      return await mod(buffer);                                // v1 plain function
+    } catch (e) {
+      if (/cannot be invoked without 'new'|is not a constructor/i.test(e.message)) {
+        console.log(`[${id}] pdf-parse is a class — using new`);
+        const parser = new mod(buffer);
+        // v2 class: constructor takes buffer, then call .parse() or .getText()
+        if (typeof parser.parse === 'function') return parser.parse();
+        if (typeof parser.getText === 'function') {
+          const text = await parser.getText();
+          return { text, numpages: parser.numpages || '?' };
+        }
+        // If constructor itself returns a promise-like with text
+        if (parser.text !== undefined) return parser;
+        // Log available methods for debugging
+        const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(parser))
+          .filter(m => m !== 'constructor');
+        throw new Error(`PDFParse instance has no known parse method. Methods: ${methods}`);
+      }
+      throw e;
+    }
+  }
+  if (typeof mod.default === 'function') return mod.default(buffer);
   if (mod.PDFParse) {
-    const parser = new mod.PDFParse();
-    return parser.loadPDF(buffer);
+    const parser = new mod.PDFParse(buffer);
+    if (typeof parser.parse === 'function') return parser.parse();
+    return parser;
   }
   throw new Error(`Unknown pdf-parse export shape: ${Object.keys(mod)}`);
 }
@@ -325,7 +350,7 @@ async function parse({ id, browser, html, $ }) {
 
   let pdfData;
   try {
-    pdfData = await parsePdfBuffer(pdfBuffer);
+    pdfData = await parsePdfBuffer(pdfBuffer, id);
     console.log(`[${id}] PDF parsed — ${pdfData.numpages} pages, ${pdfData.text.length} chars`);
   } catch (parseErr) {
     console.error(`[${id}] pdf-parse failed: ${parseErr.message}`);
