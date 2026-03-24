@@ -736,29 +736,116 @@
     "id": "rockcreek",
     "name": "Rock Creek Livestock Market",
     "location": "Pine City MN",
-    "lastSuccess": null,
+    "lastSuccess": "2026-03-23",
     "slaughter": {
-      "beef": null,
+      "beef": {
+        "low": 220,
+        "high": 232.5
+      },
       "crossbred": null,
-      "holstein": null
+      "holstein": {
+        "low": 185,
+        "high": 210
+      }
     },
     "slaughterSaleDay": null,
-    "slaughterDate": null,
+    "slaughterDate": "2026-03-23",
     "feeder": {
-      "beef": null,
+      "beef": {
+        "low": 265,
+        "high": 485
+      },
       "crossbred": null,
       "holstein": null,
       "liteTest": false
     },
-    "feederWeights": [],
+    "feederWeights": [
+      {
+        "range": "400–800#",
+        "price": 310,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "800–1100#",
+        "price": 265,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "500–600#",
+        "price": 410,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "600–700#",
+        "price": 384,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "700–800#",
+        "price": 340,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "800–900#",
+        "price": 300,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "400–500#",
+        "price": 485,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "500–600#",
+        "price": 429,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "600–700#",
+        "price": 345,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "700–800#",
+        "price": 325,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "800–900#",
+        "price": 305,
+        "types": [
+          "beef"
+        ]
+      }
+    ],
     "feederSaleDay": null,
-    "feederDate": null,
+    "feederDate": "2026-03-23",
     "repSales": null,
     "saleDay": null,
     "liteTestNote": null,
     "saleDays": null,
     "trend": null,
-    "source": "pending"
+    "source": "scraped"
   },
   {
     "id": "sleepyeye",
