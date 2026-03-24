@@ -31,7 +31,7 @@ const CONFIG_PATH  = path.join(ROOT, 'data', 'barns-config.json');
 const PRICES_DIR   = path.join(ROOT, 'data', 'prices');
 const INDEX_PATH   = path.join(PRICES_DIR, 'index.json');
 
-const MAX_HISTORY = 14;  // keep last 14 unique scraped sale days
+const MAX_HISTORY = Infinity;  // no limit — monitor site speed as files grow
 
 // ── Shared helpers (exported for barn parsers) ──────────────────────────────
 
