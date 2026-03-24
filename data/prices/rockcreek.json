@@ -6,6 +6,21 @@
   "lastSuccess": null,
   "history": [
     {
+      "date": "2026-03-24",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "source": "pending"
+    },
+    {
       "date": "2026-03-23",
       "slaughter": {
         "beef": null,
@@ -33,7 +48,13 @@
         "holstein": null,
         "liteTest": false
       },
-      "source": "pending"
+      "feederWeights": [],
+      "saleDay": null,
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "fetch_failed",
+      "error": "no PDF links matching pattern found on index page"
     }
   ]
 }
