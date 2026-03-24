@@ -146,11 +146,17 @@ function downloadPdf(browser, url, id) {
   });
 }
 
-// ── Parse cattle prices from PDF text ─────────────────────────────────────────
+// ── Parse cattle prices from Rock Creek PDF text ──────────────────────────────
 //
-// This parser handles common livestock market report formats.  The exact
-// layout of Rock Creek's PDFs may require adjustment after seeing real output —
-// extensive logging is included to make debugging easy.
+// Rock Creek PDFs are two-column layouts.  pdf-parse interleaves the columns,
+// so line-by-line section tracking is unreliable.  Instead we pattern-match
+// the full text for known price formats:
+//
+//   Slaughter: "Day Choice & Prime" followed by two glued prices (220.00232.50)
+//              Appears 3 times: Beef Steers, Beef Heifers, Holstein Steers
+//
+//   Feeder:    "NNN-NNN lbs" followed by two glued prices (470.00530.00)
+//              Two sets: Steers & Bulls, then Heifers
 
 function parsePdfText(text, id) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -161,101 +167,58 @@ function parsePdfText(text, id) {
   const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
   const feederWeights = [];
 
-  let section = null; // 'slaughter' | 'feeder' | null
+  const fullText = lines.join('\n');
 
-  for (let i = 0; i < lines.length; i++) {
-    const line  = lines[i];
-    const lower = line.toLowerCase();
+  // ── Slaughter: "Day Choice & Prime" + two prices ──────────────────────
+  // Matches prices glued together: "220.00232.50" or with space: "220.00 232.50"
+  const primeRe = /Day Choice & Prime\s*(\d+\.\d{2})\s*(\d+\.\d{2})/gi;
+  const primeHits = [...fullText.matchAll(primeRe)];
+  console.log(`[${id}] "Day Choice & Prime" matches: ${primeHits.length}`);
+  primeHits.forEach((m, i) => console.log(`[${id}]   [${i}] ${m[1]} – ${m[2]}`));
 
-    // ── Section headers ───────────────────────────────────────────────────
-    if (/slaughter|fed\s+cattle|finish/i.test(lower) && /cattle|steer|heifer|cow/i.test(lower)) {
-      section = 'slaughter';
-      console.log(`[${id}] → slaughter section at line ${i}: "${line}"`);
-      continue;
+  if (primeHits.length >= 1) {
+    // First = Beef Steers
+    slaughter.beef = { low: parseFloat(primeHits[0][1]), high: parseFloat(primeHits[0][2]) };
+    console.log(`[${id}] slaughter.beef (steers) = ${JSON.stringify(slaughter.beef)}`);
+  }
+  if (primeHits.length >= 2) {
+    // Second = Beef Heifers — widen the beef range if different
+    const hLow = parseFloat(primeHits[1][1]), hHigh = parseFloat(primeHits[1][2]);
+    if (slaughter.beef) {
+      slaughter.beef.low  = Math.min(slaughter.beef.low, hLow);
+      slaughter.beef.high = Math.max(slaughter.beef.high, hHigh);
     }
-    if (/feeder\s+cattle|feeder\s+steer|stocker/i.test(lower)) {
-      section = 'feeder';
-      console.log(`[${id}] → feeder section at line ${i}: "${line}"`);
-      continue;
-    }
-    // End parsing if we hit non-cattle sections
-    if (/hog|swine|sheep|goat|misc/i.test(lower) && /market|sale/i.test(lower)) {
-      console.log(`[${id}] → end of cattle sections at line ${i}: "${line}"`);
-      break;
-    }
+    console.log(`[${id}] slaughter.beef (+ heifers) = ${JSON.stringify(slaughter.beef)}`);
+  }
+  if (primeHits.length >= 3) {
+    // Third = Holstein Steers
+    slaughter.holstein = { low: parseFloat(primeHits[2][1]), high: parseFloat(primeHits[2][2]) };
+    console.log(`[${id}] slaughter.holstein = ${JSON.stringify(slaughter.holstein)}`);
+  }
 
-    // ── Slaughter prices ──────────────────────────────────────────────────
-    if (section === 'slaughter') {
-      // Beef / native / choice steers (but NOT dairy or crossbred)
-      if (/beef|native|choice|black|angus|steer/i.test(lower)
-          && !/dairy|hol|cross|x[\s-]?bred/i.test(lower)
-          && !slaughter.beef) {
-        const price = extractLinePrice(line);
-        if (price) {
-          slaughter.beef = price;
-          console.log(`[${id}] slaughter.beef = ${JSON.stringify(price)} (line ${i})`);
-        }
-      }
-      // Crossbred / dairy-cross
-      if (/cross|x[\s-]?bred|dairy[\s-]?x/i.test(lower) && !slaughter.crossbred) {
-        const price = extractLinePrice(line);
-        if (price) {
-          slaughter.crossbred = price;
-          console.log(`[${id}] slaughter.crossbred = ${JSON.stringify(price)} (line ${i})`);
-        }
-      }
-      // Holstein / dairy (but NOT dairy-x / dairy cross)
-      if (/holstein|dairy/i.test(lower)
-          && !/dairy[\s-]?x|cross/i.test(lower)
-          && !slaughter.holstein) {
-        const price = extractLinePrice(line);
-        if (price) {
-          slaughter.holstein = price;
-          console.log(`[${id}] slaughter.holstein = ${JSON.stringify(price)} (line ${i})`);
-        }
-      }
+  // ── Feeder: "NNN-NNN lbs" + two prices ────────────────────────────────
+  // Prices may be glued: "400-800 lbs230.00310.00"
+  // The comma in "3,660.00" is a PDF artifact — strip commas before parsing
+  const weightRe = /(\d{3,4})\s*-\s*(\d{3,4})\s*lbs\s*(\d[\d,]*\.\d{2})\s*(\d+\.\d{2})/gi;
+  let wm;
+  while ((wm = weightRe.exec(fullText)) !== null) {
+    const wLow = parseInt(wm[1]), wHigh = parseInt(wm[2]);
+    const pLow  = normalizePrice(wm[3].replace(/,/g, ''));
+    const pHigh = normalizePrice(wm[4]);
+    if (pLow !== null && pHigh !== null) {
+      const range = `${wLow}–${wHigh}#`;
+      feederWeights.push({ range, price: pHigh, types: ['beef'] });
+      console.log(`[${id}] feederWeight: ${range} → ${pLow}–${pHigh}`);
+    } else {
+      console.log(`[${id}] feederWeight SKIP: ${wm[1]}-${wm[2]} lbs → raw ${wm[3]}, ${wm[4]} (normalized: ${pLow}, ${pHigh})`);
     }
+  }
 
-    // ── Feeder prices ─────────────────────────────────────────────────────
-    if (section === 'feeder') {
-      // Weight-class lines: "500-600#  180.00-195.00" or "500 to 600 lbs  $180-195"
-      const weightRe = /(\d{3,4})\s*[-–to]+\s*(\d{3,4})\s*(lbs?|#|pounds?)?/i;
-      const wm = line.match(weightRe);
-      if (wm) {
-        // Strip weight range from line before extracting the price range
-        const priceStr = line.replace(wm[0], '');
-        const price = extractLinePrice(priceStr);
-        if (price) {
-          const range = `${wm[1]}–${wm[2]}#`;
-          feederWeights.push({ range, price: price.high, types: ['beef'] });
-          console.log(`[${id}] feederWeight: ${range} → ${JSON.stringify(price)} (line ${i})`);
-          // Use the first (lightest) weight class as the top-of-range feeder price
-          if (!feeder.beef) {
-            feeder.beef = price;
-            console.log(`[${id}] feeder.beef = ${JSON.stringify(price)} (from weight class)`);
-          }
-        }
-        continue;
-      }
-
-      // General breed lines
-      if (/beef|native|steer/i.test(lower)
-          && !/dairy|hol|cross/i.test(lower)
-          && !feeder.beef) {
-        const price = extractLinePrice(line);
-        if (price) {
-          feeder.beef = price;
-          console.log(`[${id}] feeder.beef = ${JSON.stringify(price)} (line ${i})`);
-        }
-      }
-      if (/holstein|dairy/i.test(lower) && !feeder.holstein) {
-        const price = extractLinePrice(line);
-        if (price) {
-          feeder.holstein = price;
-          console.log(`[${id}] feeder.holstein = ${JSON.stringify(price)} (line ${i})`);
-        }
-      }
-    }
+  // Set feeder.beef from the lightest weight classes (highest $/cwt)
+  if (feederWeights.length > 0) {
+    const prices = feederWeights.map(w => w.price);
+    feeder.beef = { low: Math.min(...prices), high: Math.max(...prices) };
+    console.log(`[${id}] feeder.beef = ${JSON.stringify(feeder.beef)} (from ${feederWeights.length} weight classes)`);
   }
 
   return { slaughter, feeder, feederWeights };
