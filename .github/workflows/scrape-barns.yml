@@ -24,7 +24,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install cheerio puppeteer tesseract.js sharp
+        run: npm install cheerio puppeteer tesseract.js sharp pdf-parse
 
       - name: Run barn scraper
         run: node scripts/scrape-barns.js
