@@ -53,6 +53,17 @@ function deliveryLabel(str) {
   return trimmed;
 }
 
+// Parse grain futures notation like "459-2" → 459.25 cents
+// Format: whole cents, dash, eighths of a cent
+function parseFuturesNotation(str) {
+  if (!str) return null;
+  const m = str.match(/^(\d+)-(\d)$/);
+  if (m) return parseInt(m[1]) + parseInt(m[2]) / 8;
+  // Fallback: plain number
+  const val = parseFloat(str);
+  return isNaN(val) ? null : val;
+}
+
 // Simple HTTPS/HTTP GET returning a string
 function httpGet(url) {
   return new Promise((resolve, reject) => {
@@ -161,16 +172,28 @@ async function parse({ id, config, browser }) {
 
       for (const bid of (loc.cashbids || [])) {
         const commodity = (bid.name || '').trim();
-        const cash = parseCash(bid.price || bid.cashprice);
         const delivery = deliveryLabel(bid.delivery_start);
+        if (!delivery) continue;
 
-        if (cash === null || !delivery) continue;
+        // Compute cash from futures + basis (matches what the website displays).
+        // bid.basis is in cents, bid.futures is grain notation like "459-2" (459 and 2/8 cents).
+        // Fallback to bid.price if futures/basis unavailable.
+        const basisCents = bid.basis != null ? Number(bid.basis) : null;
+        const futuresCents = parseFuturesNotation(bid.futures);
+        let cash;
+        if (futuresCents != null && basisCents != null) {
+          cash = (futuresCents + basisCents) / 100;
+        } else {
+          cash = parseCash(bid.price || bid.cashprice);
+        }
+
+        if (cash === null) continue;
 
         const entry = {
           delivery,
           cash,
           futuresMonth: null,
-          basis:        bid.basis != null ? Number(bid.basis) / 100 : null,  // basis is in cents
+          basis:        basisCents != null ? basisCents / 100 : null,
           change:       null,
           cbot:         null,
         };
