@@ -54,11 +54,20 @@ function deliveryLabel(str) {
 }
 
 // Parse grain futures notation like "459-2" → 459.25 cents
-// Format: whole cents, dash, eighths of a cent
-function parseFuturesNotation(str) {
+// Format: whole cents, dash, fractional part
+// basecode determines the denominator: 2=eighths (corn), 3=quarters, 5=halves
+// Default to eighths if basecode not provided
+function parseFuturesNotation(str, basecode) {
   if (!str) return null;
   const m = str.match(/^(\d+)-(\d)$/);
-  if (m) return parseInt(m[1]) + parseInt(m[2]) / 8;
+  if (m) {
+    const whole = parseInt(m[1]);
+    const frac = parseInt(m[2]);
+    let denom = 8; // default: eighths (corn)
+    if (basecode === '3' || basecode === 3) denom = 4;  // quarters (soybeans)
+    if (basecode === '5' || basecode === 5) denom = 2;  // halves
+    return whole + frac / denom;
+  }
   // Fallback: plain number
   const val = parseFloat(str);
   return isNaN(val) ? null : val;
@@ -179,7 +188,7 @@ async function parse({ id, config, browser }) {
         // bid.basis is in cents, bid.futures is grain notation like "459-2" (459 and 2/8 cents).
         // Fallback to bid.price if futures/basis unavailable.
         const basisCents = bid.basis != null ? Number(bid.basis) : null;
-        const futuresCents = parseFuturesNotation(bid.futures);
+        const futuresCents = parseFuturesNotation(bid.futures, bid.basecode);
         let cash;
         if (futuresCents != null && basisCents != null) {
           cash = (futuresCents + basisCents) / 100;
@@ -188,6 +197,11 @@ async function parse({ id, config, browser }) {
         }
 
         if (cash === null) continue;
+
+        // Debug: log one bid per location to verify math
+        if ((corn.length === 0 && /corn/i.test(commodity)) || (beans.length === 0 && /soybean|bean/i.test(commodity))) {
+          console.log(`[${id}:${slugify(locName)}] ${commodity} bid: futures=${bid.futures} basecode=${bid.basecode} basis=${bid.basis} → futuresCents=${futuresCents} cash=${cash} (price field: ${bid.price})`);
+        }
 
         const entry = {
           delivery,
