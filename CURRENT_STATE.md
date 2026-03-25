@@ -25,7 +25,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Component | Schedule | Status |
 |-----------|----------|--------|
 | Barn scraper (Central, Rock Creek) | Daily 4am + 7am CT | Running |
-| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O) | Mon–Fri 4am + 7am CT | Running |
+| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision) | Mon–Fri 4am + 7am CT | Running (New Vision queued) |
 | Auto-push data to main | After each scrape | Running |
 
 ### Barn Parsers
@@ -45,6 +45,17 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | AGP | `scripts/grain/agp.js` | 13 | Active |
 | CHS | `scripts/grain/chs.js` | 2 | Active |
 | Jennie-O | `scripts/grain/jennieo.js` | 4 | Active — cash-only via farmbucks.com |
+| New Vision Coop | `scripts/grain/newvision.js` | 22 | Queued — cash-only, delivery month columns, corn+beans per location |
+
+### Overlap / Gap Notes (New Vision)
+| New Vision Location | Overlap | Status |
+|---------------------|---------|--------|
+| CHS Fairmont | `chs.js` | CHS is primary |
+| CHS Mankato | `chs.js` | CHS is primary |
+| AGP Sheldon | `agp.js` | AGP is primary |
+| ADM Mankato | none | **Gap — no dedicated ADM parser. New Vision is only source.** |
+| POET Ashton | none | New Vision only |
+| MNSP Brewster | none | New Vision only |
 
 ### PWA Modules & Tabs
 ```
@@ -60,7 +71,7 @@ ABOUT — data sources, app info
 
 ### Key Data Files
 - `data/barns-config.json` — 5 barns registered
-- `data/grain-config.json` — 5 sources (all active)
+- `data/grain-config.json` — 6 sources (5 active, New Vision queued)
 - `data/prices/index.json` — latest barn snapshot
 - `data/prices/grain/index.json` — latest grain snapshot
 - History files: no cap (was 14, removed v1.82) — monitor site speed
