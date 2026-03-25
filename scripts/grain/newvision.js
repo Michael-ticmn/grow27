@@ -115,6 +115,9 @@ async function parse({ id, config, browser }) {
     // Remove location filter to get ALL locations instead of just one
     widgetUrl = widgetUrl.replace(/[&?]location=\d+/, '');
     widgetUrl = widgetUrl.replace(/[&?]locations=\d+/, '');
+    // Remove commodity filter to get ALL commodities (corn + soybeans)
+    widgetUrl = widgetUrl.replace(/[&?]commodity=\d+/, '');
+    widgetUrl = widgetUrl.replace(/[&?]commodities=\d*/, '');
     console.log(`[${id}] stage-2 URL (all locations): ${widgetUrl}`);
 
     // Step 3: Fetch stage-2 JS containing the JSON bids data
@@ -158,7 +161,7 @@ async function parse({ id, config, browser }) {
 
       for (const bid of (loc.cashbids || [])) {
         const commodity = (bid.name || '').trim();
-        const cash = parseCash(bid.cashprice || bid.price);
+        const cash = parseCash(bid.price || bid.cashprice);
         const delivery = deliveryLabel(bid.delivery_start);
 
         if (cash === null || !delivery) continue;
