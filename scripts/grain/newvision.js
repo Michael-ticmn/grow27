@@ -112,7 +112,10 @@ async function parse({ id, config, browser }) {
     let widgetUrl = widgetMatch[1];
     if (widgetUrl.startsWith('//')) widgetUrl = 'https:' + widgetUrl;
     widgetUrl = widgetUrl.replace(/&acCnt=.*$/, '');
-    console.log(`[${id}] stage-2 URL: ${widgetUrl}`);
+    // Remove location filter to get ALL locations instead of just one
+    widgetUrl = widgetUrl.replace(/[&?]location=\d+/, '');
+    widgetUrl = widgetUrl.replace(/[&?]locations=\d+/, '');
+    console.log(`[${id}] stage-2 URL (all locations): ${widgetUrl}`);
 
     // Step 3: Fetch stage-2 JS containing the JSON bids data
     console.log(`[${id}] respecting crawl-delay — waiting 10s`);
