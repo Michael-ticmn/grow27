@@ -2,12 +2,98 @@
   "id": "newvision",
   "name": "New Vision Cooperative",
   "lastUpdated": "2026-03-25",
-  "lastSuccess": null,
+  "lastSuccess": "2026-03-25",
   "history": [
     {
       "date": "2026-03-25",
-      "scrapedAt": "2026-03-25T00:54:32.462Z",
+      "scrapedAt": "2026-03-25T00:58:48.236Z",
       "locations": {
+        "brewster": {
+          "name": "Brewster",
+          "corn": [
+            {
+              "delivery": "Mar26",
+              "cash": 4.08,
+              "futuresMonth": null,
+              "basis": -0.52,
+              "change": null,
+              "cbot": null
+            },
+            {
+              "delivery": "Apr26",
+              "cash": 4.1,
+              "futuresMonth": null,
+              "basis": -0.5,
+              "change": null,
+              "cbot": null
+            },
+            {
+              "delivery": "May26",
+              "cash": 4.12,
+              "futuresMonth": null,
+              "basis": -0.48,
+              "change": null,
+              "cbot": null
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 4.16,
+              "futuresMonth": null,
+              "basis": -0.54,
+              "change": null,
+              "cbot": null
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 4.16,
+              "futuresMonth": null,
+              "basis": -0.54,
+              "change": null,
+              "cbot": null
+            },
+            {
+              "delivery": "Aug26",
+              "cash": 4.22,
+              "futuresMonth": null,
+              "basis": -0.5,
+              "change": null,
+              "cbot": null
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 4.41,
+              "futuresMonth": null,
+              "basis": -0.45,
+              "change": null,
+              "cbot": null
+            },
+            {
+              "delivery": "Nov26",
+              "cash": 4.4125,
+              "futuresMonth": null,
+              "basis": -0.45,
+              "change": null,
+              "cbot": null
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4.4625,
+              "futuresMonth": null,
+              "basis": -0.4,
+              "change": null,
+              "cbot": null
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 4.51,
+              "futuresMonth": null,
+              "basis": -0.45,
+              "change": null,
+              "cbot": null
+            }
+          ],
+          "beans": []
+        },
         "adm-mankato": {
           "name": "ADM Mankato",
           "corn": [],
@@ -25,11 +111,6 @@
         },
         "beaver-creek": {
           "name": "Beaver Creek",
-          "corn": [],
-          "beans": []
-        },
-        "brewster": {
-          "name": "Brewster",
           "corn": [],
           "beans": []
         },
@@ -119,8 +200,7 @@
           "beans": []
         }
       },
-      "source": "fetch_failed",
-      "error": "no locations with bid data"
+      "source": "scraped"
     }
   ]
 }
