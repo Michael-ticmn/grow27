@@ -76,6 +76,10 @@ async function fetchWidgetHtml(page, id) {
 
   console.log(`[${id}] found agricharts script: ${scriptUrl}`);
 
+  // Respect crawl-delay before second request
+  console.log(`[${id}] respecting crawl-delay — waiting 10s before fetching widget`);
+  await new Promise(r => setTimeout(r, 10000));
+
   // Fetch the script content server-side (not in-browser — CORS blocks fetch())
   const jsContent = await new Promise((resolve, reject) => {
     const mod = scriptUrl.startsWith('https') ? https : http;
@@ -94,6 +98,7 @@ async function fetchWidgetHtml(page, id) {
   if (!jsContent) return null;
 
   console.log(`[${id}] fetched agricharts JS — ${jsContent.length} chars`);
+  console.log(`[${id}] JS snippet (first 3000):\n${jsContent.substring(0, 3000)}`);
 
   // Extract HTML from document.write() calls
   // Pattern: document.write("...HTML...") — may span multiple lines
@@ -119,6 +124,7 @@ async function fetchWidgetHtml(page, id) {
 
   const fullHtml = htmlParts.join('\n');
   console.log(`[${id}] extracted ${htmlParts.length} document.write() blocks — ${fullHtml.length} chars HTML`);
+  console.log(`[${id}] extracted HTML:\n${fullHtml.substring(0, 3000)}`);
   return fullHtml;
 }
 
