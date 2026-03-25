@@ -194,8 +194,9 @@ async function parse({ id, config, browser }) {
         const entry = {
           delivery,
           cash,
-          futuresMonth: null,
+          futuresMonth: bid.symbol || null,
           basis:        basisCents != null ? basisCents / 100 : null,
+          basisMonth:   bid.basismonth || null,
           change:       null,
           cbot:         null,
         };
