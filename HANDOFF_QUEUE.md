@@ -59,6 +59,168 @@ Show me two things before writing the full parser:
 
 ---
 
+### [x] [FROM: Chat → Code] New Vision Cooperative grain parser — COMPLETED 2026-03-25
+- **Date queued:** 2026-03-24
+- **Task:** Build `scripts/grain/newvision.js` and update `data/grain-config.json`
+- **Full prompt:** See below — copy/paste directly into Claude Code
+
+```
+We're adding a grain scraper parser for New Vision Cooperative to the grow27 project.
+
+Read these files first to understand the existing architecture:
+- CLAUDE.md — branching rules, data pipeline conventions
+- scripts/scrape-grain.js — the orchestrator
+- scripts/grain/cfs.js — reference parser (per-location, cheerio-based)
+- data/grain-config.json — check CHS entry to confirm its exact location slugs/names
+- data/prices/grain/index.json — see existing data shape
+
+---
+
+WHAT WE'RE BUILDING:
+Create scripts/grain/newvision.js — a parser for New Vision Cooperative grain prices.
+
+URL: https://newvision.coop/current-grain-prices/?format=grid&groupby=location&setLocation=&commodity=
+
+---
+
+PAGE STRUCTURE (groupby=location view):
+The page renders per-location table blocks. Each block has:
+- A location header (e.g. "MOUNTAIN LAKE")
+- A table with rows: Commodity (Corn / Soybeans) and columns for delivery months (Mar 26, Apr 26, May 26, etc.)
+- Cash prices in green, some cells empty (no bid for that month)
+- Some locations have corn only, some soybeans only, some both
+
+The page requires JavaScript to render — use Puppeteer, wait for table content to appear before parsing.
+Respect the crawl-delay: wait at least 10 seconds after page load before scraping (robots.txt specifies Crawl-delay: 10).
+
+---
+
+FULL LOCATION LIST (22 locations):
+ADM Mankato, Adrian, AGP Sheldon, Beaver Creek, Brewster, CHS Fairmont, CHS Mankato,
+Dundee, Ellsworth, Heron Lake, Hills Terminal, Jeffers, Magnolia, Mankato, Miloma,
+MNSP Brewster, Mountain Lake, POET Ashton, Reading, Wilmont, Windom, Worthington
+
+Scrape ALL 22 locations. No filtering at scrape time.
+
+---
+
+OVERLAP FLAGS (read grain-config.json to confirm CHS slugs, then note these in grain-config.json):
+- CHS Fairmont → already covered by CHS parser (chs.js). New Vision is secondary.
+- CHS Mankato → already covered by CHS parser (chs.js). New Vision is secondary.
+- AGP Sheldon → already covered by AGP parser (agp.js). New Vision is secondary.
+- ADM Mankato → NOT currently scraped. Flag in grain-config.json as: "note": "ADM Mankato gap — no dedicated ADM parser yet. New Vision is only source."
+- POET Ashton, MNSP Brewster — scrape and store, no known overlap.
+
+---
+
+DATA SHAPE — return per location:
+{
+  "name": "Mountain Lake",
+  "corn": [
+    { "delivery": "Mar26", "cash": 4.105 },
+    { "delivery": "Apr26", "cash": 4.125 }
+  ],
+  "beans": [
+    { "delivery": "Mar26", "cash": 10.60 }
+  ]
+}
+
+No basis, no futuresMonth, no change — this source is cash-only per delivery month.
+Empty cells = omit that delivery month entirely (don't store null entries).
+If a location has no corn bids, corn array is empty []. Same for beans.
+
+---
+
+PARSER EXPORT:
+Export parse({ id, config, browser }) — same signature as cfs.js.
+Return: { locations: { [slug]: { name, corn, beans } }, source, error }
+
+Slugs should be lowercase-hyphenated: "mountain-lake", "chs-fairmont", "adm-mankato", etc.
+
+---
+
+grain-config.json ENTRY to add:
+{
+  "id": "newvision",
+  "name": "New Vision Cooperative",
+  "url": "https://newvision.coop/current-grain-prices/?format=grid&groupby=location&setLocation=&commodity=",
+  "locations": [
+    { "slug": "adm-mankato", "name": "ADM Mankato", "note": "ADM gap — no dedicated ADM parser. New Vision is only source." },
+    { "slug": "adrian", "name": "Adrian" },
+    { "slug": "agp-sheldon", "name": "AGP Sheldon", "overlap": "agp" },
+    { "slug": "beaver-creek", "name": "Beaver Creek" },
+    { "slug": "brewster", "name": "Brewster" },
+    { "slug": "chs-fairmont", "name": "CHS Fairmont", "overlap": "chs" },
+    { "slug": "chs-mankato", "name": "CHS Mankato", "overlap": "chs" },
+    { "slug": "dundee", "name": "Dundee" },
+    { "slug": "ellsworth", "name": "Ellsworth" },
+    { "slug": "heron-lake", "name": "Heron Lake" },
+    { "slug": "hills-terminal", "name": "Hills Terminal" },
+    { "slug": "jeffers", "name": "Jeffers" },
+    { "slug": "magnolia", "name": "Magnolia" },
+    { "slug": "mankato", "name": "Mankato" },
+    { "slug": "miloma", "name": "Miloma" },
+    { "slug": "mnsp-brewster", "name": "MNSP Brewster" },
+    { "slug": "mountain-lake", "name": "Mountain Lake" },
+    { "slug": "poet-ashton", "name": "POET Ashton" },
+    { "slug": "reading", "name": "Reading" },
+    { "slug": "wilmont", "name": "Wilmont" },
+    { "slug": "windom", "name": "Windom" },
+    { "slug": "worthington", "name": "Worthington" }
+  ],
+  "commodities": ["corn", "beans"]
+}
+
+---
+
+scrape-grain.yml — add newvision to the workflow if it's not picked up automatically.
+Check how other sources are triggered and match the pattern.
+
+---
+
+DO NOT TOUCH:
+- version.json
+- sw.js
+- push anything to git
+
+Edit only:
+- scripts/grain/newvision.js (new file)
+- data/grain-config.json (add entry)
+- .github/workflows/scrape-grain.yml (only if newvision needs explicit registration)
+
+---
+
+SHOW ME BEFORE WRITING THE FULL PARSER:
+1. The parsed location block structure you expect to find in the HTML (one example location)
+2. How you'll handle locations that have corn only vs beans only vs both
+3. Confirm you read grain-config.json and tell me the exact CHS location slugs/names already stored there
+```
+
+---
+
+### [ ] [FROM: Code] Dedicated CBOT futures scraper — QUEUED 2026-03-25
+- **Date queued:** 2026-03-25
+- **Task:** Build a lightweight CBOT-only scraper using Yahoo Finance (or similar) that writes `data/prices/cbot.json`
+- **Why:** Stooq client-side fetch is unreliable (fails on localhost and live site). Scraped grain data provides CBOT as fallback but only runs 2x/day. Need a dedicated futures feed.
+- **Requirements:**
+  - Fetch corn nearby, corn new crop (Dec), soybeans nearby, soybeans new crop (Nov) — OHLCV
+  - Include market open/closed indicator for frontend display
+  - Run every 15–30 min during market hours (CBOT grains: 8:30am–1:20pm CT, Sun–Fri electronic: 7pm–7:45am CT)
+  - Write to `data/prices/cbot.json` — frontend reads this file instead of client-side Stooq calls
+  - GitHub Actions workflow: `scrape-cbot.yml`
+- **Symbols (Yahoo Finance):** `ZC=F` (corn nearby), `ZCZ26.CBT` (Dec corn), `ZS=F` (soy nearby), `ZSX26.CBT` (Nov soy)
+
+---
+
+### [ ] [FROM: Code] Basis + live CBOT pricing architecture — QUEUED 2026-03-25
+- **Date queued:** 2026-03-25
+- **Task:** Refactor frontend to compute cash = CBOT futures + scraped basis (instead of using source's snapshot cash price)
+- **Why:** Scraped cash prices drift between scrapes as futures tick. Basis is stable (~1x/day change). Computing cash from live CBOT + basis gives real-time accuracy.
+- **Prerequisites:** Dedicated CBOT scraper (above), `basisMonth` already stored in New Vision data
+- **Approach:** Scraper stores basis per elevator per delivery month. Frontend reads `cbot.json` for live futures. `cash = futures[basisMonth] + basis`. All other scrapers would need to store `basisMonth` too.
+
+---
+
 ## Pending Decisions
 
 ### 1. Hog data display — DEFERRED
@@ -78,8 +240,13 @@ Show me two things before writing the full parser:
 - **Result:** Parser rewritten for farmbucks.com, re-enabled, cash-only (no basis). Contract badge shows delivery month. v1.83–v1.85.
 
 ### 5. About page — data sources update
-- **Context:** CLAUDE.md says to update `#about-sources` when adding new parsers. Need to verify CHS, MVG, AGP, Jennie-O are listed.
+- **Context:** CLAUDE.md says to update `#about-sources` when adding new parsers. Need to verify CHS, MVG, AGP, Jennie-O are listed. New Vision will also need to be added once parser is complete.
 - **Action:** Check `index.html` `#about-sources` section and update if any sources are missing.
+
+### 6. ADM Mankato — no dedicated parser
+- **Context:** New Vision Cooperative lists ADM Mankato as a location. No dedicated ADM scraper exists. New Vision will be the only price source for this location.
+- **Decision needed:** Is a dedicated ADM parser worth building later? ADM is a major buyer in southern MN.
+- **Status:** Flagged. New Vision covers it for now.
 
 ---
 
@@ -95,3 +262,6 @@ Show me two things before writing the full parser:
 - ✅ [Chat] Rock Creek parser prompt finalized — 2026-03-24
 - ✅ [Code] Rock Creek parser built, validated, YTD catch-up complete — 2026-03-24 (v1.66–v1.82)
 - ✅ [Code] Jennie-O parser rewritten for farmbucks.com, re-enabled — 2026-03-24 (v1.83–v1.85)
+- ✅ [Chat] New Vision Cooperative parser prompt finalized — 2026-03-24 (robots.txt clear, 22 locations, overlaps mapped)
+- ✅ [Code] New Vision parser built, validated, 22/22 locations with data — 2026-03-25 (v1.87–v1.101)
+- ✅ [Code] Frontend: dynamic CBOT labels, scraped CBOT fallback, green badge, blank empties — 2026-03-25 (v1.100–v1.101)

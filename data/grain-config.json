@@ -73,5 +73,35 @@
       { "name": "Kasson" }
     ],
     "commodities": ["corn", "beans"]
+  },
+  {
+    "id": "newvision",
+    "name": "New Vision Cooperative",
+    "url": "https://newvision.coop/current-grain-prices/?format=grid&groupby=location&setLocation=&commodity=",
+    "locations": [
+      { "slug": "adm-mankato", "name": "ADM Mankato", "note": "ADM gap — no dedicated ADM parser. New Vision is only source." },
+      { "slug": "adrian", "name": "Adrian" },
+      { "slug": "agp-sheldon", "name": "AGP Sheldon", "overlap": "agp" },
+      { "slug": "beaver-creek", "name": "Beaver Creek" },
+      { "slug": "brewster", "name": "Brewster" },
+      { "slug": "chs-fairmont", "name": "CHS Fairmont", "overlap": "chs" },
+      { "slug": "chs-mankato", "name": "CHS Mankato", "overlap": "chs" },
+      { "slug": "dundee", "name": "Dundee" },
+      { "slug": "ellsworth", "name": "Ellsworth" },
+      { "slug": "heron-lake", "name": "Heron Lake" },
+      { "slug": "hills-terminal", "name": "Hills Terminal" },
+      { "slug": "jeffers", "name": "Jeffers" },
+      { "slug": "magnolia", "name": "Magnolia" },
+      { "slug": "mankato", "name": "Mankato" },
+      { "slug": "miloma", "name": "Miloma" },
+      { "slug": "mnsp-brewster", "name": "MNSP Brewster" },
+      { "slug": "mountain-lake", "name": "Mountain Lake" },
+      { "slug": "poet-ashton", "name": "POET Ashton" },
+      { "slug": "reading", "name": "Reading" },
+      { "slug": "wilmont", "name": "Wilmont" },
+      { "slug": "windom", "name": "Windom" },
+      { "slug": "worthington", "name": "Worthington" }
+    ],
+    "commodities": ["corn", "beans"]
   }
 ]
