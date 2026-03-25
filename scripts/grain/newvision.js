@@ -184,24 +184,12 @@ async function parse({ id, config, browser }) {
         const delivery = deliveryLabel(bid.delivery_start);
         if (!delivery) continue;
 
-        // Compute cash from futures + basis (matches what the website displays).
-        // bid.basis is in cents, bid.futures is grain notation like "459-2" (459 and 2/8 cents).
-        // Fallback to bid.price if futures/basis unavailable.
-        const basisCents = bid.basis != null ? Number(bid.basis) : null;
-        const futuresCents = parseFuturesNotation(bid.futures, bid.basecode);
-        let cash;
-        if (futuresCents != null && basisCents != null) {
-          cash = (futuresCents + basisCents) / 100;
-        } else {
-          cash = parseCash(bid.price || bid.cashprice);
-        }
-
+        // Use the API's pre-computed price field (4-decimal precision).
+        // This matches the AgriCharts backend computation of futures + basis.
+        const cash = parseCash(bid.price || bid.cashprice);
         if (cash === null) continue;
 
-        // Debug: log one bid per location to verify math
-        if ((corn.length === 0 && /corn/i.test(commodity)) || (beans.length === 0 && /soybean|bean/i.test(commodity))) {
-          console.log(`[${id}:${slugify(locName)}] ${commodity} bid: futures=${bid.futures} basecode=${bid.basecode} basis=${bid.basis} → futuresCents=${futuresCents} cash=${cash} (price field: ${bid.price})`);
-        }
+        const basisCents = bid.basis != null ? Number(bid.basis) : null;
 
         const entry = {
           delivery,
