@@ -67,6 +67,28 @@ Chronological record of what was built, when, and why.
 - Added `GRAIN_SCRAPE_MAP` entry mapping `jennyo` elevator to `jennieo` source / `faribault-mill`
 - Generic disabled elevator pattern added to cash table + directory (for future use)
 
+### New Vision Cooperative Parser (v1.87–v1.101)
+- Built `scripts/grain/newvision.js` — AgriCharts/Barchart two-stage widget parser
+- Stage 1: Puppeteer loads page, discovers `agricharts.com/cashbids.php` script URL
+- Stage 2: Server-side `https.get` fetches `cashbids-js.php` → extracts `var bids = [...]` JSON
+- Parses structured JSON directly — no HTML scraping needed
+- 22 locations across southern MN, corn + soybeans
+- Stores `basisMonth` and `futuresMonth` (symbol) per bid for future basis+CBOT architecture
+- Removed `location=` and `commodity=` filters from API URL to get all locations and commodities
+- Uses API `price` field (4-decimal precision) for cash values
+- Respects `robots.txt` Crawl-delay: 10s between all requests (3 total: page, stage-1, stage-2)
+- Updated `grain-config.json` — 22 locations with overlap flags (AGP Sheldon, CHS Fairmont/Mankato) and ADM Mankato gap note
+- Added `GRAIN_SCRAPE_MAP` entry: `newvision` → `mountain-lake`
+- Workflow auto-discovers parser — no changes to `scrape-grain.yml`
+
+### Frontend Updates (v1.86–v1.101)
+- **Dynamic CBOT contract labels** — cards show actual contract month (e.g., "May 26 Corn") computed from date, not hardcoded "December Corn"
+- **CBOT cards from scraped data** — when Stooq fails, CBOT cards pull futures values from scraped grain data (`parseCbotNotation` parses `"458'4"` → $4.585). Replaces stale hardcoded fallbacks
+- **Green scrape badge** for New Vision — sources with scraped basis get datetime badge, not gray "Contract" badge. `cornScrapedBasis` / `soyScrapedBasis` flags distinguish
+- **Cash-only badge cleanup** — removed "Contract" text from Jennie-O badge, shows just delivery month (e.g., "Aug26") with same gray styling
+- **Blank scraped empties** — if a scraped source has no corn or soy bids, shows "—" instead of backfilling with default basis data. `elev.scraped` flag controls this
+- Jennie-O about page update, doc updates for v1.83–v1.85
+
 ### CI/CD & Workflow (v1.54–v1.65)
 - `scrape-barns.yml` — daily 4am + 7am CT cron, auto-commits to UserUpdates, copies data to main
 - `scrape-grain.yml` — Mon–Fri 4am + 7am CT cron, same auto-push pattern

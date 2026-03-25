@@ -59,7 +59,7 @@ Show me two things before writing the full parser:
 
 ---
 
-### [ ] [FROM: Chat → Code] New Vision Cooperative grain parser — QUEUED 2026-03-24
+### [x] [FROM: Chat → Code] New Vision Cooperative grain parser — COMPLETED 2026-03-25
 - **Date queued:** 2026-03-24
 - **Task:** Build `scripts/grain/newvision.js` and update `data/grain-config.json`
 - **Full prompt:** See below — copy/paste directly into Claude Code
@@ -198,6 +198,29 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 
 ---
 
+### [ ] [FROM: Code] Dedicated CBOT futures scraper — QUEUED 2026-03-25
+- **Date queued:** 2026-03-25
+- **Task:** Build a lightweight CBOT-only scraper using Yahoo Finance (or similar) that writes `data/prices/cbot.json`
+- **Why:** Stooq client-side fetch is unreliable (fails on localhost and live site). Scraped grain data provides CBOT as fallback but only runs 2x/day. Need a dedicated futures feed.
+- **Requirements:**
+  - Fetch corn nearby, corn new crop (Dec), soybeans nearby, soybeans new crop (Nov) — OHLCV
+  - Include market open/closed indicator for frontend display
+  - Run every 15–30 min during market hours (CBOT grains: 8:30am–1:20pm CT, Sun–Fri electronic: 7pm–7:45am CT)
+  - Write to `data/prices/cbot.json` — frontend reads this file instead of client-side Stooq calls
+  - GitHub Actions workflow: `scrape-cbot.yml`
+- **Symbols (Yahoo Finance):** `ZC=F` (corn nearby), `ZCZ26.CBT` (Dec corn), `ZS=F` (soy nearby), `ZSX26.CBT` (Nov soy)
+
+---
+
+### [ ] [FROM: Code] Basis + live CBOT pricing architecture — QUEUED 2026-03-25
+- **Date queued:** 2026-03-25
+- **Task:** Refactor frontend to compute cash = CBOT futures + scraped basis (instead of using source's snapshot cash price)
+- **Why:** Scraped cash prices drift between scrapes as futures tick. Basis is stable (~1x/day change). Computing cash from live CBOT + basis gives real-time accuracy.
+- **Prerequisites:** Dedicated CBOT scraper (above), `basisMonth` already stored in New Vision data
+- **Approach:** Scraper stores basis per elevator per delivery month. Frontend reads `cbot.json` for live futures. `cash = futures[basisMonth] + basis`. All other scrapers would need to store `basisMonth` too.
+
+---
+
 ## Pending Decisions
 
 ### 1. Hog data display — DEFERRED
@@ -240,3 +263,5 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - ✅ [Code] Rock Creek parser built, validated, YTD catch-up complete — 2026-03-24 (v1.66–v1.82)
 - ✅ [Code] Jennie-O parser rewritten for farmbucks.com, re-enabled — 2026-03-24 (v1.83–v1.85)
 - ✅ [Chat] New Vision Cooperative parser prompt finalized — 2026-03-24 (robots.txt clear, 22 locations, overlaps mapped)
+- ✅ [Code] New Vision parser built, validated, 22/22 locations with data — 2026-03-25 (v1.87–v1.101)
+- ✅ [Code] Frontend: dynamic CBOT labels, scraped CBOT fallback, green badge, blank empties — 2026-03-25 (v1.100–v1.101)
