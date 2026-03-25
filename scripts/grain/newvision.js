@@ -12,6 +12,8 @@
 'use strict';
 
 const cheerio = require('cheerio');
+const https   = require('https');
+const http    = require('http');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -74,11 +76,20 @@ async function fetchWidgetHtml(page, id) {
 
   console.log(`[${id}] found agricharts script: ${scriptUrl}`);
 
-  // Fetch the script content — it contains document.write() with HTML
-  const jsContent = await page.evaluate(async (url) => {
-    const resp = await fetch(url);
-    return resp.text();
-  }, scriptUrl);
+  // Fetch the script content server-side (not in-browser — CORS blocks fetch())
+  const jsContent = await new Promise((resolve, reject) => {
+    const mod = scriptUrl.startsWith('https') ? https : http;
+    mod.get(scriptUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`HTTP ${res.statusCode} fetching agricharts script`));
+        res.resume();
+        return;
+      }
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => resolve(data));
+    }).on('error', reject);
+  });
 
   if (!jsContent) return null;
 
