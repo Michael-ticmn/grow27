@@ -176,124 +176,86 @@ async function fetchWidgetHtml(page, id) {
 }
 
 // ── Parse the widget HTML with cheerio ───────────────────────────────────────
+// AgriCharts cashbids-js.php returns per-location tables with columns:
+//   Name | Notes | Cash Price | Delivery Start | Fut. Chg. | Basis | Basis Month
+// Location name appears as first <th> in the header row.
+// Commodity name (Corn, Soybeans) is in the "Name" column.
 
 function parseWidgetHtml(html, id, config) {
   const $ = cheerio.load(html);
   const locations = {};
 
-  // From the screenshot: each location block has a bold centered header
-  // (like "BEAVER CREEK") and a table with "Commodity" column + month columns.
-  // The AgriCharts widget typically renders this with <b> or <strong> location
-  // headers and <table> elements.
-
-  // Strategy: find all tables, look backward for the location name
   const tables = $('table');
   console.log(`[${id}] cheerio found ${tables.length} tables`);
 
   tables.each((ti, table) => {
     const $table = $(table);
+    const headerCells = $table.find('th').map((i, el) => $(el).text().trim()).get();
 
-    // Get header row to find delivery month columns
-    const headerCells = $table.find('th, thead td').map((i, el) => $(el).text().trim()).get();
-    const monthPattern = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*\d{2}/i;
-    const deliveryIndices = [];
-    const deliveryLabels = [];
-    for (let i = 0; i < headerCells.length; i++) {
-      if (monthPattern.test(headerCells[i])) {
-        deliveryIndices.push(i);
-        deliveryLabels.push(headerCells[i]);
-      }
-    }
-
-    if (deliveryIndices.length === 0) {
-      console.log(`[${id}] table ${ti}: no delivery month headers found — headers: ${JSON.stringify(headerCells)}`);
-      return; // skip this table
-    }
-
-    // Find the location name — look for text before this table
-    // AgriCharts typically uses <b>, <strong>, or <caption> for location names
-    let locationName = null;
-
-    // Check <caption>
-    const caption = $table.find('caption').text().trim();
-    if (caption) locationName = caption;
-
-    // Check preceding sibling elements
-    if (!locationName) {
-      const prev = $table.prev();
-      if (prev.length) {
-        const prevText = prev.text().trim();
-        if (prevText && prevText.length < 80 && !/commodity/i.test(prevText)) {
-          locationName = prevText;
-        }
-      }
-    }
-
-    // Check parent for bold text before table
-    if (!locationName) {
-      const parent = $table.parent();
-      const boldBefore = parent.find('b, strong').filter((i, el) => {
-        // Only consider bold text that comes before this table in the DOM
-        const elHtml = $.html(el);
-        const tableHtml = $.html(table);
-        return $.html(parent).indexOf(elHtml) < $.html(parent).indexOf(tableHtml);
-      });
-      if (boldBefore.length) {
-        const lastBold = boldBefore.last().text().trim();
-        if (lastBold && lastBold.length < 80 && !/commodity/i.test(lastBold)) {
-          locationName = lastBold;
-        }
-      }
-    }
-
-    if (!locationName) {
-      console.log(`[${id}] table ${ti}: could not determine location name — skipping`);
+    // The first <th> is the location name (e.g. "BREWSTER")
+    // Remaining headers: Name, Notes, Cash Price, Delivery Start, Fut. Chg., Basis, Basis Month
+    if (headerCells.length < 4) {
+      console.log(`[${id}] table ${ti}: too few headers (${headerCells.length}) — skipping`);
       return;
     }
 
-    console.log(`[${id}] table ${ti}: location="${locationName}" — ${deliveryLabels.length} delivery months`);
+    const locationName = headerCells[0];
+    if (!locationName || /^name$/i.test(locationName)) return;
 
-    // Parse commodity rows
+    // Find column indices by header text
+    const nameIdx = headerCells.findIndex(h => /^name$/i.test(h));
+    const cashIdx = headerCells.findIndex(h => /cash\s*price/i.test(h));
+    const delIdx = headerCells.findIndex(h => /delivery/i.test(h));
+    const basisIdx = headerCells.findIndex(h => /^basis$/i.test(h));
+
+    if (cashIdx === -1 || delIdx === -1) {
+      console.log(`[${id}] table ${ti} (${locationName}): missing Cash Price or Delivery columns — headers: ${JSON.stringify(headerCells)}`);
+      return;
+    }
+
     const commodities = { corn: [], beans: [] };
     $table.find('tr').each((ri, row) => {
       const cells = $(row).find('td');
-      if (cells.length < 2) return;
+      if (cells.length < 3) return;
 
-      const commodity = $(cells[0]).text().trim();
+      const name = nameIdx >= 0 ? $(cells[nameIdx]).text().trim() : '';
+      const cashText = $(cells[cashIdx - 1]).text().trim();  // -1 because first th is location, not a data column
+      const delText = $(cells[delIdx - 1]).text().trim();
+      const basisText = basisIdx >= 0 ? $(cells[basisIdx - 1]).text().trim() : null;
+
+      // Determine commodity from name
       let key = null;
-      if (/^corn$/i.test(commodity)) key = 'corn';
-      else if (/^soybeans?$/i.test(commodity)) key = 'beans';
+      if (/corn/i.test(name)) key = 'corn';
+      else if (/soybean|bean/i.test(name)) key = 'beans';
       if (!key) return;
 
-      for (let j = 0; j < deliveryIndices.length; j++) {
-        const idx = deliveryIndices[j];
-        const priceText = $(cells[idx]).text().trim();
-        if (priceText && priceText !== '-' && priceText !== '') {
-          const cash = parseCash(priceText);
-          if (cash !== null) {
-            commodities[key].push({
-              delivery:     deliveryLabel(deliveryLabels[j]),
-              cash:         cash,
-              futuresMonth: null,
-              basis:        null,
-              change:       null,
-              cbot:         null,
-            });
-          }
-        }
-      }
+      const cash = parseCash(cashText);
+      if (cash === null) return;
+
+      commodities[key].push({
+        delivery:     deliveryLabel(delText),
+        cash:         cash,
+        futuresMonth: null,
+        basis:        parseCash(basisText),
+        change:       null,
+        cbot:         null,
+      });
     });
 
     // Match to configured location
     const matchedLoc = matchLocation(locationName, config);
     if (!matchedLoc) {
-      console.log(`[${id}] unmatched location: "${locationName}" — storing with auto-slug`);
+      console.log(`[${id}] unmatched location: "${locationName}"`);
       const slug = slugify(locationName);
       locations[slug] = { name: locationName, ...commodities };
     } else {
       const slug = matchedLoc.slug || slugify(matchedLoc.name);
       locations[slug] = { name: matchedLoc.name, ...commodities };
     }
+
+    const cc = commodities.corn.length;
+    const bc = commodities.beans.length;
+    console.log(`[${id}] table ${ti}: location="${locationName}" — corn: ${cc}, beans: ${bc}`);
   });
 
   return locations;
