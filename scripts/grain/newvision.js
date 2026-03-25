@@ -1,13 +1,17 @@
 // scripts/grain/newvision.js
 // New Vision Cooperative — grain cash bid scraper
-// Source: newvision.coop/current-grain-prices/?format=grid&groupby=location
-// JS-rendered page with per-location table blocks.
-// Columns: Commodity row × delivery month columns. Cash-only (no basis/futures).
-// 22 locations across southern MN.
+// Source: newvision.coop/current-grain-prices/
+// Widget: AgriCharts/Barchart cashbids.php — injects tables via document.write().
+// Strategy: Navigate to the page and wait for the AgriCharts script to render
+// tables. The script is a <script src="//newvision.agricharts.com/..."> that
+// calls document.write() during page parse, generating per-location tables.
+// Cash-only (no basis/futures). 22 locations across southern MN.
 // robots.txt Crawl-delay: 10 — respected via 10s post-load wait.
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
+
+const cheerio = require('cheerio');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -47,9 +51,191 @@ function deliveryLabel(str) {
   return trimmed;
 }
 
+// ── Fetch AgriCharts widget HTML directly ────────────────────────────────────
+// The cashbids.php endpoint returns JavaScript containing document.write() calls.
+// We fetch that JS, extract the HTML strings from the document.write() calls,
+// and parse with cheerio. This avoids the document.write() timing issues in Puppeteer.
+
+async function fetchWidgetHtml(page, id) {
+  // First, navigate to the page to discover the agricharts script URL
+  const scriptUrl = await page.evaluate(() => {
+    const scripts = document.querySelectorAll('script[src*="agricharts"]');
+    if (scripts.length > 0) return scripts[0].src;
+    // Also check for inline script references
+    const allScripts = document.querySelectorAll('script[src*="cashbids"]');
+    if (allScripts.length > 0) return allScripts[0].src;
+    return null;
+  });
+
+  if (!scriptUrl) {
+    console.log(`[${id}] no agricharts script found on page, trying direct fetch approach`);
+    return null;
+  }
+
+  console.log(`[${id}] found agricharts script: ${scriptUrl}`);
+
+  // Fetch the script content — it contains document.write() with HTML
+  const jsContent = await page.evaluate(async (url) => {
+    const resp = await fetch(url);
+    return resp.text();
+  }, scriptUrl);
+
+  if (!jsContent) return null;
+
+  console.log(`[${id}] fetched agricharts JS — ${jsContent.length} chars`);
+
+  // Extract HTML from document.write() calls
+  // Pattern: document.write("...HTML...") — may span multiple lines
+  const htmlParts = [];
+  const writePattern = /document\.write\s*\(\s*["']([\s\S]*?)["']\s*\)/g;
+  let match;
+  while ((match = writePattern.exec(jsContent)) !== null) {
+    // Unescape JS string escapes
+    const html = match[1]
+      .replace(/\\"/g, '"')
+      .replace(/\\'/g, "'")
+      .replace(/\\n/g, '\n')
+      .replace(/\\t/g, '\t')
+      .replace(/\\\\/g, '\\');
+    htmlParts.push(html);
+  }
+
+  if (htmlParts.length === 0) {
+    // Try alternate pattern with backticks or concatenation
+    console.log(`[${id}] no document.write() matches — JS snippet (first 2000):\n${jsContent.substring(0, 2000)}`);
+    return null;
+  }
+
+  const fullHtml = htmlParts.join('\n');
+  console.log(`[${id}] extracted ${htmlParts.length} document.write() blocks — ${fullHtml.length} chars HTML`);
+  return fullHtml;
+}
+
+// ── Parse the widget HTML with cheerio ───────────────────────────────────────
+
+function parseWidgetHtml(html, id, config) {
+  const $ = cheerio.load(html);
+  const locations = {};
+
+  // From the screenshot: each location block has a bold centered header
+  // (like "BEAVER CREEK") and a table with "Commodity" column + month columns.
+  // The AgriCharts widget typically renders this with <b> or <strong> location
+  // headers and <table> elements.
+
+  // Strategy: find all tables, look backward for the location name
+  const tables = $('table');
+  console.log(`[${id}] cheerio found ${tables.length} tables`);
+
+  tables.each((ti, table) => {
+    const $table = $(table);
+
+    // Get header row to find delivery month columns
+    const headerCells = $table.find('th, thead td').map((i, el) => $(el).text().trim()).get();
+    const monthPattern = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*\d{2}/i;
+    const deliveryIndices = [];
+    const deliveryLabels = [];
+    for (let i = 0; i < headerCells.length; i++) {
+      if (monthPattern.test(headerCells[i])) {
+        deliveryIndices.push(i);
+        deliveryLabels.push(headerCells[i]);
+      }
+    }
+
+    if (deliveryIndices.length === 0) {
+      console.log(`[${id}] table ${ti}: no delivery month headers found — headers: ${JSON.stringify(headerCells)}`);
+      return; // skip this table
+    }
+
+    // Find the location name — look for text before this table
+    // AgriCharts typically uses <b>, <strong>, or <caption> for location names
+    let locationName = null;
+
+    // Check <caption>
+    const caption = $table.find('caption').text().trim();
+    if (caption) locationName = caption;
+
+    // Check preceding sibling elements
+    if (!locationName) {
+      const prev = $table.prev();
+      if (prev.length) {
+        const prevText = prev.text().trim();
+        if (prevText && prevText.length < 80 && !/commodity/i.test(prevText)) {
+          locationName = prevText;
+        }
+      }
+    }
+
+    // Check parent for bold text before table
+    if (!locationName) {
+      const parent = $table.parent();
+      const boldBefore = parent.find('b, strong').filter((i, el) => {
+        // Only consider bold text that comes before this table in the DOM
+        const elHtml = $.html(el);
+        const tableHtml = $.html(table);
+        return $.html(parent).indexOf(elHtml) < $.html(parent).indexOf(tableHtml);
+      });
+      if (boldBefore.length) {
+        const lastBold = boldBefore.last().text().trim();
+        if (lastBold && lastBold.length < 80 && !/commodity/i.test(lastBold)) {
+          locationName = lastBold;
+        }
+      }
+    }
+
+    if (!locationName) {
+      console.log(`[${id}] table ${ti}: could not determine location name — skipping`);
+      return;
+    }
+
+    console.log(`[${id}] table ${ti}: location="${locationName}" — ${deliveryLabels.length} delivery months`);
+
+    // Parse commodity rows
+    const commodities = { corn: [], beans: [] };
+    $table.find('tr').each((ri, row) => {
+      const cells = $(row).find('td');
+      if (cells.length < 2) return;
+
+      const commodity = $(cells[0]).text().trim();
+      let key = null;
+      if (/^corn$/i.test(commodity)) key = 'corn';
+      else if (/^soybeans?$/i.test(commodity)) key = 'beans';
+      if (!key) return;
+
+      for (let j = 0; j < deliveryIndices.length; j++) {
+        const idx = deliveryIndices[j];
+        const priceText = $(cells[idx]).text().trim();
+        if (priceText && priceText !== '-' && priceText !== '') {
+          const cash = parseCash(priceText);
+          if (cash !== null) {
+            commodities[key].push({
+              delivery:     deliveryLabel(deliveryLabels[j]),
+              cash:         cash,
+              futuresMonth: null,
+              basis:        null,
+              change:       null,
+              cbot:         null,
+            });
+          }
+        }
+      }
+    });
+
+    // Match to configured location
+    const matchedLoc = matchLocation(locationName, config);
+    if (!matchedLoc) {
+      console.log(`[${id}] unmatched location: "${locationName}" — storing with auto-slug`);
+      const slug = slugify(locationName);
+      locations[slug] = { name: locationName, ...commodities };
+    } else {
+      const slug = matchedLoc.slug || slugify(matchedLoc.name);
+      locations[slug] = { name: matchedLoc.name, ...commodities };
+    }
+  });
+
+  return locations;
+}
+
 // ── Main Parse Function ─────────────────────────────────────────────────────
-// Receives: { id, config, browser }
-// Returns:  { locations: { [slug]: { name, corn, beans } }, source, error }
 
 async function parse({ id, config, browser }) {
   const locations = {};
@@ -64,272 +250,85 @@ async function parse({ id, config, browser }) {
     console.log(`[${id}] respecting crawl-delay — waiting 10s`);
     await new Promise(r => setTimeout(r, 10000));
 
-    // Wait for table content to render (JS-rendered page)
-    await page.waitForSelector('table', { timeout: 15000 })
-      .catch(() => console.warn(`[${id}] no table found after wait — trying anyway`));
+    // Approach 1: try to fetch the AgriCharts widget HTML directly
+    const widgetHtml = await fetchWidgetHtml(page, id);
 
-    // Extra settle time for JS rendering
-    await new Promise(r => setTimeout(r, 3000));
-
-    // ── DEBUG: dump page structure to understand what Puppeteer sees ──
-    const debug = await page.evaluate(() => {
-      const body = document.body;
-      const info = {
-        title: document.title,
-        url: location.href,
-        tableCount: document.querySelectorAll('table').length,
-        iframeCount: document.querySelectorAll('iframe').length,
-        h1s: Array.from(document.querySelectorAll('h1')).map(e => e.textContent.trim()).slice(0, 5),
-        h2s: Array.from(document.querySelectorAll('h2')).map(e => e.textContent.trim()).slice(0, 10),
-        h3s: Array.from(document.querySelectorAll('h3')).map(e => e.textContent.trim()).slice(0, 10),
-        h4s: Array.from(document.querySelectorAll('h4')).map(e => e.textContent.trim()).slice(0, 10),
-        // All unique class names containing price/grain/bid/location/commodity
-        interestingClasses: [...new Set(
-          Array.from(document.querySelectorAll('*'))
-            .flatMap(el => Array.from(el.classList))
-            .filter(c => /price|grain|bid|location|commodity|cashbid|dtn|barchart|cmdty|grid|table/i.test(c))
-        )].slice(0, 30),
-        // All IDs containing price/grain/bid/location
-        interestingIds: Array.from(document.querySelectorAll('[id]'))
-          .map(el => el.id)
-          .filter(id => /price|grain|bid|location|commodity|cashbid|dtn|barchart|cmdty|grid|table/i.test(id))
-          .slice(0, 20),
-        // Iframes src
-        iframeSrcs: Array.from(document.querySelectorAll('iframe')).map(f => f.src).slice(0, 5),
-        // First 3000 chars of body inner text (to see what's rendered)
-        bodyTextSnippet: body.innerText.substring(0, 3000),
-        // Outer HTML snippet of main content area
-        mainHtml: (document.querySelector('main, #main, .main, #content, .content, article') || body)
-          .innerHTML.substring(0, 5000),
-      };
-      return info;
-    });
-    console.log(`[${id}] DEBUG page info:`);
-    console.log(`[${id}]   title: ${debug.title}`);
-    console.log(`[${id}]   tables: ${debug.tableCount}, iframes: ${debug.iframeCount}`);
-    console.log(`[${id}]   h1s: ${JSON.stringify(debug.h1s)}`);
-    console.log(`[${id}]   h2s: ${JSON.stringify(debug.h2s)}`);
-    console.log(`[${id}]   h3s: ${JSON.stringify(debug.h3s)}`);
-    console.log(`[${id}]   h4s: ${JSON.stringify(debug.h4s)}`);
-    console.log(`[${id}]   interesting classes: ${JSON.stringify(debug.interestingClasses)}`);
-    console.log(`[${id}]   interesting IDs: ${JSON.stringify(debug.interestingIds)}`);
-    console.log(`[${id}]   iframe srcs: ${JSON.stringify(debug.iframeSrcs)}`);
-    console.log(`[${id}]   body text (first 3000):\n${debug.bodyTextSnippet}`);
-    console.log(`[${id}]   main HTML (first 5000):\n${debug.mainHtml}`);
-    // ── END DEBUG ──
-
-    // Extract all location blocks from the page
-    const rawData = await page.evaluate(() => {
-      const results = [];
-
-      // Strategy: find all location header elements followed by tables.
-      // The page groups by location — each block has a header + table.
-      // Try multiple selector patterns since the exact structure may vary.
-
-      // Pattern 1: look for distinct section/block containers
-      const blocks = document.querySelectorAll(
-        '.location-block, .grid-section, .cashbid-location, ' +
-        '[class*="location"], [class*="Location"]'
-      );
-
-      if (blocks.length > 0) {
-        for (const block of blocks) {
-          const header = block.querySelector('h1, h2, h3, h4, h5, .location-name, [class*="header"]');
-          const table = block.querySelector('table');
-          if (!header || !table) continue;
-
-          const locationName = header.textContent.trim();
-          if (!locationName) continue;
-
-          results.push(extractTable(locationName, table));
-        }
-      }
-
-      // Pattern 2: if no blocks found, look for headers followed by tables
-      if (results.length === 0) {
-        const allHeaders = document.querySelectorAll('h1, h2, h3, h4, h5');
-        for (const header of allHeaders) {
-          const locationName = header.textContent.trim();
-          if (!locationName) continue;
-
-          // Find the next sibling table
-          let sibling = header.nextElementSibling;
-          let attempts = 0;
-          while (sibling && attempts < 5) {
-            if (sibling.tagName === 'TABLE') {
-              results.push(extractTable(locationName, sibling));
-              break;
-            }
-            // Check if sibling contains a table
-            const innerTable = sibling.querySelector('table');
-            if (innerTable) {
-              results.push(extractTable(locationName, innerTable));
-              break;
-            }
-            sibling = sibling.nextElementSibling;
-            attempts++;
-          }
-        }
-      }
-
-      // Pattern 3: single large table with location rows
-      if (results.length === 0) {
-        const tables = document.querySelectorAll('table');
-        for (const table of tables) {
-          const headers = table.querySelectorAll('th');
-          const rows = table.querySelectorAll('tbody tr, tr');
-          if (headers.length < 2 || rows.length < 2) continue;
-
-          // Check if this looks like a grouped-by-location table
-          // Headers might be: Location | Commodity | delivery months...
-          const headerTexts = Array.from(headers).map(h => h.textContent.trim());
-
-          // Look for delivery month columns
-          const monthPattern = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*\d{2}/i;
-          const deliveryHeaders = headerTexts.filter(h => monthPattern.test(h));
-
-          if (deliveryHeaders.length > 0) {
-            results.push({ type: 'flat-table', headerTexts, deliveryHeaders, rowCount: rows.length });
-
-            // Parse the flat table
-            let currentLocation = null;
-            for (const row of rows) {
-              const cells = row.querySelectorAll('td, th');
-              if (cells.length < 2) continue;
-
-              const cellTexts = Array.from(cells).map(c => c.textContent.trim());
-
-              // Detect location header rows (often span multiple columns or are bold)
-              const firstCell = cells[0];
-              const colspan = parseInt(firstCell.getAttribute('colspan') || '1');
-              if (colspan > 1 || (cells.length <= 2 && !monthPattern.test(cellTexts[1]))) {
-                const possibleLoc = cellTexts[0];
-                if (possibleLoc && possibleLoc.length > 2 && !/^(corn|soybeans|beans)$/i.test(possibleLoc)) {
-                  currentLocation = possibleLoc;
-                  continue;
-                }
-              }
-
-              // Detect commodity rows
-              const commodity = cellTexts[0];
-              if (currentLocation && /^(corn|soybeans|beans)$/i.test(commodity)) {
-                const bids = [];
-                for (let i = 1; i < cells.length && i <= deliveryHeaders.length; i++) {
-                  const price = cellTexts[i];
-                  if (price && price !== '-' && price !== '') {
-                    bids.push({ delivery: deliveryHeaders[i - 1], cash: price });
-                  }
-                }
-                results.push({
-                  type: 'flat-row',
-                  location: currentLocation,
-                  commodity: commodity,
-                  bids: bids,
-                });
-              }
-            }
-          }
-        }
-      }
-
-      return results;
-
-      // Helper: extract commodity rows from a per-location table
-      function extractTable(locationName, table) {
-        const headers = Array.from(table.querySelectorAll('thead th, th'))
-          .map(th => th.textContent.trim());
-        const rows = table.querySelectorAll('tbody tr, tr');
-        const commodities = {};
-
-        // Find delivery month columns from headers
-        const monthPattern = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*\d{2}/i;
-        const deliveryIndices = [];
-        const deliveryLabels = [];
-        for (let i = 0; i < headers.length; i++) {
-          if (monthPattern.test(headers[i])) {
-            deliveryIndices.push(i);
-            deliveryLabels.push(headers[i]);
-          }
-        }
-
-        for (const row of rows) {
-          const cells = row.querySelectorAll('td, th');
-          if (cells.length < 2) continue;
-          const commodity = (cells[0]?.textContent || '').trim();
-
-          if (/^corn$/i.test(commodity) || /^soybeans?$/i.test(commodity) || /^beans$/i.test(commodity)) {
-            const key = /^corn$/i.test(commodity) ? 'corn' : 'beans';
-            const bids = [];
-            for (let j = 0; j < deliveryIndices.length; j++) {
-              const idx = deliveryIndices[j];
-              const price = (cells[idx]?.textContent || '').trim();
-              if (price && price !== '-' && price !== '') {
-                bids.push({ delivery: deliveryLabels[j], cash: price });
-              }
-            }
-            commodities[key] = bids;
-          }
-        }
-
-        return { type: 'block', location: locationName, commodities, headers, deliveryLabels };
-      }
-    });
-
-    console.log(`[${id}] raw extraction: ${rawData.length} items`);
-
-    // Build config location lookup
-    const configLookup = {};
-    for (const loc of (config.locations || [])) {
-      configLookup[loc.name.toLowerCase()] = loc;
+    if (widgetHtml) {
+      const parsed = parseWidgetHtml(widgetHtml, id, config);
+      Object.assign(locations, parsed);
     }
 
-    // Process extracted data into final locations object
-    for (const item of rawData) {
-      if (item.type === 'block') {
-        const matchedLoc = matchLocation(item.location, configLookup, config.locations);
-        if (!matchedLoc) {
-          console.log(`[${id}] skipping unmatched location: "${item.location}"`);
-          continue;
+    // Approach 2: if widget fetch failed, try DOM scraping (in case tables rendered)
+    if (Object.keys(locations).length === 0 || !Object.values(locations).some(l => l.corn.length > 0 || l.beans.length > 0)) {
+      console.log(`[${id}] widget fetch approach found no data — trying DOM scrape`);
+
+      // Wait for tables that might have rendered
+      await page.waitForSelector('table', { timeout: 10000 })
+        .catch(() => console.warn(`[${id}] no tables in DOM either`));
+
+      const domData = await page.evaluate(() => {
+        const results = [];
+        const tables = document.querySelectorAll('table');
+        const monthPattern = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*\d{2}/i;
+
+        for (const table of tables) {
+          const headerCells = Array.from(table.querySelectorAll('th, thead td'))
+            .map(el => el.textContent.trim());
+          const deliveryHeaders = headerCells.filter(h => monthPattern.test(h));
+          if (deliveryHeaders.length === 0) continue;
+
+          // Find location name from preceding element
+          let locName = null;
+          let el = table.previousElementSibling;
+          let attempts = 0;
+          while (el && attempts < 3) {
+            const text = el.textContent.trim();
+            if (text && text.length < 80 && !/commodity/i.test(text)) {
+              locName = text;
+              break;
+            }
+            el = el.previousElementSibling;
+            attempts++;
+          }
+          if (!locName) continue;
+
+          const rows = table.querySelectorAll('tr');
+          for (const row of rows) {
+            const cells = row.querySelectorAll('td');
+            if (cells.length < 2) continue;
+            const commodity = cells[0].textContent.trim();
+            if (!/^(corn|soybeans?)$/i.test(commodity)) continue;
+
+            const bids = [];
+            const deliveryIndices = [];
+            for (let i = 0; i < headerCells.length; i++) {
+              if (monthPattern.test(headerCells[i])) deliveryIndices.push(i);
+            }
+            for (let j = 0; j < deliveryIndices.length; j++) {
+              const price = cells[deliveryIndices[j]]?.textContent?.trim();
+              if (price && price !== '-' && price !== '') {
+                bids.push({ delivery: deliveryHeaders[j], cash: price });
+              }
+            }
+            results.push({ location: locName, commodity, bids });
+          }
         }
+        return results;
+      });
 
-        const slug = matchedLoc.slug || slugify(matchedLoc.name);
-        locations[slug] = {
-          name: matchedLoc.name,
-          corn: (item.commodities.corn || []).map(b => ({
-            delivery:     deliveryLabel(b.delivery),
-            cash:         parseCash(b.cash),
-            futuresMonth: null,
-            basis:        null,
-            change:       null,
-            cbot:         null,
-          })).filter(b => b.cash !== null && b.delivery),
-          beans: (item.commodities.beans || []).map(b => ({
-            delivery:     deliveryLabel(b.delivery),
-            cash:         parseCash(b.cash),
-            futuresMonth: null,
-            basis:        null,
-            change:       null,
-            cbot:         null,
-          })).filter(b => b.cash !== null && b.delivery),
-        };
-      } else if (item.type === 'flat-row') {
-        const matchedLoc = matchLocation(item.location, configLookup, config.locations);
-        if (!matchedLoc) continue;
-
-        const slug = matchedLoc.slug || slugify(matchedLoc.name);
-        if (!locations[slug]) {
-          locations[slug] = { name: matchedLoc.name, corn: [], beans: [] };
+      if (domData.length > 0) {
+        console.log(`[${id}] DOM scrape found ${domData.length} commodity rows`);
+        for (const item of domData) {
+          const matchedLoc = matchLocation(item.location, config);
+          if (!matchedLoc) continue;
+          const slug = matchedLoc.slug || slugify(matchedLoc.name);
+          if (!locations[slug]) locations[slug] = { name: matchedLoc.name, corn: [], beans: [] };
+          const key = /^corn$/i.test(item.commodity) ? 'corn' : 'beans';
+          locations[slug][key] = item.bids.map(b => ({
+            delivery: deliveryLabel(b.delivery), cash: parseCash(b.cash),
+            futuresMonth: null, basis: null, change: null, cbot: null,
+          })).filter(b => b.cash !== null && b.delivery);
         }
-
-        const key = /^corn$/i.test(item.commodity) ? 'corn' : 'beans';
-        locations[slug][key] = (item.bids || []).map(b => ({
-          delivery:     deliveryLabel(b.delivery),
-          cash:         parseCash(b.cash),
-          futuresMonth: null,
-          basis:        null,
-          change:       null,
-          cbot:         null,
-        })).filter(b => b.cash !== null && b.delivery);
       }
     }
 
@@ -369,21 +368,21 @@ async function parse({ id, config, browser }) {
 }
 
 // ── Location matching ────────────────────────────────────────────────────────
-// Match a scraped location name to a configured location entry
 
-function matchLocation(scrapedName, configLookup, configLocations) {
+function matchLocation(scrapedName, config) {
   if (!scrapedName) return null;
   const lower = scrapedName.trim().toLowerCase();
+  const configLocations = config.locations || [];
 
-  // Exact match on name
-  if (configLookup[lower]) return configLookup[lower];
+  // Exact match
+  for (const loc of configLocations) {
+    if (loc.name.toLowerCase() === lower) return loc;
+  }
 
-  // Partial match — scraped name contains or is contained by config name
-  for (const loc of (configLocations || [])) {
+  // Partial match
+  for (const loc of configLocations) {
     const confLower = loc.name.toLowerCase();
-    if (lower.includes(confLower) || confLower.includes(lower)) {
-      return loc;
-    }
+    if (lower.includes(confLower) || confLower.includes(lower)) return loc;
   }
 
   return null;
