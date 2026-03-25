@@ -71,6 +71,53 @@ async function parse({ id, config, browser }) {
     // Extra settle time for JS rendering
     await new Promise(r => setTimeout(r, 3000));
 
+    // ── DEBUG: dump page structure to understand what Puppeteer sees ──
+    const debug = await page.evaluate(() => {
+      const body = document.body;
+      const info = {
+        title: document.title,
+        url: location.href,
+        tableCount: document.querySelectorAll('table').length,
+        iframeCount: document.querySelectorAll('iframe').length,
+        h1s: Array.from(document.querySelectorAll('h1')).map(e => e.textContent.trim()).slice(0, 5),
+        h2s: Array.from(document.querySelectorAll('h2')).map(e => e.textContent.trim()).slice(0, 10),
+        h3s: Array.from(document.querySelectorAll('h3')).map(e => e.textContent.trim()).slice(0, 10),
+        h4s: Array.from(document.querySelectorAll('h4')).map(e => e.textContent.trim()).slice(0, 10),
+        // All unique class names containing price/grain/bid/location/commodity
+        interestingClasses: [...new Set(
+          Array.from(document.querySelectorAll('*'))
+            .flatMap(el => Array.from(el.classList))
+            .filter(c => /price|grain|bid|location|commodity|cashbid|dtn|barchart|cmdty|grid|table/i.test(c))
+        )].slice(0, 30),
+        // All IDs containing price/grain/bid/location
+        interestingIds: Array.from(document.querySelectorAll('[id]'))
+          .map(el => el.id)
+          .filter(id => /price|grain|bid|location|commodity|cashbid|dtn|barchart|cmdty|grid|table/i.test(id))
+          .slice(0, 20),
+        // Iframes src
+        iframeSrcs: Array.from(document.querySelectorAll('iframe')).map(f => f.src).slice(0, 5),
+        // First 3000 chars of body inner text (to see what's rendered)
+        bodyTextSnippet: body.innerText.substring(0, 3000),
+        // Outer HTML snippet of main content area
+        mainHtml: (document.querySelector('main, #main, .main, #content, .content, article') || body)
+          .innerHTML.substring(0, 5000),
+      };
+      return info;
+    });
+    console.log(`[${id}] DEBUG page info:`);
+    console.log(`[${id}]   title: ${debug.title}`);
+    console.log(`[${id}]   tables: ${debug.tableCount}, iframes: ${debug.iframeCount}`);
+    console.log(`[${id}]   h1s: ${JSON.stringify(debug.h1s)}`);
+    console.log(`[${id}]   h2s: ${JSON.stringify(debug.h2s)}`);
+    console.log(`[${id}]   h3s: ${JSON.stringify(debug.h3s)}`);
+    console.log(`[${id}]   h4s: ${JSON.stringify(debug.h4s)}`);
+    console.log(`[${id}]   interesting classes: ${JSON.stringify(debug.interestingClasses)}`);
+    console.log(`[${id}]   interesting IDs: ${JSON.stringify(debug.interestingIds)}`);
+    console.log(`[${id}]   iframe srcs: ${JSON.stringify(debug.iframeSrcs)}`);
+    console.log(`[${id}]   body text (first 3000):\n${debug.bodyTextSnippet}`);
+    console.log(`[${id}]   main HTML (first 5000):\n${debug.mainHtml}`);
+    // ── END DEBUG ──
+
     // Extract all location blocks from the page
     const rawData = await page.evaluate(() => {
       const results = [];
