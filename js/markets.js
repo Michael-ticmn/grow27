@@ -243,8 +243,36 @@ function getContractMonths() {
   return { cornNearby: fmt(cornNearby), cornNewCrop: fmt(cornNewCrop), soyNearby: fmt(soyNearby), soyNewCrop: fmt(soyNewCrop) };
 }
 
+// Stooq fallback values — used only if Stooq fetch fails AND no scraped CBOT available
+const fb_grain={cn:{price:4.3475,open:4.3100,high:4.3775,low:4.2875,change:0.0375,pct:0.87},cn2:{price:4.5225,open:4.4900,high:4.5500,low:4.4750,change:0.0325,pct:0.72},sb:{price:9.7225,open:9.6800,high:9.8100,low:9.6200,change:0.0425,pct:0.44},sb2:{price:10.045,open:10.010,high:10.120,low:9.970,change:0.0350,pct:0.35}};
+
+// Parse CBOT grain notation: "458'4" → 4.585, "1153'4" → 11.535
+function parseCbotNotation(str) {
+  if (!str) return null;
+  const s = str.replace(/s$/i, ''); // strip trailing 's' (settlement marker)
+  const m = s.match(/^(\d+)'(\d)$/);
+  if (m) return (parseInt(m[1]) + parseInt(m[2]) / 8) / 100;
+  const val = parseFloat(s);
+  return isNaN(val) ? null : val;
+}
+
+// Extract best CBOT corn & soy prices from all scraped grain sources
+function extractScrapedCbot() {
+  let corn = null, beans = null;
+  for (const [srcId, locations] of Object.entries(GRAIN_SCRAPED)) {
+    for (const [locSlug, locData] of Object.entries(locations)) {
+      const cornBid = locData.corn?.[0];
+      if (cornBid?.cbot && corn === null) corn = parseCbotNotation(cornBid.cbot);
+      const beanBid = locData.beans?.[0];
+      if (beanBid?.cbot && beans === null) beans = parseCbotNotation(beanBid.cbot);
+      if (corn != null && beans != null) return { corn, beans };
+    }
+  }
+  return { corn, beans };
+}
+
 async function loadGrainPrices(){
-  const fb={cn:{price:4.3475,open:4.3100,high:4.3775,low:4.2875,change:0.0375,pct:0.87},cn2:{price:4.5225,open:4.4900,high:4.5500,low:4.4750,change:0.0325,pct:0.72},sb:{price:9.7225,open:9.6800,high:9.8100,low:9.6200,change:0.0425,pct:0.44},sb2:{price:10.045,open:10.010,high:10.120,low:9.970,change:0.0350,pct:0.35}};
+  const fb=fb_grain;
   async function fetchOne(sym){try{const r=await fetchTimeout('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv',5000);const t=await r.text();const cols=t.trim().split('\n')[1]?.split(',');if(!cols)throw 0;const[open,high,low,close]=[3,4,5,6].map(i=>parseFloat(cols[i]));if(isNaN(close))throw 0;return{price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};}catch{return null;}}
   const[cn,cn2,sb,sb2]=await Promise.all([fetchOne('c.f'),fetchOne('ch.f'),fetchOne('s.f'),fetchOne('sh.f')]);
   GRAIN_DATA={cn:cn||fb.cn,cn2:cn2||fb.cn2,sb:sb||fb.sb,sb2:sb2||fb.sb2};
@@ -518,6 +546,27 @@ async function loadGrainScrapedData() {
       updated++;
     }
     console.log('[grain] overlaid actual prices on ' + updated + ' elevators');
+
+    // Extract CBOT futures from scraped data to update market cards.
+    // Scraped sources like CFS include cbot values (e.g. "458'4" = $4.585).
+    // Use these as the authoritative CBOT price — they match what basis is quoted against.
+    const scrapedCbot = extractScrapedCbot();
+    if (scrapedCbot.corn != null || scrapedCbot.beans != null) {
+      const stooqFailed = GRAIN_DATA.cn.price === fb_grain.cn.price;
+      if (scrapedCbot.corn != null) {
+        GRAIN_DATA.cn.price = scrapedCbot.corn;
+        if (stooqFailed) { GRAIN_DATA.cn.open = scrapedCbot.corn; GRAIN_DATA.cn.high = scrapedCbot.corn; GRAIN_DATA.cn.low = scrapedCbot.corn; GRAIN_DATA.cn.change = 0; GRAIN_DATA.cn.pct = 0; }
+      }
+      if (scrapedCbot.beans != null) {
+        GRAIN_DATA.sb.price = scrapedCbot.beans;
+        if (stooqFailed) { GRAIN_DATA.sb.open = scrapedCbot.beans; GRAIN_DATA.sb.high = scrapedCbot.beans; GRAIN_DATA.sb.low = scrapedCbot.beans; GRAIN_DATA.sb.change = 0; GRAIN_DATA.sb.pct = 0; }
+      }
+      // Re-render cards with updated CBOT values
+      function setCard(id,d){const el=document.getElementById('p-'+id);if(!el)return;el.textContent='$'+d.price.toFixed(4);el.style.color=d.change>0.003?'var(--up)':d.change<-0.003?'var(--down)':'var(--corn)';document.getElementById('h-'+id).textContent=d.high.toFixed(4);document.getElementById('l-'+id).textContent=d.low.toFixed(4);document.getElementById('v-'+id).textContent=d.open.toFixed(4);setBadge('b-'+id,d.change,d.pct);}
+      setCard('cn',GRAIN_DATA.cn); setCard('sb',GRAIN_DATA.sb);
+      console.log('[grain] updated CBOT cards from scraped data — corn: $' + (scrapedCbot.corn||'n/a') + ', beans: $' + (scrapedCbot.beans||'n/a'));
+    }
+
     buildCashTable();
     rebuildElevatorDirectory();
     updateGrainInsight();
