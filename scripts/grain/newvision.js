@@ -97,34 +97,81 @@ async function fetchWidgetHtml(page, id) {
 
   if (!jsContent) return null;
 
-  console.log(`[${id}] fetched agricharts JS — ${jsContent.length} chars`);
-  console.log(`[${id}] JS snippet (first 3000):\n${jsContent.substring(0, 3000)}`);
+  console.log(`[${id}] fetched agricharts stage-1 JS — ${jsContent.length} chars`);
 
-  // Extract HTML from document.write() calls
-  // Pattern: document.write("...HTML...") — may span multiple lines
+  // Stage 1 JS contains a widgetURL pointing to cashbids-js.php — the actual data endpoint.
+  // Extract it: widgetURL = '//newvision.agricharts.com/inc/cashbids/cashbids-js.php?...'
+  const widgetMatch = jsContent.match(/widgetURL\s*=\s*'([^']+)'/);
+  if (!widgetMatch) {
+    console.log(`[${id}] no widgetURL found in stage-1 JS`);
+    console.log(`[${id}] JS snippet (first 2000):\n${jsContent.substring(0, 2000)}`);
+    return null;
+  }
+
+  let widgetUrl = widgetMatch[1];
+  // Ensure absolute URL
+  if (widgetUrl.startsWith('//')) widgetUrl = 'https:' + widgetUrl;
+  // Strip dynamic parts that require browser context (acCnt, document.location.search)
+  widgetUrl = widgetUrl.replace(/&acCnt=.*$/, '');
+  console.log(`[${id}] stage-2 widget URL: ${widgetUrl}`);
+
+  // Respect crawl-delay before third request
+  console.log(`[${id}] respecting crawl-delay — waiting 10s before fetching stage-2`);
+  await new Promise(r => setTimeout(r, 10000));
+
+  // Fetch stage-2 — this returns the actual HTML tables (or JS that writes them)
+  const stage2Content = await new Promise((resolve, reject) => {
+    const mod = widgetUrl.startsWith('https') ? https : http;
+    mod.get(widgetUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`HTTP ${res.statusCode} fetching stage-2 widget`));
+        res.resume();
+        return;
+      }
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => resolve(data));
+    }).on('error', reject);
+  });
+
+  console.log(`[${id}] fetched stage-2 — ${stage2Content.length} chars`);
+  console.log(`[${id}] stage-2 snippet (first 3000):\n${stage2Content.substring(0, 3000)}`);
+
+  // Stage 2 might be raw HTML or JS with document.write(). Try both.
+  // If it starts with '<' it's likely HTML
+  if (stage2Content.trim().startsWith('<')) {
+    return stage2Content;
+  }
+
+  // Otherwise extract HTML from document.write() or innerHTML assignments
   const htmlParts = [];
+
+  // Pattern 1: document.write("...HTML...")
   const writePattern = /document\.write\s*\(\s*["']([\s\S]*?)["']\s*\)/g;
   let match;
-  while ((match = writePattern.exec(jsContent)) !== null) {
-    // Unescape JS string escapes
-    const html = match[1]
-      .replace(/\\"/g, '"')
-      .replace(/\\'/g, "'")
-      .replace(/\\n/g, '\n')
-      .replace(/\\t/g, '\t')
-      .replace(/\\\\/g, '\\');
-    htmlParts.push(html);
+  while ((match = writePattern.exec(stage2Content)) !== null) {
+    htmlParts.push(match[1].replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\n/g, '\n'));
+  }
+
+  // Pattern 2: innerHTML = "...HTML..." or .innerHTML += "...HTML..."
+  const innerPattern = /\.innerHTML\s*[+]?=\s*["']([\s\S]*?)["']/g;
+  while ((match = innerPattern.exec(stage2Content)) !== null) {
+    htmlParts.push(match[1].replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\n/g, '\n'));
+  }
+
+  // Pattern 3: widgetCode[n] = "...HTML..."
+  const codePattern = /widgetCode\[\d+\]\s*=\s*["']([\s\S]*?)["']/g;
+  while ((match = codePattern.exec(stage2Content)) !== null) {
+    htmlParts.push(match[1].replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\n/g, '\n'));
   }
 
   if (htmlParts.length === 0) {
-    // Try alternate pattern with backticks or concatenation
-    console.log(`[${id}] no document.write() matches — JS snippet (first 2000):\n${jsContent.substring(0, 2000)}`);
+    console.log(`[${id}] no HTML extraction patterns matched in stage-2`);
     return null;
   }
 
   const fullHtml = htmlParts.join('\n');
-  console.log(`[${id}] extracted ${htmlParts.length} document.write() blocks — ${fullHtml.length} chars HTML`);
-  console.log(`[${id}] extracted HTML:\n${fullHtml.substring(0, 3000)}`);
+  console.log(`[${id}] extracted ${htmlParts.length} HTML blocks — ${fullHtml.length} chars`);
   return fullHtml;
 }
 
