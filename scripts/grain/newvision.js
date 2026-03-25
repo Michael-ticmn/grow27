@@ -1,19 +1,19 @@
 // scripts/grain/newvision.js
 // New Vision Cooperative — grain cash bid scraper
 // Source: newvision.coop/current-grain-prices/
-// Widget: AgriCharts/Barchart cashbids.php — injects tables via document.write().
-// Strategy: Navigate to the page and wait for the AgriCharts script to render
-// tables. The script is a <script src="//newvision.agricharts.com/..."> that
-// calls document.write() during page parse, generating per-location tables.
-// Cash-only (no basis/futures). 22 locations across southern MN.
-// robots.txt Crawl-delay: 10 — respected via 10s post-load wait.
+// Widget: AgriCharts/Barchart — two-stage loader.
+//   Stage 1 (cashbids.php): JS bootstrap that contains widgetURL pointing to stage 2.
+//   Stage 2 (cashbids-js.php): JS containing `var bids = [...]` JSON with all bid data.
+// Strategy: Navigate page → find agricharts script → fetch stage-1 → extract widgetURL →
+//   fetch stage-2 → parse JSON bids array directly.
+// 22 locations across southern MN. Cash prices with basis data.
+// robots.txt Crawl-delay: 10 — respected between all requests.
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
 
-const cheerio = require('cheerio');
-const https   = require('https');
-const http    = require('http');
+const https = require('https');
+const http  = require('http');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -53,39 +53,13 @@ function deliveryLabel(str) {
   return trimmed;
 }
 
-// ── Fetch AgriCharts widget HTML directly ────────────────────────────────────
-// The cashbids.php endpoint returns JavaScript containing document.write() calls.
-// We fetch that JS, extract the HTML strings from the document.write() calls,
-// and parse with cheerio. This avoids the document.write() timing issues in Puppeteer.
-
-async function fetchWidgetHtml(page, id) {
-  // First, navigate to the page to discover the agricharts script URL
-  const scriptUrl = await page.evaluate(() => {
-    const scripts = document.querySelectorAll('script[src*="agricharts"]');
-    if (scripts.length > 0) return scripts[0].src;
-    // Also check for inline script references
-    const allScripts = document.querySelectorAll('script[src*="cashbids"]');
-    if (allScripts.length > 0) return allScripts[0].src;
-    return null;
-  });
-
-  if (!scriptUrl) {
-    console.log(`[${id}] no agricharts script found on page, trying direct fetch approach`);
-    return null;
-  }
-
-  console.log(`[${id}] found agricharts script: ${scriptUrl}`);
-
-  // Respect crawl-delay before second request
-  console.log(`[${id}] respecting crawl-delay — waiting 10s before fetching widget`);
-  await new Promise(r => setTimeout(r, 10000));
-
-  // Fetch the script content server-side (not in-browser — CORS blocks fetch())
-  const jsContent = await new Promise((resolve, reject) => {
-    const mod = scriptUrl.startsWith('https') ? https : http;
-    mod.get(scriptUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+// Simple HTTPS/HTTP GET returning a string
+function httpGet(url) {
+  return new Promise((resolve, reject) => {
+    const mod = url.startsWith('https') ? https : http;
+    mod.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
       if (res.statusCode !== 200) {
-        reject(new Error(`HTTP ${res.statusCode} fetching agricharts script`));
+        reject(new Error(`HTTP ${res.statusCode}`));
         res.resume();
         return;
       }
@@ -94,181 +68,16 @@ async function fetchWidgetHtml(page, id) {
       res.on('end', () => resolve(data));
     }).on('error', reject);
   });
-
-  if (!jsContent) return null;
-
-  console.log(`[${id}] fetched agricharts stage-1 JS — ${jsContent.length} chars`);
-
-  // Stage 1 JS contains a widgetURL pointing to cashbids-js.php — the actual data endpoint.
-  // Extract it: widgetURL = '//newvision.agricharts.com/inc/cashbids/cashbids-js.php?...'
-  const widgetMatch = jsContent.match(/widgetURL\s*=\s*'([^']+)'/);
-  if (!widgetMatch) {
-    console.log(`[${id}] no widgetURL found in stage-1 JS`);
-    console.log(`[${id}] JS snippet (first 2000):\n${jsContent.substring(0, 2000)}`);
-    return null;
-  }
-
-  let widgetUrl = widgetMatch[1];
-  // Ensure absolute URL
-  if (widgetUrl.startsWith('//')) widgetUrl = 'https:' + widgetUrl;
-  // Strip dynamic parts that require browser context (acCnt, document.location.search)
-  widgetUrl = widgetUrl.replace(/&acCnt=.*$/, '');
-  console.log(`[${id}] stage-2 widget URL: ${widgetUrl}`);
-
-  // Respect crawl-delay before third request
-  console.log(`[${id}] respecting crawl-delay — waiting 10s before fetching stage-2`);
-  await new Promise(r => setTimeout(r, 10000));
-
-  // Fetch stage-2 — this returns the actual HTML tables (or JS that writes them)
-  const stage2Content = await new Promise((resolve, reject) => {
-    const mod = widgetUrl.startsWith('https') ? https : http;
-    mod.get(widgetUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
-      if (res.statusCode !== 200) {
-        reject(new Error(`HTTP ${res.statusCode} fetching stage-2 widget`));
-        res.resume();
-        return;
-      }
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve(data));
-    }).on('error', reject);
-  });
-
-  console.log(`[${id}] fetched stage-2 — ${stage2Content.length} chars`);
-  console.log(`[${id}] stage-2 snippet (first 3000):\n${stage2Content.substring(0, 3000)}`);
-
-  // Stage 2 might be raw HTML or JS with document.write(). Try both.
-  // If it starts with '<' it's likely HTML
-  if (stage2Content.trim().startsWith('<')) {
-    return stage2Content;
-  }
-
-  // Otherwise extract HTML from document.write() or innerHTML assignments
-  const htmlParts = [];
-
-  // Pattern 1: document.write("...HTML...")
-  const writePattern = /document\.write\s*\(\s*["']([\s\S]*?)["']\s*\)/g;
-  let match;
-  while ((match = writePattern.exec(stage2Content)) !== null) {
-    htmlParts.push(match[1].replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\n/g, '\n'));
-  }
-
-  // Pattern 2: innerHTML = "...HTML..." or .innerHTML += "...HTML..."
-  const innerPattern = /\.innerHTML\s*[+]?=\s*["']([\s\S]*?)["']/g;
-  while ((match = innerPattern.exec(stage2Content)) !== null) {
-    htmlParts.push(match[1].replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\n/g, '\n'));
-  }
-
-  // Pattern 3: widgetCode[n] = "...HTML..."
-  const codePattern = /widgetCode\[\d+\]\s*=\s*["']([\s\S]*?)["']/g;
-  while ((match = codePattern.exec(stage2Content)) !== null) {
-    htmlParts.push(match[1].replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\n/g, '\n'));
-  }
-
-  if (htmlParts.length === 0) {
-    console.log(`[${id}] no HTML extraction patterns matched in stage-2`);
-    return null;
-  }
-
-  const fullHtml = htmlParts.join('\n');
-  console.log(`[${id}] extracted ${htmlParts.length} HTML blocks — ${fullHtml.length} chars`);
-  return fullHtml;
-}
-
-// ── Parse the widget HTML with cheerio ───────────────────────────────────────
-// AgriCharts cashbids-js.php returns per-location tables with columns:
-//   Name | Notes | Cash Price | Delivery Start | Fut. Chg. | Basis | Basis Month
-// Location name appears as first <th> in the header row.
-// Commodity name (Corn, Soybeans) is in the "Name" column.
-
-function parseWidgetHtml(html, id, config) {
-  const $ = cheerio.load(html);
-  const locations = {};
-
-  const tables = $('table');
-  console.log(`[${id}] cheerio found ${tables.length} tables`);
-
-  tables.each((ti, table) => {
-    const $table = $(table);
-    const headerCells = $table.find('th').map((i, el) => $(el).text().trim()).get();
-
-    // The first <th> is the location name (e.g. "BREWSTER")
-    // Remaining headers: Name, Notes, Cash Price, Delivery Start, Fut. Chg., Basis, Basis Month
-    if (headerCells.length < 4) {
-      console.log(`[${id}] table ${ti}: too few headers (${headerCells.length}) — skipping`);
-      return;
-    }
-
-    const locationName = headerCells[0];
-    if (!locationName || /^name$/i.test(locationName)) return;
-
-    // Find column indices by header text
-    const nameIdx = headerCells.findIndex(h => /^name$/i.test(h));
-    const cashIdx = headerCells.findIndex(h => /cash\s*price/i.test(h));
-    const delIdx = headerCells.findIndex(h => /delivery/i.test(h));
-    const basisIdx = headerCells.findIndex(h => /^basis$/i.test(h));
-
-    if (cashIdx === -1 || delIdx === -1) {
-      console.log(`[${id}] table ${ti} (${locationName}): missing Cash Price or Delivery columns — headers: ${JSON.stringify(headerCells)}`);
-      return;
-    }
-
-    const commodities = { corn: [], beans: [] };
-    $table.find('tr').each((ri, row) => {
-      const cells = $(row).find('td');
-      if (cells.length < 3) return;
-
-      const name = nameIdx >= 0 ? $(cells[nameIdx]).text().trim() : '';
-      const cashText = $(cells[cashIdx - 1]).text().trim();  // -1 because first th is location, not a data column
-      const delText = $(cells[delIdx - 1]).text().trim();
-      const basisText = basisIdx >= 0 ? $(cells[basisIdx - 1]).text().trim() : null;
-
-      // Determine commodity from name
-      let key = null;
-      if (/corn/i.test(name)) key = 'corn';
-      else if (/soybean|bean/i.test(name)) key = 'beans';
-      if (!key) return;
-
-      const cash = parseCash(cashText);
-      if (cash === null) return;
-
-      commodities[key].push({
-        delivery:     deliveryLabel(delText),
-        cash:         cash,
-        futuresMonth: null,
-        basis:        parseCash(basisText),
-        change:       null,
-        cbot:         null,
-      });
-    });
-
-    // Match to configured location
-    const matchedLoc = matchLocation(locationName, config);
-    if (!matchedLoc) {
-      console.log(`[${id}] unmatched location: "${locationName}"`);
-      const slug = slugify(locationName);
-      locations[slug] = { name: locationName, ...commodities };
-    } else {
-      const slug = matchedLoc.slug || slugify(matchedLoc.name);
-      locations[slug] = { name: matchedLoc.name, ...commodities };
-    }
-
-    const cc = commodities.corn.length;
-    const bc = commodities.beans.length;
-    console.log(`[${id}] table ${ti}: location="${locationName}" — corn: ${cc}, beans: ${bc}`);
-  });
-
-  return locations;
 }
 
 // ── Main Parse Function ─────────────────────────────────────────────────────
 
 async function parse({ id, config, browser }) {
   const locations = {};
-  let lastError = null;
   const page = await browser.newPage();
 
   try {
+    // Step 1: Navigate to the page to find the agricharts script URL
     console.log(`[${id}] navigating to ${config.url}`);
     await page.goto(config.url, { waitUntil: 'networkidle2', timeout: 45000 });
 
@@ -276,85 +85,105 @@ async function parse({ id, config, browser }) {
     console.log(`[${id}] respecting crawl-delay — waiting 10s`);
     await new Promise(r => setTimeout(r, 10000));
 
-    // Approach 1: try to fetch the AgriCharts widget HTML directly
-    const widgetHtml = await fetchWidgetHtml(page, id);
+    const scriptUrl = await page.evaluate(() => {
+      const scripts = document.querySelectorAll('script[src*="agricharts"], script[src*="cashbids"]');
+      return scripts.length > 0 ? scripts[0].src : null;
+    });
 
-    if (widgetHtml) {
-      const parsed = parseWidgetHtml(widgetHtml, id, config);
-      Object.assign(locations, parsed);
+    if (!scriptUrl) {
+      console.error(`[${id}] no agricharts script found on page`);
+      return { locations: {}, source: 'fetch_failed', error: 'no agricharts script found' };
+    }
+    console.log(`[${id}] found stage-1 script: ${scriptUrl}`);
+
+    // Step 2: Fetch stage-1 JS to get the widgetURL
+    console.log(`[${id}] respecting crawl-delay — waiting 10s`);
+    await new Promise(r => setTimeout(r, 10000));
+
+    const stage1 = await httpGet(scriptUrl);
+    console.log(`[${id}] fetched stage-1 — ${stage1.length} chars`);
+
+    const widgetMatch = stage1.match(/widgetURL\s*=\s*'([^']+)'/);
+    if (!widgetMatch) {
+      console.error(`[${id}] no widgetURL in stage-1 JS`);
+      return { locations: {}, source: 'fetch_failed', error: 'no widgetURL found' };
     }
 
-    // Approach 2: if widget fetch failed, try DOM scraping (in case tables rendered)
-    if (Object.keys(locations).length === 0 || !Object.values(locations).some(l => l.corn.length > 0 || l.beans.length > 0)) {
-      console.log(`[${id}] widget fetch approach found no data — trying DOM scrape`);
+    let widgetUrl = widgetMatch[1];
+    if (widgetUrl.startsWith('//')) widgetUrl = 'https:' + widgetUrl;
+    widgetUrl = widgetUrl.replace(/&acCnt=.*$/, '');
+    console.log(`[${id}] stage-2 URL: ${widgetUrl}`);
 
-      // Wait for tables that might have rendered
-      await page.waitForSelector('table', { timeout: 10000 })
-        .catch(() => console.warn(`[${id}] no tables in DOM either`));
+    // Step 3: Fetch stage-2 JS containing the JSON bids data
+    console.log(`[${id}] respecting crawl-delay — waiting 10s`);
+    await new Promise(r => setTimeout(r, 10000));
 
-      const domData = await page.evaluate(() => {
-        const results = [];
-        const tables = document.querySelectorAll('table');
-        const monthPattern = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*\d{2}/i;
+    const stage2 = await httpGet(widgetUrl);
+    console.log(`[${id}] fetched stage-2 — ${stage2.length} chars`);
 
-        for (const table of tables) {
-          const headerCells = Array.from(table.querySelectorAll('th, thead td'))
-            .map(el => el.textContent.trim());
-          const deliveryHeaders = headerCells.filter(h => monthPattern.test(h));
-          if (deliveryHeaders.length === 0) continue;
+    // Step 4: Extract the bids JSON from `var bids = [...]`
+    const bidsMatch = stage2.match(/var\s+bids\s*=\s*(\[[\s\S]*?\]);/);
+    if (!bidsMatch) {
+      console.error(`[${id}] no "var bids = [...]" found in stage-2`);
+      console.log(`[${id}] stage-2 first 1000 chars:\n${stage2.substring(0, 1000)}`);
+      return { locations: {}, source: 'fetch_failed', error: 'no bids JSON found' };
+    }
 
-          // Find location name from preceding element
-          let locName = null;
-          let el = table.previousElementSibling;
-          let attempts = 0;
-          while (el && attempts < 3) {
-            const text = el.textContent.trim();
-            if (text && text.length < 80 && !/commodity/i.test(text)) {
-              locName = text;
-              break;
-            }
-            el = el.previousElementSibling;
-            attempts++;
-          }
-          if (!locName) continue;
+    let bids;
+    try {
+      bids = JSON.parse(bidsMatch[1]);
+    } catch (e) {
+      console.error(`[${id}] JSON parse failed: ${e.message}`);
+      return { locations: {}, source: 'fetch_failed', error: 'bids JSON parse failed' };
+    }
 
-          const rows = table.querySelectorAll('tr');
-          for (const row of rows) {
-            const cells = row.querySelectorAll('td');
-            if (cells.length < 2) continue;
-            const commodity = cells[0].textContent.trim();
-            if (!/^(corn|soybeans?)$/i.test(commodity)) continue;
+    console.log(`[${id}] parsed ${bids.length} location entries from JSON`);
 
-            const bids = [];
-            const deliveryIndices = [];
-            for (let i = 0; i < headerCells.length; i++) {
-              if (monthPattern.test(headerCells[i])) deliveryIndices.push(i);
-            }
-            for (let j = 0; j < deliveryIndices.length; j++) {
-              const price = cells[deliveryIndices[j]]?.textContent?.trim();
-              if (price && price !== '-' && price !== '') {
-                bids.push({ delivery: deliveryHeaders[j], cash: price });
-              }
-            }
-            results.push({ location: locName, commodity, bids });
-          }
+    // Step 5: Process each location's cashbids
+    for (const loc of bids) {
+      const locName = (loc.name || loc.display_name || '').trim();
+      if (!locName) continue;
+
+      const matchedLoc = matchLocation(locName, config);
+      const slug = matchedLoc
+        ? (matchedLoc.slug || slugify(matchedLoc.name))
+        : slugify(locName);
+      const displayName = matchedLoc ? matchedLoc.name : locName;
+
+      const corn = [];
+      const beans = [];
+
+      for (const bid of (loc.cashbids || [])) {
+        const commodity = (bid.name || '').trim();
+        const cash = parseCash(bid.cashprice || bid.price);
+        const delivery = deliveryLabel(bid.delivery_start);
+
+        if (cash === null || !delivery) continue;
+
+        const entry = {
+          delivery,
+          cash,
+          futuresMonth: null,
+          basis:        bid.basis != null ? Number(bid.basis) / 100 : null,  // basis is in cents
+          change:       null,
+          cbot:         null,
+        };
+
+        if (/corn/i.test(commodity)) {
+          corn.push(entry);
+        } else if (/soybean|bean/i.test(commodity)) {
+          beans.push(entry);
         }
-        return results;
-      });
+      }
 
-      if (domData.length > 0) {
-        console.log(`[${id}] DOM scrape found ${domData.length} commodity rows`);
-        for (const item of domData) {
-          const matchedLoc = matchLocation(item.location, config);
-          if (!matchedLoc) continue;
-          const slug = matchedLoc.slug || slugify(matchedLoc.name);
-          if (!locations[slug]) locations[slug] = { name: matchedLoc.name, corn: [], beans: [] };
-          const key = /^corn$/i.test(item.commodity) ? 'corn' : 'beans';
-          locations[slug][key] = item.bids.map(b => ({
-            delivery: deliveryLabel(b.delivery), cash: parseCash(b.cash),
-            futuresMonth: null, basis: null, change: null, cbot: null,
-          })).filter(b => b.cash !== null && b.delivery);
-        }
+      locations[slug] = { name: displayName, corn, beans };
+
+      const cc = corn.length;
+      const bc = beans.length;
+      if (cc > 0 || bc > 0) {
+        console.log(`[${id}:${slug}] corn: ${cc} bids, beans: ${bc} bids`);
+        if (cc > 0) console.log(`[${id}:${slug}]   corn nearby: $${corn[0].cash} (${corn[0].delivery})`);
+        if (bc > 0) console.log(`[${id}:${slug}]   beans nearby: $${beans[0].cash} (${beans[0].delivery})`);
       }
     }
 
@@ -364,15 +193,6 @@ async function parse({ id, config, browser }) {
       if (!locations[slug]) {
         locations[slug] = { name: loc.name, corn: [], beans: [] };
       }
-    }
-
-    // Log results
-    for (const [slug, data] of Object.entries(locations)) {
-      const cc = data.corn?.length || 0;
-      const bc = data.beans?.length || 0;
-      console.log(`[${id}:${slug}] corn: ${cc} bids, beans: ${bc} bids`);
-      if (cc > 0) console.log(`[${id}:${slug}]   corn nearby: $${data.corn[0].cash} (${data.corn[0].delivery})`);
-      if (bc > 0) console.log(`[${id}:${slug}]   beans nearby: $${data.beans[0].cash} (${data.beans[0].delivery})`);
     }
 
   } catch (err) {
@@ -387,10 +207,10 @@ async function parse({ id, config, browser }) {
   console.log(`\n[${id}] scrape complete — ${locCount} locations (${withData} with data)`);
 
   if (withData === 0) {
-    return { locations, source: 'fetch_failed', error: lastError || 'no locations with bid data' };
+    return { locations, source: 'fetch_failed', error: 'no locations with bid data' };
   }
 
-  return { locations, source: 'scraped', error: lastError };
+  return { locations, source: 'scraped' };
 }
 
 // ── Location matching ────────────────────────────────────────────────────────
