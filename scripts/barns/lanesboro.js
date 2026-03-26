@@ -121,64 +121,74 @@ function toRange(row) {
 function parseTopProducers($, h5s, id) {
   const sales = { finished: [], cows: [], bulls: [] };
 
-  // Build ordered list of all text nodes: section headers (from divs) + h5 values
-  // We need section context, so walk the DOM to find section dividers
-  let currentSection = null;
-  const sectionMap = new Map(); // h5-index → section name
+  // Walk DOM in order to build an event stream: section headers + sale entries.
+  // Section headers ("Market Beef", "Market Dairy", "Market Cows", "Market Bulls")
+  // are in <div> elements; sale entries are h5 groups (NAME:/DESCRIPTION:/WEIGHT:/PRICE:).
+  // We collect all elements in DOM order and track section context.
+  const events = []; // { type: 'section'|'h5', text }
 
-  // Scan for section header divs — they contain "Market Beef", "Market Dairy", etc.
-  // Track which h5 index each section starts before
-  const sectionHeaders = [];
-  $('div').each((_, el) => {
+  // Walk all elements in body to get DOM order
+  $('body *').each((_, el) => {
+    const tag = el.tagName?.toLowerCase();
     const text = $(el).text().trim();
-    if (/^market\s*(beef|dairy|cows|bulls)/i.test(text) && text.length < 40) {
-      sectionHeaders.push(text);
+    if (!text) return;
+    // Only process leaf-ish elements to avoid parent div duplication
+    if (tag === 'h5') {
+      events.push({ type: 'h5', text });
+    } else if (tag === 'div' && /^market\s*(beef|dairy|cows\s*(&|and)?\s*bulls?|bulls?|cows?)/i.test(text) && text.length < 30) {
+      events.push({ type: 'section', text });
     }
   });
-  console.log(`[${id}] top producer sections found: ${sectionHeaders.join(', ')}`);
 
-  // Walk h5 sequence looking for NAME: groups
-  let i = 0;
-  // Track which section we're in based on the price rows that precede top producers
-  // The summary price rows (HIGH CHOICE BEEF, etc.) come first, then top producer rows
-  // Section transitions happen when we see the pattern change
+  // Map section text to category
+  function sectionToCategory(text) {
+    const t = text.toLowerCase();
+    if (/market\s*beef/i.test(t) || /market\s*dairy/i.test(t)) return 'finished';
+    if (/cows?\s*(&|and)?\s*bulls?/i.test(t)) return 'cows'; // combined section — classify by price later
+    if (/cow/i.test(t)) return 'cows';
+    if (/bull/i.test(t)) return 'bulls';
+    return 'finished';
+  }
 
-  // Classify each sale by description content since DOM section tracking is fragile
-  while (i < h5s.length - 7) {
-    if (!/^name:$/i.test(h5s[i])) { i++; continue; }
+  // Walk events, tracking current section
+  let currentCategory = 'finished';
+  let h5Buf = [];
 
-    // Validate the field markers
-    if (!/^description:$/i.test(h5s[i + 2])) { i++; continue; }
-    if (!/^weight:$/i.test(h5s[i + 4])) { i++; continue; }
-    if (!/^price:$/i.test(h5s[i + 6])) { i++; continue; }
+  function flushSale() {
+    if (h5Buf.length < 8) { h5Buf = []; return; }
+    // Validate field markers
+    if (!/^name:$/i.test(h5Buf[0]) || !/^description:$/i.test(h5Buf[2]) ||
+        !/^weight:$/i.test(h5Buf[4]) || !/^price:$/i.test(h5Buf[6])) {
+      h5Buf = [];
+      return;
+    }
 
-    const name = h5s[i + 1];
-    const desc = h5s[i + 3];
-    const weightRaw = h5s[i + 5];
-    const priceRaw = h5s[i + 7];
+    const name = h5Buf[1];
+    const desc = h5Buf[3];
+    const weight = parseInt(h5Buf[5]);
+    const price = parseFloat(h5Buf[7]);
+    h5Buf = [];
 
-    const weight = parseInt(weightRaw);
-    const price = parseFloat(priceRaw);
+    if (isNaN(price) || price < 50 || price > 500) return;
 
-    if (isNaN(price) || price < 50 || price > 500) { i += 8; continue; }
-
-    // Classify cattle type from description
     let cattleType = 'beef';
     const descUp = desc.toUpperCase();
     if (/HOL/i.test(descUp)) cattleType = 'holstein';
     else if (/BWF|RWF|XBRD|CROSS|DAIRY/i.test(descUp)) cattleType = 'crossbred';
 
-    // Classify sex
     let sex = 'steer';
     if (/HFR/i.test(descUp)) sex = 'heifer';
     else if (/COW/i.test(descUp)) sex = 'cow';
     else if (/BULL/i.test(descUp)) sex = 'bull';
 
-    // Classify category by weight + description
-    let category;
-    if (/COW/i.test(descUp)) category = 'cows';
-    else if (/BULL/i.test(descUp) && !/STR|HFR/i.test(descUp)) category = 'bulls';
-    else category = 'finished'; // slaughter cattle (high weights = finished)
+    // Use section context for category; for "Cows & Bulls" combined section,
+    // split by price: bulls typically > $160, cows < $160 (rough heuristic)
+    let category = currentCategory;
+    if (currentCategory === 'cows' && price > 160 && !isNaN(weight) && weight < 2000) {
+      // Could be bull — but keep as-is since the section says cows/bulls
+      // Use sex hint if available
+      if (/BULL/i.test(descUp)) category = 'bulls';
+    }
 
     sales[category].push({
       location: name,
@@ -189,9 +199,23 @@ function parseTopProducers($, h5s, id) {
       weight: isNaN(weight) ? null : weight,
       price,
     });
-
-    i += 8;
   }
+
+  for (const evt of events) {
+    if (evt.type === 'section') {
+      flushSale(); // flush any pending
+      currentCategory = sectionToCategory(evt.text);
+      console.log(`[${id}] top producer section: "${evt.text}" → ${currentCategory}`);
+    } else if (evt.type === 'h5') {
+      // Start of new group?
+      if (/^name:$/i.test(evt.text) && h5Buf.length > 0) {
+        flushSale();
+      }
+      h5Buf.push(evt.text);
+      if (h5Buf.length === 8) flushSale();
+    }
+  }
+  flushSale();
 
   console.log(`[${id}] top producers — finished: ${sales.finished.length}, cows: ${sales.cows.length}, bulls: ${sales.bulls.length}`);
 
