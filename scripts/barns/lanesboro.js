@@ -229,30 +229,60 @@ async function parse({ id, browser, html, $ }) {
   }
   console.log(`[${id}] h5 preview: ${h5s.slice(0, 20).join(' | ')}`);
 
-  // Extract report date and head count from <p> tags or h5 sequence
+  // Extract report date and head count
   let reportDate = null;
   let headCount = null;
 
-  // Check <p> tags for date line like "March 25th 2026 | 1512 Head sold"
+  // Strategy 1: <p> tags with "head sold" (Wednesday post-sale report)
   $('p').each((_, el) => {
     const pText = $(el).text().trim();
     if (/\d{4}/.test(pText) && /head\s*sold/i.test(pText)) {
-      reportDate = parseReportDate(pText);
-      const hm = pText.match(/([\d,]+)\s*head/i);
-      if (hm) headCount = parseInt(hm[1].replace(/,/g, ''));
-      console.log(`[${id}] date from <p>: ${reportDate}, head: ${headCount}`);
+      const d = parseReportDate(pText);
+      if (d) {
+        reportDate = d;
+        const hm = pText.match(/([\d,]+)\s*head/i);
+        if (hm) headCount = parseInt(hm[1].replace(/,/g, ''));
+        console.log(`[${id}] date from <p> (head sold): ${reportDate}, head: ${headCount}`);
+      }
     }
   });
 
-  // Also check h5 nodes for date
+  // Strategy 2: <p> tags with a date and year (Friday or any page)
+  if (!reportDate) {
+    $('p').each((_, el) => {
+      if (reportDate) return; // already found
+      const pText = $(el).text().trim();
+      if (/\d{4}/.test(pText) && pText.length < 120) {
+        const d = parseReportDate(pText);
+        if (d) {
+          reportDate = d;
+          console.log(`[${id}] date from <p> (general): ${reportDate} ("${pText.slice(0, 60)}")`);
+        }
+      }
+    });
+  }
+
+  // Strategy 3: h5 nodes containing a date (e.g. "Wednesday Cattle Auction Report")
   if (!reportDate) {
     for (const h of h5s) {
-      if (/auction\s*report/i.test(h) || /\d{4}/.test(h)) {
+      if (/\d{4}/.test(h)) {
         const d = parseReportDate(h);
         if (d) { reportDate = d; console.log(`[${id}] date from h5: ${reportDate}`); break; }
       }
     }
   }
+
+  // Strategy 4: any text node with day name + date pattern
+  if (!reportDate) {
+    const bodyText = $.text();
+    const dm = bodyText.match(/((?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+)?(\w+\s+\d{1,2}\w{0,2},?\s+\d{4})/i);
+    if (dm) {
+      const d = parseReportDate(dm[2] || dm[0]);
+      if (d) { reportDate = d; console.log(`[${id}] date from body text: ${reportDate}`); }
+    }
+  }
+
+  console.log(`[${id}] reportDate: ${reportDate}`);
 
   // Parse all price rows from h5 sequence
   const rows = parsePriceRows(h5s, id);
