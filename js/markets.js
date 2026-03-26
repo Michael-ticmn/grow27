@@ -2894,7 +2894,7 @@ function renderBarnTrend() {
 
   var typeLabels = { beef: 'Beef Steer', crossbred: 'Beef x Dairy', holstein: 'Holstein' };
   var catLabel = cat === 'slaughter' ? 'Slaughter' : 'Feeder';
-  if (foot) foot.textContent = _barnTrendData.name + ' · ' + catLabel + ' · ' + (typeLabels[type] || type) + ' · ' + entries.length + ' sale days · ¢/lb';
+  if (foot) foot.textContent = _barnTrendData.name + ' · ' + catLabel + ' · ' + (typeLabels[type] || type) + ' · ' + midpoints.length + ' sale days · ¢/lb';
 
   if (_barnTrendChart) _barnTrendChart.destroy();
 
