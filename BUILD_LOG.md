@@ -4,6 +4,34 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.116 (2026-03-25)
+
+### Cattle Charts Overhaul
+- **Replaced fake chart data with real Yahoo Finance historical data** — `genHistory()` random-walk charts replaced with actual CME daily closes
+- **Server-side futures scraper** — `scripts/scrape-futures-history.js` fetches 5-year daily data for 6 tickers (LE, GF, ZC, ZS, DC, ZM) + 5-year monthly for seasonal analysis, writes `data/prices/futures-history.json` (~264KB)
+- **GitHub Actions workflow** — `.github/workflows/scrape-futures.yml` runs Mon–Fri after market close (5pm CT + 7pm CT backup), auto-pushes to UserUpdates and main
+- **Frontend reads static JSON** — no CORS proxies for chart data. `loadFuturesHistory()` fetches once, cached for session. Instant range switching
+- **Expanded range buttons** — 7D · 14D · 30D · 90D · 6M · 1Y · 2Y · 5Y (was 7D/30D/90D/180D)
+- **X-axis labels** — `M/D` for short ranges, `Mon 'YY` for 6M+. Tooltips always show full date (e.g. "Mar 25, 2025")
+- **Cattle type adjusts charts** — switching beef/crossbred/holstein applies discount offset to all chart series and spread
+- **Real seasonal pattern** — computed from 5-year monthly CME LE=F closes, not hardcoded. Shows % deviation from each year's annual mean. Clearly labeled with year range and methodology
+
+### Futures / Auction Chart Toggle
+- **Futures view** — 4 CME charts (live cattle, feeder, corn, spread) + seasonal companion panel
+- **Auction view** — combined multi-barn chart with all scraped barns overlaid (color-coded), slaughter/feeder toggle. Responds to cattle type selection
+- **Auction insights** — top insight shows best barn and barn-to-barn spread. Detail panel shows per-barn trend analysis with latest price, % change, range position
+- **Sale day calendar** — companion panel shows next 14 days of barn sales with sale type tags (Cattle, Slaughter, Feeder, Cattle & Hogs) per barn per day
+
+### Data Reliability Fixes
+- **Jennie-O forward contract filter** — Aug26 corn bid no longer appears in grain insight "best price" (flagged as `cornForward`). Still shows in buyer table with delivery tag
+- **GF=F encoding fix** — removed `encodeURIComponent` from Yahoo URL path (was double-encoding `=` through CORS proxies). Added `getNearbyContract()` fallback to specific month symbol (e.g. `GFJ26.CME`)
+- **Loading indicator** — spinner shown while futures charts load, hidden when data renders
+
+### Spread Chart Context
+- Added inline description to spread chart title: "finished sell price minus feeder buy price (¢/lb) · wider = more profit per head · narrower = tighter feed-and-finish margins"
+
+---
+
 ## v1.32–v1.65 (2026-03-22 → 2026-03-24)
 
 ### Barn Scraper & OCR Pipeline (v1.32–v1.37)

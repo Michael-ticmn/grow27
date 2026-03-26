@@ -60,8 +60,17 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 ### CBOT Futures Display
 | Source | Usage | Status |
 |--------|-------|--------|
-| Yahoo Finance (`ZC=F`, `ZS=F`, `LE=F`, `GF=F`, `DC=F`, `ZM=F`) | Primary — cached batch fetch, 10-min TTL | Active |
+| Yahoo Finance (client-side, `ZC=F` etc.) | Real-time price cards — cached batch fetch, 10-min TTL | Active |
+| `data/prices/futures-history.json` | Historical charts + seasonal — scraped daily by GitHub Actions | Active |
 | Scraped grain data (CFS, AGP, etc.) | Override — `parseCbotNotation()` extracts CBOT from bid data | Active |
+
+### Data Pipeline
+| Component | Schedule | Status |
+|-----------|----------|--------|
+| Barn scraper (Central, Lanesboro, Rock Creek) | Daily 4am + 7am CT | Running |
+| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision) | Mon–Fri 4am + 7am CT | Running |
+| Futures history scraper (LE, GF, ZC, ZS, DC, ZM) | Mon–Fri 5pm + 7pm CT | New |
+| Auto-push data to main | After each scrape | Running |
 
 ### PWA Modules & Tabs
 ```
@@ -83,6 +92,7 @@ ABOUT — data sources, app info
 - History files: no cap (was 14, removed v1.82) — monitor site speed
 
 ### Refresh Intervals (frontend)
-- Futures prices: Yahoo Finance, cached 10 min (prefetched at startup, all tickers in one burst)
+- Futures price cards: Yahoo Finance client-side, cached 10 min (prefetched at startup)
+- Futures charts + seasonal: `futures-history.json`, loaded once per session (~264KB, scraped daily)
 - Scraped grain/barn data: loaded once on init from pre-scraped index
 - Weather: every 30 min
