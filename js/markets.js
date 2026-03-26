@@ -1260,6 +1260,7 @@ const GRAIN_SCRAPE_MAP = {
   cv_madelia:        { source: 'crystalvalley', location: 'madelia' },
   trimont:           { source: 'crystalvalley', location: 'trimont' },
   cv_vernonctr:      { source: 'crystalvalley', location: 'vernon-center' },
+  alcorn:            { source: 'alcorn', location: 'claremont' },
 };
 let GRAIN_SCRAPED = {}; // populated by loadGrainScrapedData()
 let GRAIN_SCRAPE_DATES = {}; // { sourceId: "2026-03-22" }
