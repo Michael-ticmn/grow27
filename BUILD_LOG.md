@@ -4,6 +4,19 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.117–v1.121 (2026-03-26)
+
+### Al-Corn Clean Fuel Grain Parser
+- **Built `scripts/grain/alcorn.js`** — parser for Al-Corn Clean Fuel (Claremont MN), corn only
+- **CIH widget** (not DTN) — `table.cih-table` inside `div.cih-loc-card` containers, `select#cih-location-filter` to isolate Al-Corn from HCP location
+- Dynamic column mapping from header row: Delivery | Futures (month+price in same cell) | Change | Basis | Bid (cash)
+- Futures cell splitting: `"May 26\n \n 4.6425"` → `futuresMonth: "May26"`, `cbot: "4.6425"`
+- Added `GRAIN_SCRAPE_MAP` entry: `alcorn` → `alcorn` source / `claremont` location
+- 13 delivery months captured (Mar26–May27), basis + futures month + CBOT price stored
+- Green datetime badge now showing on live site
+
+---
+
 ## v1.116 (2026-03-25)
 
 ### Cattle Charts Overhaul
