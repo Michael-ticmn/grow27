@@ -34,7 +34,7 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.125%0A%0AFeedback%3A%0A">Feedback</a>
+    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.126%0A%0AFeedback%3A%0A">Feedback</a>
     <div class="clock-bar">
       <span><span class="status-dot"></span><span id="status-txt">Loading...</span></span>
       <div style="font-size:12px;color:var(--txt3);" id="last-updated-txt">—</div>
@@ -48,8 +48,21 @@
 
 <!-- ── LOADER ── -->
 <div class="page-loader" id="page-loader">
-  <div class="loader-icon"><img src="icons/icon-192.png" alt="" width="64" height="64"></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:24px;">
+    <div class="loader-icon"><img src="icons/icon-192.png" alt="" width="360" height="360"></div>
+    <div id="loader-tagline" style="font-size:14px;letter-spacing:2px;color:var(--corn);opacity:0;transition:opacity .6s ease;font-style:italic;text-align:center;"></div>
+  </div>
 </div>
+<script>
+(function(){
+  var tags=['watching so you don\'t have to','worth more than its weight','your data never leaves your machine','built for the operation, not the investor','free intelligence, private records'];
+  var el=document.getElementById('loader-tagline');
+  if(!el)return;
+  var i=Math.floor(Math.random()*tags.length);
+  function show(){el.textContent=tags[i];el.style.opacity='1';setTimeout(function(){el.style.opacity='0';setTimeout(function(){i=(i+1)%tags.length;show();},600);},2800);}
+  setTimeout(show,1500);
+})();
+</script>
 
 <!-- ══════════════════════════════════════════════════
      MODULE: MARKETS
@@ -806,7 +819,7 @@
      MODULE: ABOUT
 ══════════════════════════════════════════════════ -->
 <div class="module" id="mod-about">
-  <div class="content" style="max-width:680px;margin:0 auto;padding:40px 28px;">
+  <div class="content" style="max-width:680px;margin:0 auto;padding:40px 28px;font-weight:500;">
 
     <div style="margin-bottom:32px;">
       <div style="font-size:28px;font-weight:700;color:var(--corn);letter-spacing:-1px;margin-bottom:6px;">grow27</div>
@@ -819,95 +832,135 @@
       </div>
     </div>
 
-    <div style="font-size:15px;color:var(--txt2);line-height:1.9;margin-bottom:32px;">
-      grow27 started with a simple idea — the same intelligence and automation tools available to large agricultural operations should be accessible to every farm, regardless of size.
+    <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:20px;">
+      grow27 started in southern Minnesota, on a real operation, with a real problem.
     </div>
-
-    <div style="font-size:15px;color:var(--txt2);line-height:1.9;margin-bottom:32px;">
-      Originally engineered for southern Minnesota operations —with a special thanks to #27, DFM, &amp; MFM— grow27 was built to scale beyond a single farm. Our goal is to empower every operation with the same advanced tools, real-time data, and automated insights, bridging the gap between spend and capability.
+    <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:20px;">
+      The first version pulled estimated national data and ran it through a margin calculator. The feedback was immediate: <em style="color:var(--corn);">"these aren't my numbers."</em>
+    </div>
+    <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:20px;">
+      That was the product. Not the calculator &mdash; the gap between what the tools showed and what the operation actually faced. Local buyers. Real basis. Actual prices from the elevator down the road.
+    </div>
+    <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:32px;">
+      grow27 was built to close that gap. Built for #27, DFM, and MFM &mdash; then built for every operation that deserves the same intelligence.
     </div>
 
     <div id="about-platform" style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
       <div style="font-size:13px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">The Platform</div>
-      <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
-        grow27 is the platform. #27Markets is the first piece of it —watching the boards so you don't have to— with live grain and cattle market data, local buyer prices, and margin calculators built for working farmers. #27Herd, #27Fields, and #27Finance are coming, each adding another layer of intelligence to the operation.
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        grow27 is farm intelligence without farm surveillance.
+      </div>
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        <strong style="color:var(--corn);">#27Markets</strong> is live now &mdash; watching grain and cattle prices, local cash bids, auction barn results, and feed input costs so you don't have to check five tabs every morning. No account. No login. Works in your browser or installs to your home screen like a native app.
+      </div>
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        <strong style="color:var(--txt2);">#27Herd, #27Fields, and #27Finance</strong> are coming. Each adds another layer of intelligence to the operation &mdash; animal records, field history, financials. When they arrive, they'll live on your machine, not ours.
+      </div>
+      <div style="font-size:16px;color:#fff;line-height:1.9;">
+        The market intelligence layer is free and always will be. The operation management layer is where the real records live &mdash; local-first, encrypted, yours.
       </div>
     </div>
 
     <div id="about-free" style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
       <div style="font-size:13px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Why It's Free</div>
-      <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
-        grow27 is hosted directly on GitHub Pages and doesn't store any personal information. There are no accounts, no tracking, and no data leaving your device. Because we don't hold your data, we don't charge for access. Everything runs directly in your browser.
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        Most ag tech is free until it isn't. Then it's a subscription, a data agreement, or both.
       </div>
-      <div style="font-size:14px;color:var(--txt3);line-height:1.9;margin-top:12px;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--border2);border-radius:0 4px 4px 0;">
-        Future versions may offer optional data storage — contract tracking, herd records, field history — but that will always be your choice.
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        grow27 is different. We don't hold your data &mdash; so we don't charge for access.
+      </div>
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        #27Markets runs entirely in your browser. grow27 never sees what you look up, what prices you're watching, or what margins you're running. There are no accounts, no tracking pixels, no analytics pipelines sending your behavior somewhere else.
+      </div>
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        When operation records arrive &mdash; herd logs, field history, financials &mdash; they'll live on your device, encrypted. Not our servers. Not our data to monetize.
+      </div>
+      <div style="font-size:14px;color:var(--txt2);line-height:1.9;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--corn);border-radius:0 4px 4px 0;">
+        grow27 never sees your data. It never touches our servers. It lives on your machine, encrypted, period.
+      </div>
+      <div style="font-size:14px;color:var(--txt3);line-height:1.9;margin-top:12px;">
+        Future versions may offer optional cloud backup &mdash; always your choice, never required.
       </div>
     </div>
 
     <div id="about-ai" style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
       <div style="font-size:13px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Built with AI</div>
-      <div style="font-size:15px;color:var(--txt2);line-height:1.9;">
-        grow27 was designed and built using AI-assisted development, proving that powerful, professional tools don't require a large team or budget to build. That's the point.
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        grow27 was built by one person, with AI as a co-developer.
       </div>
-      <div style="font-size:15px;color:var(--txt2);line-height:1.9;">watching the overhead so you don't have to</div>
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        That's not a limitation &mdash; it's the point.
+      </div>
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        The same tools that used to require a team of analysts are now available to a single operator willing to use them. grow27 was proof of that before it was a product. Every decision stayed close to the actual problem because there was no team to dilute it, no roadmap committee, no pitch deck to satisfy.
+      </div>
+      <div style="font-size:16px;color:#fff;line-height:1.9;margin-bottom:16px;">
+        The same AI that built this platform is what powers it &mdash; surfacing insights, watching the boards, flagging what matters. We're not hiding that. We're proud of it.
+      </div>
+      <div style="font-size:16px;color:#fff;line-height:1.9;">
+        The future of farming tools looks like this: small teams, smart systems, zero bloat. grow27 is one operation's proof that it works.
+      </div>
     </div>
 
     <div id="about-sources" style="border-top:1px solid var(--border);padding-top:28px;margin-bottom:28px;">
-      <div style="font-size:13px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Data Sources</div>
+      <div style="font-size:13px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px;">Where the Data Comes From</div>
       <div style="font-size:14px;color:var(--txt2);line-height:1.9;margin-bottom:16px;">
-        grow27 is transparent about where our data comes from. All market data is gathered from publicly available sources and refreshed automatically.
+        grow27 is transparent about every source. All market data is pulled from publicly available sources and refreshed automatically &mdash; no black boxes, no "proprietary data" that can't be verified.
       </div>
 
-      <div style="font-size:12px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin:20px 0 10px;">Grain — Cash Bids</div>
+      <div style="font-size:12px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin:20px 0 10px;">Grain &mdash; Cash Bids</div>
+      <div style="font-size:13px;color:var(--txt3);margin-bottom:10px;">Scraped directly from each elevator's posted bids. What you see is what they're showing on their own site &mdash; not an estimate, not a national average.</div>
       <table style="width:100%;font-size:13px;color:var(--txt2);border-collapse:collapse;">
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Central Farm Service</td><td style="padding:6px 0;color:var(--txt3);">13 locations · corn &amp; beans</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Central Farm Service</td><td style="padding:6px 0;color:var(--txt3);">13 southern MN locations · corn &amp; beans</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Minnesota Valley Grain</td><td style="padding:6px 0;color:var(--txt3);">3 locations · corn &amp; beans</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Ag Partners</td><td style="padding:6px 0;color:var(--txt3);">13 locations · corn &amp; beans</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">CHS</td><td style="padding:6px 0;color:var(--txt3);">2 locations · corn &amp; beans</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Jennie-O Turkey Store</td><td style="padding:6px 0;color:var(--txt3);">4 locations · corn</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">New Vision Cooperative</td><td style="padding:6px 0;color:var(--txt3);">22 locations · corn &amp; beans</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">New Vision Cooperative</td><td style="padding:6px 0;color:var(--txt3);">22 southern MN locations · corn &amp; beans</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Crystal Valley Cooperative</td><td style="padding:6px 0;color:var(--txt3);">7 locations · corn &amp; beans</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Al-Corn Clean Fuel</td><td style="padding:6px 0;color:var(--txt3);">Claremont MN · corn</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">POET Biorefining</td><td style="padding:6px 0;color:var(--txt3);">Bingham Lake &amp; Albert Lea · corn &amp; beans</td><td style="padding:6px 0;color:var(--txt3);">Blocked</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Jennie-O Turkey Store</td><td style="padding:6px 0;color:var(--txt3);">4 MN locations · corn</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
       </table>
-      <div style="font-size:12px;color:var(--txt3);margin-top:6px;font-style:italic;">Jennie-O data via farmbucks.com — no basis. POET blocked by Gradable platform bot protection — estimated basis shown.</div>
+      <div style="font-size:12px;color:var(--txt3);margin-top:6px;">Jennie-O data via farmbucks.com &mdash; cash only, no basis. Cash bids update daily.</div>
 
-      <div style="font-size:12px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin:20px 0 10px;">Grain — Futures</div>
+      <div style="font-size:12px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin:20px 0 10px;">Grain &mdash; Futures</div>
       <table style="width:100%;font-size:13px;color:var(--txt2);border-collapse:collapse;">
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">CBOT Corn &amp; Soybeans</td><td style="padding:6px 0;color:var(--txt3);">Nearby &amp; deferred contracts</td><td style="padding:6px 0;color:var(--green);">Live</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">CBOT Corn &amp; Soybeans</td><td style="padding:6px 0;color:var(--txt3);">Nearby &amp; deferred contracts</td><td style="padding:6px 0;color:var(--green);">Live · 10-min cache</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">CBOT Soybean Meal</td><td style="padding:6px 0;color:var(--txt3);">Nearby contract · feed cost calc</td><td style="padding:6px 0;color:var(--green);">Live</td></tr>
       </table>
-      <div style="font-size:12px;color:var(--txt3);margin-top:6px;font-style:italic;">Futures data via Yahoo Finance — mirrors CME/CBOT settlement prices.</div>
+      <div style="font-size:12px;color:var(--txt3);margin-top:6px;">Futures via Yahoo Finance &mdash; mirrors CME/CBOT settlement prices. Refreshes every 10 minutes during market hours.</div>
 
-      <div style="font-size:12px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin:20px 0 10px;">Cattle — Auction Barns</div>
+      <div style="font-size:12px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin:20px 0 10px;">Cattle &mdash; Auction Barns</div>
+      <div style="font-size:13px;color:var(--txt3);margin-bottom:10px;">Scraped from each barn's posted market reports after each sale day.</div>
       <table style="width:100%;font-size:13px;color:var(--txt2);border-collapse:collapse;">
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Central Livestock Association</td><td style="padding:6px 0;color:var(--txt3);">Zumbrota MN · Mon &amp; Wed sales</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Lanesboro Sales Commission</td><td style="padding:6px 0;color:var(--txt3);">Lanesboro MN · Wed &amp; Fri sales</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Rock Creek Livestock Market</td><td style="padding:6px 0;color:var(--txt3);">Pine City MN · Mon &amp; Wed sales</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Sleepy Eye Auction Market</td><td style="padding:6px 0;color:var(--txt3);">Sleepy Eye MN</td><td style="padding:6px 0;color:var(--txt3);">Pending</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Central Livestock Association</td><td style="padding:6px 0;color:var(--txt3);">Zumbrota MN · Mon &amp; Wed</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Lanesboro Sales Commission</td><td style="padding:6px 0;color:var(--txt3);">Lanesboro MN · Wed (slaughter) · Fri (feeder)</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Rock Creek Livestock Market</td><td style="padding:6px 0;color:var(--txt3);">Pine City MN · Mon &amp; Wed</td><td style="padding:6px 0;color:var(--green);">Active</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Sleepy Eye Auction Market</td><td style="padding:6px 0;color:var(--txt3);">Sleepy Eye MN · Wed</td><td style="padding:6px 0;color:var(--txt3);">Pending</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Pipestone Livestock Auction</td><td style="padding:6px 0;color:var(--txt3);">Pipestone MN</td><td style="padding:6px 0;color:var(--txt3);">Pending</td></tr>
       </table>
+      <div style="font-size:12px;color:var(--txt3);margin-top:6px;">Cattle type discounts (Beef x Dairy, Holstein) sourced from USDA AMS published schedules.</div>
 
-      <div style="font-size:12px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin:20px 0 10px;">Cattle — Futures &amp; Reference</div>
+      <div style="font-size:12px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin:20px 0 10px;">Cattle &mdash; Futures &amp; Reference</div>
       <table style="width:100%;font-size:13px;color:var(--txt2);border-collapse:collapse;">
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">CME Live Cattle</td><td style="padding:6px 0;color:var(--txt3);">Nearby contract</td><td style="padding:6px 0;color:var(--green);">Live</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">CME Feeder Cattle</td><td style="padding:6px 0;color:var(--txt3);">Nearby contract</td><td style="padding:6px 0;color:var(--green);">Live</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">USDA AMS Feeder Summary</td><td style="padding:6px 0;color:var(--txt3);">National weighted avg by weight</td><td style="padding:6px 0;color:var(--green);">Live</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">USDA AMS Feeder Summary</td><td style="padding:6px 0;color:var(--txt3);">National weighted avg by weight class</td><td style="padding:6px 0;color:var(--green);">Live</td></tr>
       </table>
 
       <div style="font-size:12px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin:20px 0 10px;">Dairy</div>
       <table style="width:100%;font-size:13px;color:var(--txt2);border-collapse:collapse;">
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">CME Class 3 Milk</td><td style="padding:6px 0;color:var(--txt3);">Nearby contract</td><td style="padding:6px 0;color:var(--green);">Live</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">USDA Order 30 (Upper Midwest)</td><td style="padding:6px 0;color:var(--txt3);">Class 1 announced price</td><td style="padding:6px 0;color:var(--green);">Live</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">CME Class III Milk</td><td style="padding:6px 0;color:var(--txt3);">Nearby contract</td><td style="padding:6px 0;color:var(--green);">Live</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">USDA Order 30 &mdash; Upper Midwest</td><td style="padding:6px 0;color:var(--txt3);">Class I announced price · updated monthly</td><td style="padding:6px 0;color:var(--green);">Live</td></tr>
       </table>
+      <div style="font-size:12px;color:var(--txt3);margin-top:6px;">Plant premiums are estimated from publicly available cooperative announcements. Verify with your plant's monthly price announcement or fieldman.</div>
 
       <div style="font-size:12px;color:var(--txt3);margin-top:16px;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--border2);border-radius:0 4px 4px 0;">
-        All data is collected from publicly available sources. We respect robots.txt directives and pause scraping when sites restrict automated access. Futures prices refresh every 15–30 minutes during market hours. Scraped cash bids update daily via automated workflows.
+        grow27 respects robots.txt directives and pauses scraping when sites restrict automated access. If a source goes dark, the data card shows the last known value with a timestamp so you always know what you're looking at. All data is collected from publicly available sources.
       </div>
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:24px;font-size:12px;color:var(--txt3);letter-spacing:1px;text-align:center;">
-      grow27 · southern Minnesota · <span class="app-version">v1.125</span> · © 2026
+      grow27 · southern Minnesota · <span class="app-version">v1.126</span> · © 2026
     </div>
 
   </div>
@@ -917,7 +970,7 @@
 <footer class="g27-footer">
   <div class="g27-footer-wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="24" style="display:inline-block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg></div>
   <div class="g27-footer-tagline">#27 — worth more than its weight</div>
-  <div class="g27-footer-copy"><span class="app-version">v1.125</span> · © 2026 grow27 · All rights reserved</div>
+  <div class="g27-footer-copy"><span class="app-version">v1.126</span> · © 2026 grow27 · All rights reserved</div>
 </footer>
 
 <!-- ── BARN TREND MODAL ── -->
@@ -968,14 +1021,15 @@
 </nav>
 
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script defer src="js/markets.js?v=1.125"></script>
-<script defer src="js/data-loader.js?v=1.125"></script>
-<script defer src="js/app.js?v=1.125"></script>
+<script defer src="js/markets.js?v=1.126"></script>
+<script defer src="js/data-loader.js?v=1.126"></script>
+<script defer src="js/app.js?v=1.126"></script>
 
 <!-- ── MOBILE FEEDBACK FAB ── -->
-<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.125%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
+<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.126%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
 </body>
 </html>
+
 
 
 

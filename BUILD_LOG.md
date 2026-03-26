@@ -4,7 +4,7 @@ Chronological record of what was built, when, and why.
 
 ---
 
-## v1.117–v1.121 (2026-03-26)
+## v1.117–v1.125 (2026-03-26)
 
 ### Al-Corn Clean Fuel Grain Parser
 - **Built `scripts/grain/alcorn.js`** — parser for Al-Corn Clean Fuel (Claremont MN), corn only
@@ -14,6 +14,22 @@ Chronological record of what was built, when, and why.
 - Added `GRAIN_SCRAPE_MAP` entry: `alcorn` → `alcorn` source / `claremont` location
 - 13 delivery months captured (Mar26–May27), basis + futures month + CBOT price stored
 - Green datetime badge now showing on live site
+
+### POET Biorefining — Shelved
+- **Built `scripts/grain/poet.js`** — parser for Gradable platform (React SPA), two locations (Bingham Lake, Albert Lea)
+- **Blocked by Gradable WAF** — returns 403 to headless browsers from datacenter IPs despite permissive `robots.txt`
+- **Shelved** — parser disabled in `grain-config.json`, not worth bypassing bot protection
+- POET Bingham Lake (Area 1) and Albert Lea (Area 2) remain as curated elevators with estimated basis
+
+### Estimated Buyer Badges
+- **`est.` badge** on cash price table — non-scraped buyers now show a muted `est.` tag next to cash price
+- **Basis hidden** for estimated rows — basis column left blank when not from actual scraped data (was showing colored basis indistinguishable from real data)
+- Scraped buyers keep green datetime badge + colored basis as before
+
+### About Page & How To Updates
+- **About data sources** — added New Vision (22 loc), Crystal Valley (7 loc), Al-Corn (1 loc), POET (blocked). Fixed Lanesboro and Rock Creek from Pending → Active
+- **Grain How To** — added `est.` badge explanation
+- **Cattle How To** — added Charts section (Futures view with 5yr history/seasonal, Auction view with multi-barn overlay/sale calendar)
 
 ---
 
