@@ -493,6 +493,13 @@ const GRAIN_SCRAPE_MAP = {
   chs:               { source: 'chs', location: 'fairmont' },
   jennyo:            { source: 'jennieo', location: 'faribault-mill' },
   newvision:         { source: 'newvision', location: 'mountain-lake' },
+  cv_hope:           { source: 'crystalvalley', location: 'hope' },
+  cv_jackson:        { source: 'crystalvalley', location: 'jackson' },
+  cv_lasalle:        { source: 'crystalvalley', location: 'la-salle' },
+  cv_lakecrystal:    { source: 'crystalvalley', location: 'lake-crystal' },
+  cv_madelia:        { source: 'crystalvalley', location: 'madelia' },
+  trimont:           { source: 'crystalvalley', location: 'trimont' },
+  cv_vernonctr:      { source: 'crystalvalley', location: 'vernon-center' },
 };
 let GRAIN_SCRAPED = {}; // populated by loadGrainScrapedData()
 let GRAIN_SCRAPE_DATES = {}; // { sourceId: "2026-03-22" }
