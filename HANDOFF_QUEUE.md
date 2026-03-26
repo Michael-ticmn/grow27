@@ -275,3 +275,5 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - ✅ [Code] Yahoo Finance migration: replaced Stooq with Yahoo for all futures cards, cached batch fetch, exchange timestamps — 2026-03-25 (v1.115)
 - ✅ [Code] Cattle charts overhaul: real 5yr historical data, server-side scraper, Futures/Auction toggle, seasonal pattern, insights, sale calendar, expanded range buttons — 2026-03-25 (v1.116)
 - ✅ [Code] Al-Corn grain parser built — CIH widget, corn only, Claremont MN, GRAIN_SCRAPE_MAP wired — 2026-03-26 (v1.117–v1.121)
+- ✅ [Code] POET Biorefining parser built then shelved — Gradable WAF blocks headless browsers, disabled in config — 2026-03-26 (v1.123–v1.124)
+- ✅ [Code] Est. badge + hidden basis for non-scraped buyers, About page + How To updates — 2026-03-26 (v1.125)
