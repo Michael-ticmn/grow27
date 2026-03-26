@@ -243,7 +243,72 @@ function getContractMonths() {
   return { cornNearby: fmt(cornNearby), cornNewCrop: fmt(cornNewCrop), soyNearby: fmt(soyNearby), soyNewCrop: fmt(soyNewCrop) };
 }
 
-// Stooq fallback values — used only if Stooq fetch fails AND no scraped CBOT available
+// ── YAHOO FINANCE FUTURES — cached batch fetch ───────────────────────────────
+// All tickers fetched once, cached for 10 min. No duplicate requests.
+const _yahooCache = {};           // sym → { data, ts }
+const YAHOO_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+// Fetch a single Yahoo ticker. Returns raw meta or null.
+async function _fetchYahooRaw(sym) {
+  const now = Date.now();
+  const cached = _yahooCache[sym];
+  if (cached && (now - cached.ts) < YAHOO_CACHE_TTL) return cached.data;
+  const url = 'https://query2.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?range=1d&interval=1d';
+  const proxies = [url, 'https://corsproxy.io/?' + encodeURIComponent(url), 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)];
+  try {
+    let r;
+    for (const p of proxies) { try { r = await fetch(p, { signal: AbortSignal.timeout(6000) }); if (r.ok) break; } catch(_) {} }
+    if (!r || !r.ok) throw 0;
+    const j = await r.json();
+    const meta = j.chart.result[0].meta;
+    _yahooCache[sym] = { data: meta, ts: now };
+    return meta;
+  } catch { return null; }
+}
+
+// Public API: get formatted price data for a ticker.
+// divisor: 100 for grain (Yahoo returns cents, we store $/bu), 1 for cattle/dairy.
+async function fetchYahoo(sym, divisor) {
+  const d = divisor || 1;
+  const meta = await _fetchYahooRaw(sym);
+  if (!meta) return null;
+  const close = meta.regularMarketPrice / d;
+  const prev  = meta.chartPreviousClose / d;
+  const high  = (meta.regularMarketDayHigh || meta.regularMarketPrice) / d;
+  const low   = (meta.regularMarketDayLow  || meta.regularMarketPrice) / d;
+  const change = close - prev;
+  // regularMarketTime = Unix epoch seconds from the exchange
+  const marketTime = meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000) : null;
+  return { price: close, open: prev, high: high, low: low, change: change, pct: (change / prev) * 100, marketTime: marketTime };
+}
+
+// Pre-fetch all tickers in one burst so individual loaders hit cache.
+// Called once at startup from app.js — subsequent calls within 10 min are no-ops.
+async function prefetchYahoo() {
+  const cm = getContractMonths();
+  function parseCm(str) { const p = str.split(' '); return { name: p[0], year: 2000 + parseInt(p[1]) }; }
+  const cn2sym = grainYahooSym('ZC', parseCm(cm.cornNewCrop).name, parseCm(cm.cornNewCrop).year);
+  const sb2sym = grainYahooSym('ZS', parseCm(cm.soyNewCrop).name, parseCm(cm.soyNewCrop).year);
+  const tickers = ['ZC=F', cn2sym, 'ZS=F', sb2sym, 'LE=F', 'GF=F', 'DC=F', 'ZM=F'];
+  // Stagger slightly (200ms gaps) to avoid Yahoo rate-limiting
+  const results = [];
+  for (let i = 0; i < tickers.length; i++) {
+    results.push(_fetchYahooRaw(tickers[i]));
+    if (i < tickers.length - 1) await new Promise(r => setTimeout(r, 200));
+  }
+  await Promise.all(results);
+  console.log('[yahoo] prefetched ' + tickers.length + ' tickers, cached for 10 min');
+}
+
+// Build Yahoo symbol for a specific grain contract month.
+// monthCode: F=Jan H=Mar K=May N=Jul Q=Aug U=Sep X=Nov Z=Dec
+// e.g. cornYahoo('Dec', 2026) → 'ZCZ26.CBT'
+function grainYahooSym(prefix, monthName, year) {
+  const codes = { Jan:'F', Mar:'H', May:'K', Jul:'N', Aug:'Q', Sep:'U', Nov:'X', Dec:'Z' };
+  return prefix + (codes[monthName] || 'K') + String(year).slice(2) + '.CBT';
+}
+
+// Fallback values — used only if Yahoo fetch fails AND no scraped CBOT available
 const fb_grain={cn:{price:4.3475,open:4.3100,high:4.3775,low:4.2875,change:0.0375,pct:0.87},cn2:{price:4.5225,open:4.4900,high:4.5500,low:4.4750,change:0.0325,pct:0.72},sb:{price:9.7225,open:9.6800,high:9.8100,low:9.6200,change:0.0425,pct:0.44},sb2:{price:10.045,open:10.010,high:10.120,low:9.970,change:0.0350,pct:0.35}};
 
 // Parse CBOT grain notation: "458'4" → 4.585, "1153'4" → 11.535
@@ -273,14 +338,22 @@ function extractScrapedCbot() {
 
 async function loadGrainPrices(){
   const fb=fb_grain;
-  async function fetchOne(sym){try{const r=await fetchTimeout('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv',5000);const t=await r.text();const cols=t.trim().split('\n')[1]?.split(',');if(!cols)throw 0;const[open,high,low,close]=[3,4,5,6].map(i=>parseFloat(cols[i]));if(isNaN(close))throw 0;return{price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};}catch{return null;}}
-  const[cn,cn2,sb,sb2]=await Promise.all([fetchOne('c.f'),fetchOne('ch.f'),fetchOne('s.f'),fetchOne('sh.f')]);
+  // Yahoo: ZC=F (corn nearby), ZS=F (soy nearby), deferred built from contract months
+  const cm=getContractMonths();
+  // Parse "Dec 26" → { name:'Dec', year:2026 }
+  function parseCm(str){ const p=str.split(' '); return {name:p[0], year:2000+parseInt(p[1])}; }
+  const cn2sym = grainYahooSym('ZC', parseCm(cm.cornNewCrop).name, parseCm(cm.cornNewCrop).year);
+  const sb2sym = grainYahooSym('ZS', parseCm(cm.soyNewCrop).name, parseCm(cm.soyNewCrop).year);
+  const[cn,cn2,sb,sb2]=await Promise.all([fetchYahoo('ZC=F',100),fetchYahoo(cn2sym,100),fetchYahoo('ZS=F',100),fetchYahoo(sb2sym,100)]);
   GRAIN_DATA={cn:cn||fb.cn,cn2:cn2||fb.cn2,sb:sb||fb.sb,sb2:sb2||fb.sb2};
-  const isLive=[cn,cn2,sb,sb2].some(Boolean);document.getElementById('status-txt').textContent=isLive?'Live data':'Recent values';cbotNow=new Date();const cbotTs='as of '+cbotNow.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' '+cbotNow.toLocaleDateString('en-US',{month:'short',day:'numeric'});['cn','cn2','sb','sb2'].forEach(id=>{const el=document.getElementById('cbot-ts-'+id);if(el)el.textContent=cbotTs;});
+  const isLive=[cn,cn2,sb,sb2].some(Boolean);document.getElementById('status-txt').textContent=isLive?'Live data':'Recent values';
+  // Use exchange timestamp from Yahoo (not page-load time)
+  cbotNow=cn?.marketTime||new Date();
+  const cbotTs='as of '+cbotNow.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' '+cbotNow.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  ['cn','cn2','sb','sb2'].forEach(id=>{const el=document.getElementById('cbot-ts-'+id);if(el)el.textContent=cbotTs;});
   function setCard(id,d){const el=document.getElementById('p-'+id);el.textContent='$'+d.price.toFixed(4);el.style.color=d.change>0.003?'var(--up)':d.change<-0.003?'var(--down)':'var(--corn)';document.getElementById('h-'+id).textContent=d.high.toFixed(4);document.getElementById('l-'+id).textContent=d.low.toFixed(4);document.getElementById('v-'+id).textContent=d.open.toFixed(4);setBadge('b-'+id,d.change,d.pct);}
   setCard('cn',GRAIN_DATA.cn);setCard('cn2',GRAIN_DATA.cn2);setCard('sb',GRAIN_DATA.sb);setCard('sb2',GRAIN_DATA.sb2);
   // Update card names with actual contract months
-  const cm=getContractMonths();
   const nameMap={cn:cm.cornNearby+' Corn',cn2:cm.cornNewCrop+' Corn',sb:cm.soyNearby+' Beans',sb2:cm.soyNewCrop+' Beans'};
   for(const[id,label]of Object.entries(nameMap)){const el=document.querySelector('#p-'+id)?.closest('.card')?.querySelector('.card-name');if(el)el.textContent=label;}
   buildCashTable();
@@ -293,8 +366,8 @@ let CATTLE_DATA={lc:null,fc:null,cn:null},histRange=90,charts={};
 
 async function loadCattlePrices(){
   const fb={lc:{price:231.50,open:230.90,high:232.10,low:229.80,change:0.60,pct:0.26},fc:{price:354.50,open:349.85,high:355.35,low:345.08,change:4.65,pct:1.33},cn:{price:4.5250,open:4.4875,high:4.5750,low:4.4600,change:0.0375,pct:0.84}};
-  async function fetchOne(sym){try{const r=await fetchTimeout('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv',5000);const t=await r.text();const cols=t.trim().split('\n')[1]?.split(',');if(!cols)throw 0;const[open,high,low,close]=[3,4,5,6].map(i=>parseFloat(cols[i]));if(isNaN(close))throw 0;return{price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};}catch{return null;}}
-  const[lc,fc,cn]=await Promise.all([fetchOne('lc.f'),fetchOne('fc.f'),fetchOne('c.f')]);
+  // Yahoo: LE=F (live cattle), GF=F (feeder cattle), ZC=F (corn — cents, /100 for $/bu)
+  const[lc,fc,cn]=await Promise.all([fetchYahoo('LE=F',1),fetchYahoo('GF=F',1),fetchYahoo('ZC=F',100)]);
   CATTLE_DATA={lc:lc||fb.lc,fc:fc||fb.fc,cn:cn||fb.cn};
   function set(id,suffix,d,isCorn){const fmt=v=>isCorn?v.toFixed(4):v.toFixed(2);const el=document.getElementById('p-'+id+suffix);if(!el)return;el.textContent=isCorn?'$'+fmt(d.price):fmt(d.price);el.style.color=d.change>0.005?'var(--up)':d.change<-0.005?'var(--down)':'var(--corn)';const h=document.getElementById('h-'+id+suffix);const l=document.getElementById('l-'+id+suffix);const v=document.getElementById('v-'+id+suffix);if(h)h.textContent=fmt(d.high);if(l)l.textContent=fmt(d.low);if(v)v.textContent=fmt(d.open);setBadge('b-'+id+suffix,d.change,d.pct);}
   set('lc','-c',CATTLE_DATA.lc,false); // NOTE: cattle corn card uses suffix -c to avoid ID clash with grain
@@ -559,14 +632,14 @@ async function loadGrainScrapedData() {
     // Use these as the authoritative CBOT price — they match what basis is quoted against.
     const scrapedCbot = extractScrapedCbot();
     if (scrapedCbot.corn != null || scrapedCbot.beans != null) {
-      const stooqFailed = GRAIN_DATA.cn.price === fb_grain.cn.price;
+      const yahooFailed = GRAIN_DATA.cn.price === fb_grain.cn.price;
       if (scrapedCbot.corn != null) {
         GRAIN_DATA.cn.price = scrapedCbot.corn;
-        if (stooqFailed) { GRAIN_DATA.cn.open = scrapedCbot.corn; GRAIN_DATA.cn.high = scrapedCbot.corn; GRAIN_DATA.cn.low = scrapedCbot.corn; GRAIN_DATA.cn.change = 0; GRAIN_DATA.cn.pct = 0; }
+        if (yahooFailed) { GRAIN_DATA.cn.open = scrapedCbot.corn; GRAIN_DATA.cn.high = scrapedCbot.corn; GRAIN_DATA.cn.low = scrapedCbot.corn; GRAIN_DATA.cn.change = 0; GRAIN_DATA.cn.pct = 0; }
       }
       if (scrapedCbot.beans != null) {
         GRAIN_DATA.sb.price = scrapedCbot.beans;
-        if (stooqFailed) { GRAIN_DATA.sb.open = scrapedCbot.beans; GRAIN_DATA.sb.high = scrapedCbot.beans; GRAIN_DATA.sb.low = scrapedCbot.beans; GRAIN_DATA.sb.change = 0; GRAIN_DATA.sb.pct = 0; }
+        if (yahooFailed) { GRAIN_DATA.sb.open = scrapedCbot.beans; GRAIN_DATA.sb.high = scrapedCbot.beans; GRAIN_DATA.sb.low = scrapedCbot.beans; GRAIN_DATA.sb.change = 0; GRAIN_DATA.sb.pct = 0; }
       }
       // Re-render cards with updated CBOT values
       function setCard(id,d){const el=document.getElementById('p-'+id);if(!el)return;el.textContent='$'+d.price.toFixed(4);el.style.color=d.change>0.003?'var(--up)':d.change<-0.003?'var(--down)':'var(--corn)';document.getElementById('h-'+id).textContent=d.high.toFixed(4);document.getElementById('l-'+id).textContent=d.low.toFixed(4);document.getElementById('v-'+id).textContent=d.open.toFixed(4);setBadge('b-'+id,d.change,d.pct);}
@@ -1575,40 +1648,23 @@ function buildBarnTable() {
 }
 
 // ── FEED INPUT CARD PRICES ────────────────────────────────────────────────────
-// Soybean meal: Stooq SM.F (CBOT futures $/ton)
+// Soybean meal: Yahoo ZM=F (CBOT futures $/ton)
 // DDG & Alfalfa: USDA AMS IA/MN weekly hay/feed report PDF fallback to reasonable defaults
 async function loadFeedInputPrices() {
-  // Soybean meal futures via Stooq — ticker zm.f (CBOT ZM contract)
+  // Soybean meal futures via Yahoo — ZM=F (CBOT ZM nearby contract, $/ton)
   try {
-    const stooqUrl = 'https://stooq.com/q/l/?s=zmw00.f&f=sd2t2ohlcv&h&e=csv';
-    const proxies = [
-      'https://corsproxy.io/?' + encodeURIComponent(stooqUrl),
-      'https://api.allorigins.win/raw?url=' + encodeURIComponent(stooqUrl),
-    ];
-    let r;
-    for (const p of proxies) {
-      try { r = await fetch(p, { signal: AbortSignal.timeout(8000) }); if (r.ok) break; } catch(_) {}
-    }
-    if (!r || !r.ok) throw new Error('all proxies failed');
-    const t = await r.text();
-    const cols = t.trim().split('\n')[1]?.split(',');
-    if(cols) {
-      const price = parseFloat(cols[6]);
-      if(!isNaN(price) && price > 50) {
-        const open  = parseFloat(cols[3]);
-        const change = price - open;
-        const pct   = (change / open) * 100;
-        const el = document.getElementById('p-sbm');
-        if(el) el.textContent = '$' + price.toFixed(2);
-        setBadge('b-sbm', change, pct);
-        // Also sync margin calc sbm price slider
-        const sbmpEl = document.getElementById('sbmp');
-        const sbmpN  = document.getElementById('sbmp-n');
-        if(sbmpEl) sbmpEl.value = price.toFixed(0);
-        if(sbmpN)  sbmpN.value  = price.toFixed(0);
-        setFieldVal('sbmp-val', '$' + price.toFixed(0));
-      }
-    }
+    const sbm = await fetchYahoo('ZM=F', 1);
+    if (sbm && sbm.price > 50) {
+      const el = document.getElementById('p-sbm');
+      if(el) el.textContent = '$' + sbm.price.toFixed(2);
+      setBadge('b-sbm', sbm.change, sbm.pct);
+      // Also sync margin calc sbm price slider
+      const sbmpEl = document.getElementById('sbmp');
+      const sbmpN  = document.getElementById('sbmp-n');
+      if(sbmpEl) sbmpEl.value = sbm.price.toFixed(0);
+      if(sbmpN)  sbmpN.value  = sbm.price.toFixed(0);
+      setFieldVal('sbmp-val', '$' + sbm.price.toFixed(0));
+    } else { throw 0; }
   } catch(e) {
     // Fallback: show recent avg
     const el = document.getElementById('p-sbm');
@@ -2207,23 +2263,13 @@ function updateOrd30Card() {
   const dateEl = document.getElementById('dairy-blend-date');
   if(dateEl) dateEl.textContent = isGradeA
     ? 'Class I = Class III + $'+ORDER30.class1Diff.toFixed(2)+' diff · '+ORDER30.month
-    : 'CME dc.f · Class III futures · nearby contract · '+ORDER30.month;
+    : 'CME · Class III futures · nearby contract · '+ORDER30.month;
 }
 
 async function loadDairyPrices() {
   const fb = {dc:{price:18.45,open:18.20,high:18.70,low:18.00,change:0.25,pct:1.37}};
-  async function fetchOne(sym) {
-    try {
-      const r = await fetchTimeout('https://stooq.com/q/l/?s='+sym+'&f=sd2t2ohlcv&h&e=csv',5000);
-      const t = await r.text();
-      const cols = t.trim().split('\n')[1]?.split(',');
-      if(!cols) throw 0;
-      const [open,high,low,close] = [3,4,5,6].map(i=>parseFloat(cols[i]));
-      if(isNaN(close)) throw 0;
-      return {price:close,open,high,low,change:close-open,pct:((close-open)/open)*100};
-    } catch { return null; }
-  }
-  const dc = await fetchOne('dc.f');
+  // Yahoo: DC=F (Class III milk nearby) — returns $/cwt, no conversion needed
+  const dc = await fetchYahoo('DC=F', 1);
   DAIRY_DATA = {dc: dc||fb.dc};
 
   // Class III card

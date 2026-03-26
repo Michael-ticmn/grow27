@@ -198,17 +198,10 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 
 ---
 
-### [ ] [FROM: Code] Dedicated CBOT futures scraper — QUEUED 2026-03-25
+### [x] [FROM: Code] Dedicated CBOT futures scraper — RESOLVED 2026-03-25
 - **Date queued:** 2026-03-25
-- **Task:** Build a lightweight CBOT-only scraper using Yahoo Finance (or similar) that writes `data/prices/cbot.json`
-- **Why:** Stooq client-side fetch is unreliable (fails on localhost and live site). Scraped grain data provides CBOT as fallback but only runs 2x/day. Need a dedicated futures feed.
-- **Requirements:**
-  - Fetch corn nearby, corn new crop (Dec), soybeans nearby, soybeans new crop (Nov) — OHLCV
-  - Include market open/closed indicator for frontend display
-  - Run every 15–30 min during market hours (CBOT grains: 8:30am–1:20pm CT, Sun–Fri electronic: 7pm–7:45am CT)
-  - Write to `data/prices/cbot.json` — frontend reads this file instead of client-side Stooq calls
-  - GitHub Actions workflow: `scrape-cbot.yml`
-- **Symbols (Yahoo Finance):** `ZC=F` (corn nearby), `ZCZ26.CBT` (Dec corn), `ZS=F` (soy nearby), `ZSX26.CBT` (Nov soy)
+- **Resolution:** Replaced Stooq with Yahoo Finance client-side fetch. `prefetchYahoo()` fetches all 8 tickers at startup, cached 10 min. No server-side scraper needed — Yahoo v8 chart API is reliable from the browser with CORS proxy fallback.
+- **Symbols:** `ZC=F`, `ZCZ26.CBT`, `ZS=F`, `ZSX26.CBT`, `LE=F`, `GF=F`, `DC=F`, `ZM=F`
 
 ---
 
@@ -228,8 +221,8 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - **Status:** Not urgent, not on the radar. Future build when needed.
 
 ### 2. Remaining barn parsers
-- **Context:** 3 of 5 configured barns (Lanesboro, Sleepy Eye, Pipestone) have no parser — they return `pending`. Rock Creek completed 2026-03-24.
-- **Decision needed:** Priority order for remaining three? Do Lanesboro, Sleepy Eye, or Pipestone publish online reports? Use `rockcreek.js` as reference for PDF-based barns.
+- **Context:** 2 of 5 configured barns (Sleepy Eye, Pipestone) have no parser — they return `pending`. Rock Creek completed 2026-03-24. Lanesboro completed 2026-03-25.
+- **Decision needed:** Priority order for remaining two? Do Sleepy Eye or Pipestone publish online reports?
 
 ### 3. Herd / Fields / Finance modules
 - **Context:** All three are placeholder stubs (2-line JS files). The tab structure exists in `index.html` but no content.
@@ -265,3 +258,6 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - ✅ [Chat] New Vision Cooperative parser prompt finalized — 2026-03-24 (robots.txt clear, 22 locations, overlaps mapped)
 - ✅ [Code] New Vision parser built, validated, 22/22 locations with data — 2026-03-25 (v1.87–v1.101)
 - ✅ [Code] Frontend: dynamic CBOT labels, scraped CBOT fallback, green badge, blank empties — 2026-03-25 (v1.100–v1.101)
+- ✅ [Code] Lanesboro Sales Commission parser built — Wed slaughter + Top Producers, Fri feeder, HTML scrape — 2026-03-25 (v1.106–v1.114)
+- ✅ [Code] Trend modal fix: sale day count uses actual data points not total entries — 2026-03-25 (v1.114)
+- ✅ [Code] Yahoo Finance migration: replaced Stooq with Yahoo for all futures cards, cached batch fetch, exchange timestamps — 2026-03-25 (v1.115)
