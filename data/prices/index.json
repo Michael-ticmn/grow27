@@ -819,18 +819,12 @@
     "location": "Lanesboro MN",
     "lastSuccess": "2026-03-26",
     "slaughter": {
-      "beef": {
-        "low": 220,
-        "high": 245
-      },
+      "beef": null,
       "crossbred": null,
-      "holstein": {
-        "low": 225,
-        "high": 237
-      }
+      "holstein": null
     },
-    "slaughterSaleDay": "Wednesday",
-    "slaughterDate": "2026-03-26",
+    "slaughterSaleDay": null,
+    "slaughterDate": null,
     "feeder": {
       "beef": null,
       "crossbred": null,
@@ -841,37 +835,11 @@
     "feederSaleDay": null,
     "feederDate": null,
     "repSales": null,
-    "saleDay": "Wednesday",
+    "saleDay": null,
     "liteTestNote": null,
-    "saleDays": [
-      {
-        "day": "Wednesday",
-        "date": "2026-03-26",
-        "slaughter": {
-          "beef": {
-            "low": 220,
-            "high": 245
-          },
-          "crossbred": null,
-          "holstein": {
-            "low": 225,
-            "high": 237
-          }
-        },
-        "feeder": {
-          "beef": null,
-          "crossbred": null,
-          "holstein": null,
-          "liteTest": false
-        },
-        "feederWeights": [],
-        "repSales": null,
-        "hogs": null,
-        "liteTestNote": null
-      }
-    ],
+    "saleDays": null,
     "trend": null,
-    "source": "scraped"
+    "source": "pending"
   },
   {
     "id": "rockcreek",
