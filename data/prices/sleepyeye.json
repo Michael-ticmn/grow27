@@ -3,7 +3,7 @@
   "name": "Sleepy Eye Auction Market",
   "location": "Sleepy Eye MN",
   "lastUpdated": "2026-03-26",
-  "lastSuccess": null,
+  "lastSuccess": "2026-03-25",
   "history": [
     {
       "date": "2026-03-26",
@@ -19,6 +19,27 @@
         "liteTest": false
       },
       "source": "pending"
+    },
+    {
+      "date": "2026-03-26",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": null,
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "fetch_failed",
+      "error": "no prices found in report HTML"
     },
     {
       "date": "2026-03-25",
@@ -66,25 +87,58 @@
       "source": "pending"
     },
     {
-      "date": "2026-03-26",
+      "date": "2026-03-25",
       "slaughter": {
-        "beef": null,
+        "beef": {
+          "low": 199,
+          "high": 235.5
+        },
         "crossbred": null,
-        "holstein": null
+        "holstein": {
+          "low": 168,
+          "high": 213
+        }
       },
       "feeder": {
-        "beef": null,
+        "beef": {
+          "low": 230.77,
+          "high": 425
+        },
         "crossbred": null,
         "holstein": null,
         "liteTest": false
       },
-      "feederWeights": [],
-      "saleDay": null,
+      "feederWeights": [
+        {
+          "range": "200–299#",
+          "low": 230.77,
+          "price": 230.77,
+          "types": [
+            "beef"
+          ]
+        },
+        {
+          "range": "300–399#",
+          "low": 425,
+          "price": 425,
+          "types": [
+            "beef"
+          ]
+        },
+        {
+          "range": "500–599#",
+          "low": 345,
+          "price": 345,
+          "types": [
+            "beef"
+          ]
+        }
+      ],
+      "saleDay": "Wednesday",
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
-      "source": "fetch_failed",
-      "error": "no prices found in report HTML"
+      "source": "scraped"
     }
   ]
 }
