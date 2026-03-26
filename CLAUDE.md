@@ -67,13 +67,13 @@ Claude edits files directly in the local repo. Michael validates locally before 
 - `data/prices/<id>.json` — per-barn history, max 14 entries / 14 days
 - `data/prices/index.json` — latest snapshot, one entry per barn (what the PWA reads)
 - `scripts/scrape-barns.js` — **orchestrator**. Loops barns, fetches pages via Puppeteer, delegates parsing to barn-specific modules, writes output. Exports shared helpers (`normalizePrice`, `extractLinePrice`, regex constants) for barn parsers.
-- `scripts/barns/<id>.js` — barn-specific parser module. Exports `parse({ id, browser, html, $ })` returning `{ slaughter, feeder, feederWeights, repSales, ... }`. Currently: `central.js` (OCR + rep sales).
+- `scripts/barns/<id>.js` — barn-specific parser module. Exports `parse({ id, browser, html, $ })` returning `{ slaughter, feeder, feederWeights, repSales, ... }`. Currently: `central.js` (OCR + rep sales), `lanesboro.js` (plain HTML), `rockcreek.js` (PDF).
 - `scripts/barns/_default.js` — fallback parser for barns without custom logic (returns `pending`).
 - `.github/workflows/scrape-barns.yml` — runs on `UserUpdates`, triggers daily 4am CT + 7am CT backup (`0 10,12 * * *`) and via `workflow_dispatch`. Commits price files to `UserUpdates`, then copies `data/prices/` to `main` so the live site always has fresh data.
 
 **Adding a new barn parser:** Create `scripts/barns/<id>.js` matching the id in `barns-config.json`. Export `parse({ id, browser, html, $ })`. The orchestrator picks it up automatically — no changes to `scrape-barns.js` needed. **Also update the Data Sources section in the About page** (`index.html` → `#mod-about` → `#about-sources`).
 
-**Multiple sale days per barn:** Use a `reports` array in `barns-config.json` instead of a single `reportUrl`. Each entry has `{ "day": "Monday", "url": "..." }`. The orchestrator loops all reports, deduplicates history by `date + saleDay`, and the index includes a `saleDays` array with per-day data. Currently: Central has Monday (cattle) and Wednesday (cattle + hogs).
+**Multiple sale days per barn:** Use a `reports` array in `barns-config.json` instead of a single `reportUrl`. Each entry has `{ "day": "Monday", "url": "..." }`. The orchestrator loops all reports, deduplicates history by `date + saleDay`, and the index includes a `saleDays` array with per-day data. Currently: Central has Monday (cattle) and Wednesday (cattle + hogs). Lanesboro has Wednesday (slaughter) and Friday (feeder).
 
 **Hog data:** Captured by `central.js` from the Wednesday cattle+hogs report and stored as `hogs: { marketHogs, sows, boars }` in history/index. Not displayed in the PWA yet — stored for future use.
 

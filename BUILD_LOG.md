@@ -89,6 +89,32 @@ Chronological record of what was built, when, and why.
 - **Blank scraped empties** — if a scraped source has no corn or soy bids, shows "—" instead of backfilling with default basis data. `elev.scraped` flag controls this
 - Jennie-O about page update, doc updates for v1.83–v1.85
 
+### Lanesboro Sales Commission Parser (v1.106–v1.114)
+- Built `scripts/barns/lanesboro.js` — plain HTML parser for Webflow site (no OCR needed)
+- Two sale days: Wednesday (slaughter) and Friday (feeder) via `reports[]` array in `barns-config.json`
+- HTML structure: `<h5>` tag sequences with `[LABEL] [LOW] [To] [HIGH]` or `[UP] [To] [HIGH]` patterns
+- Wednesday: parses beef (Choice/Select tiers), Holstein (Calf Fed tiers), market cows, market bulls
+- Friday: parses feeder cattle by weight class (300-500, 500-700, 700-900), beef on dairy (crossbred), Holstein steers
+- **Top Producers** (rep sales): Lanesboro publishes highlight sales, not exhaustive rep sales
+  - `repSales.label = "topProducers"` — PWA can distinguish from other barns' exhaustive data
+  - Walks h5 sequence for `NAME:/DESCRIPTION:/WEIGHT:/PRICE:` groups (8 tokens each)
+  - Classification: price+weight heuristic (Webflow DOM structure prevents reliable section tracking)
+  - Finished: price >= $200; Cows: price < $200 + weight >= 1800#; Bulls: price < $200 + weight < 1800#
+- Page type detection: content-based (slaughter labels vs weight-class labels) — canonical URL returns `webflow.com`, nav text contains both "Wednesday" and "Friday"
+- Date extraction: 4-strategy cascade — `<p>` with "head sold", `<p>` with year, h5 nodes, body text regex
+- Fixed trend modal footer: `midpoints.length` instead of `entries.length` for sale day count (entries without data for selected category were inflating count)
+
+### Yahoo Finance Migration (v1.115)
+- **Replaced Stooq with Yahoo Finance** for all futures card data — Stooq was hitting daily rate limits ("Exceeded the daily hits limit"), cards always showed stale fallback values
+- Tickers: `ZC=F` (corn), `ZS=F` (soy), `LE=F` (live cattle), `GF=F` (feeder cattle), `DC=F` (Class III milk), `ZM=F` (soybean meal)
+- Deferred contracts built dynamically from `getContractMonths()` → `grainYahooSym()` (e.g. `ZCZ26.CBT` for Dec corn)
+- **Cached batch fetch** — `prefetchYahoo()` fires all 8 tickers once at startup with 200ms stagger, results cached 10 min via `_yahooCache`. Individual loaders (`loadGrainPrices`, `loadCattlePrices`, `loadDairyPrices`, `loadFeedInputPrices`) all hit cache
+- **Refresh spam protection** — any page reload within 10 min returns cached data, zero network requests
+- **Exchange timestamps** — card "as of" times now use Yahoo's `regularMarketTime` (actual exchange timestamp) instead of `new Date()` page-load time
+- Grain prices divided by 100 (Yahoo returns cents, cards display $/bu)
+- Updated About page data source attribution from Stooq to Yahoo Finance
+- Removed all Stooq references from `markets.js`
+
 ### CI/CD & Workflow (v1.54–v1.65)
 - `scrape-barns.yml` — daily 4am + 7am CT cron, auto-commits to UserUpdates, copies data to main
 - `scrape-grain.yml` — Mon–Fri 4am + 7am CT cron, same auto-push pattern

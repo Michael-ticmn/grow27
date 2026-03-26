@@ -1,6 +1,6 @@
 # Current State — grow27
 
-**Version:** 1.101
+**Version:** 1.114
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
 **Last updated:** 2026-03-25
@@ -24,7 +24,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 ### Data Pipeline
 | Component | Schedule | Status |
 |-----------|----------|--------|
-| Barn scraper (Central, Rock Creek) | Daily 4am + 7am CT | Running |
+| Barn scraper (Central, Lanesboro, Rock Creek) | Daily 4am + 7am CT | Running |
 | Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision) | Mon–Fri 4am + 7am CT | Running |
 | Auto-push data to main | After each scrape | Running |
 
@@ -32,7 +32,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Barn | Parser | Status |
 |------|--------|--------|
 | Central Livestock (Zumbrota) | `scripts/barns/central.js` | Active — OCR + rep sales, Mon+Wed |
-| Lanesboro | `scripts/barns/_default.js` | Pending — no parser |
+| Lanesboro Sales Commission | `scripts/barns/lanesboro.js` | Active — HTML parser, Wed (slaughter + Top Producers) + Fri (feeder) |
 | Rock Creek (Pine City) | `scripts/barns/rockcreek.js` | Active — PDF parser, Mon+Wed, batch YTD |
 | Sleepy Eye | `scripts/barns/_default.js` | Pending — no parser |
 | Pipestone | `scripts/barns/_default.js` | Pending — no parser |
@@ -60,9 +60,8 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 ### CBOT Futures Display
 | Source | Usage | Status |
 |--------|-------|--------|
-| Stooq (`c.f`, `s.f`, `ch.f`, `sh.f`) | Primary — live OHLCV for market cards | Unreliable (CORS/fetch failures) |
-| Scraped grain data (CFS, AGP, etc.) | Fallback — `parseCbotNotation()` extracts CBOT from bid data | Active |
-| Dedicated CBOT scraper (Yahoo Finance) | Planned — lightweight futures-only scraper with market open/closed indicator | Queued |
+| Yahoo Finance (`ZC=F`, `ZS=F`, `LE=F`, `GF=F`, `DC=F`, `ZM=F`) | Primary — cached batch fetch, 10-min TTL | Active |
+| Scraped grain data (CFS, AGP, etc.) | Override — `parseCbotNotation()` extracts CBOT from bid data | Active |
 
 ### PWA Modules & Tabs
 ```
@@ -84,6 +83,6 @@ ABOUT — data sources, app info
 - History files: no cap (was 14, removed v1.82) — monitor site speed
 
 ### Refresh Intervals (frontend)
-- Grain/cattle/dairy prices: every 15 min (Stooq) + scraped CBOT fallback
+- Futures prices: Yahoo Finance, cached 10 min (prefetched at startup, all tickers in one burst)
+- Scraped grain/barn data: loaded once on init from pre-scraped index
 - Weather: every 30 min
-- Barn data: loaded once on init from pre-scraped index
