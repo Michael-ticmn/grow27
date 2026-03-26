@@ -1,8 +1,8 @@
 {
   "id": "jennieo",
   "name": "Jennie-O Turkey Store",
-  "lastUpdated": "2026-03-25",
-  "lastSuccess": "2026-03-25",
+  "lastUpdated": "2026-03-26",
+  "lastSuccess": "2026-03-26",
   "history": [
     {
       "date": "2026-03-22",
@@ -1007,14 +1007,14 @@
     },
     {
       "date": "2026-03-25",
-      "scrapedAt": "2026-03-25T02:08:59.722Z",
+      "scrapedAt": "2026-03-25T15:55:14.391Z",
       "locations": {
         "atwater-feed-mill": {
           "name": "Atwater Feed Mill",
           "corn": [
             {
               "delivery": "Aug26",
-              "cash": 4.32,
+              "cash": 4.36,
               "futuresMonth": null,
               "basis": null,
               "change": null,
@@ -1028,7 +1028,7 @@
           "corn": [
             {
               "delivery": "Oct26",
-              "cash": 4.46,
+              "cash": 4.5,
               "futuresMonth": null,
               "basis": null,
               "change": null,
@@ -1042,7 +1042,7 @@
           "corn": [
             {
               "delivery": "Aug26",
-              "cash": 4.22,
+              "cash": 4.26,
               "futuresMonth": null,
               "basis": null,
               "change": null,
@@ -1056,7 +1056,70 @@
           "corn": [
             {
               "delivery": "Feb27",
+              "cash": 4.35,
+              "futuresMonth": null,
+              "basis": null,
+              "change": null,
+              "cbot": null
+            }
+          ],
+          "beans": []
+        }
+      },
+      "source": "scraped"
+    },
+    {
+      "date": "2026-03-26",
+      "scrapedAt": "2026-03-26T00:57:55.280Z",
+      "locations": {
+        "atwater-feed-mill": {
+          "name": "Atwater Feed Mill",
+          "corn": [
+            {
+              "delivery": "Aug26",
+              "cash": 4.41,
+              "futuresMonth": null,
+              "basis": null,
+              "change": null,
+              "cbot": null
+            }
+          ],
+          "beans": []
+        },
+        "dawson-feed-mill": {
+          "name": "Dawson Feed Mill",
+          "corn": [
+            {
+              "delivery": "Oct26",
+              "cash": 4.54,
+              "futuresMonth": null,
+              "basis": null,
+              "change": null,
+              "cbot": null
+            }
+          ],
+          "beans": []
+        },
+        "faribault-mill": {
+          "name": "Faribault Mill",
+          "corn": [
+            {
+              "delivery": "Aug26",
               "cash": 4.31,
+              "futuresMonth": null,
+              "basis": null,
+              "change": null,
+              "cbot": null
+            }
+          ],
+          "beans": []
+        },
+        "perham-feed-mill": {
+          "name": "Perham Feed Mill",
+          "corn": [
+            {
+              "delivery": "Feb27",
+              "cash": 4.38,
               "futuresMonth": null,
               "basis": null,
               "change": null,
