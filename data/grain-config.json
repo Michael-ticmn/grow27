@@ -103,5 +103,20 @@
       { "slug": "worthington", "name": "Worthington" }
     ],
     "commodities": ["corn", "beans"]
+  },
+  {
+    "id": "crystalvalley",
+    "name": "Crystal Valley Cooperative",
+    "url": "https://crystalvalley.coop/grain/",
+    "locations": [
+      { "slug": "hope", "name": "Hope", "apiSlug": "hope" },
+      { "slug": "jackson", "name": "Jackson", "apiSlug": "jackson" },
+      { "slug": "la-salle", "name": "La Salle", "apiSlug": "la salle" },
+      { "slug": "lake-crystal", "name": "Lake Crystal", "apiSlug": "lake crystal" },
+      { "slug": "madelia", "name": "Madelia", "apiSlug": "madelia" },
+      { "slug": "trimont", "name": "Trimont", "apiSlug": "trimont" },
+      { "slug": "vernon-center", "name": "Vernon Center", "apiSlug": "vernon center" }
+    ],
+    "commodities": ["corn", "beans"]
   }
 ]
