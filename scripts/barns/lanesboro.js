@@ -113,6 +113,136 @@ function toRange(row) {
   };
 }
 
+// ── Top Producers Parser (Wednesday only) ───────────────────────────────────
+// Lanesboro calls their rep sales "Top Producers" — a highlight list, not
+// exhaustive.  h5 sequence: [NAME:, name, DESCRIPTION:, desc, WEIGHT:, wt, PRICE:, price]
+// Section headers ("Market Beef", "Market Dairy", etc.) live in <div> elements.
+
+function parseTopProducers($, h5s, id) {
+  const sales = { finished: [], cows: [], bulls: [] };
+
+  // Build ordered list of all text nodes: section headers (from divs) + h5 values
+  // We need section context, so walk the DOM to find section dividers
+  let currentSection = null;
+  const sectionMap = new Map(); // h5-index → section name
+
+  // Scan for section header divs — they contain "Market Beef", "Market Dairy", etc.
+  // Track which h5 index each section starts before
+  const sectionHeaders = [];
+  $('div').each((_, el) => {
+    const text = $(el).text().trim();
+    if (/^market\s*(beef|dairy|cows|bulls)/i.test(text) && text.length < 40) {
+      sectionHeaders.push(text);
+    }
+  });
+  console.log(`[${id}] top producer sections found: ${sectionHeaders.join(', ')}`);
+
+  // Walk h5 sequence looking for NAME: groups
+  let i = 0;
+  // Track which section we're in based on the price rows that precede top producers
+  // The summary price rows (HIGH CHOICE BEEF, etc.) come first, then top producer rows
+  // Section transitions happen when we see the pattern change
+
+  // Classify each sale by description content since DOM section tracking is fragile
+  while (i < h5s.length - 7) {
+    if (!/^name:$/i.test(h5s[i])) { i++; continue; }
+
+    // Validate the field markers
+    if (!/^description:$/i.test(h5s[i + 2])) { i++; continue; }
+    if (!/^weight:$/i.test(h5s[i + 4])) { i++; continue; }
+    if (!/^price:$/i.test(h5s[i + 6])) { i++; continue; }
+
+    const name = h5s[i + 1];
+    const desc = h5s[i + 3];
+    const weightRaw = h5s[i + 5];
+    const priceRaw = h5s[i + 7];
+
+    const weight = parseInt(weightRaw);
+    const price = parseFloat(priceRaw);
+
+    if (isNaN(price) || price < 50 || price > 500) { i += 8; continue; }
+
+    // Classify cattle type from description
+    let cattleType = 'beef';
+    const descUp = desc.toUpperCase();
+    if (/HOL/i.test(descUp)) cattleType = 'holstein';
+    else if (/BWF|RWF|XBRD|CROSS|DAIRY/i.test(descUp)) cattleType = 'crossbred';
+
+    // Classify sex
+    let sex = 'steer';
+    if (/HFR/i.test(descUp)) sex = 'heifer';
+    else if (/COW/i.test(descUp)) sex = 'cow';
+    else if (/BULL/i.test(descUp)) sex = 'bull';
+
+    // Classify category by weight + description
+    let category;
+    if (/COW/i.test(descUp)) category = 'cows';
+    else if (/BULL/i.test(descUp) && !/STR|HFR/i.test(descUp)) category = 'bulls';
+    else category = 'finished'; // slaughter cattle (high weights = finished)
+
+    sales[category].push({
+      location: name,
+      qty: 1,
+      desc,
+      cattleType,
+      sex,
+      weight: isNaN(weight) ? null : weight,
+      price,
+    });
+
+    i += 8;
+  }
+
+  console.log(`[${id}] top producers — finished: ${sales.finished.length}, cows: ${sales.cows.length}, bulls: ${sales.bulls.length}`);
+
+  if (sales.finished.length === 0 && sales.cows.length === 0 && sales.bulls.length === 0) {
+    return null;
+  }
+
+  // Build weight-class averages (same shape as central.js / rockcreek.js)
+  const headCount = { finished: 0, feeder: 0, bulls: 0, cows: 0 };
+
+  function buildWeightAvgs(entries, byType) {
+    const buckets = {};
+    let totalHead = 0;
+    for (const s of entries) {
+      totalHead += s.qty;
+      if (s.weight == null) continue;
+      const bucket = Math.floor(s.weight / 100) * 100;
+      const range = `${bucket}-${bucket + 99}`;
+      const key = byType ? `${range}|${s.cattleType}` : range;
+      if (!buckets[key]) buckets[key] = { range, type: s.cattleType, sum: 0, count: 0 };
+      buckets[key].sum += s.price * s.qty;
+      buckets[key].count += s.qty;
+    }
+    const avgs = Object.values(buckets).map(b => ({
+      range: b.range + ' lbs',
+      ...(byType ? { type: b.type } : {}),
+      avgPrice: parseFloat((b.sum / b.count).toFixed(2)),
+      head: b.count,
+    })).sort((a, b) => parseInt(a.range) - parseInt(b.range));
+    return { avgs, totalHead };
+  }
+
+  const finish = buildWeightAvgs(sales.finished, true);
+  headCount.finished = finish.totalHead;
+  const bulls = buildWeightAvgs(sales.bulls, false);
+  headCount.bulls = bulls.totalHead;
+  const cows = buildWeightAvgs(sales.cows, false);
+  headCount.cows = cows.totalHead;
+
+  console.log(`[${id}] top producer avgs — finish: ${finish.avgs.length} buckets (${headCount.finished} hd), bulls: ${bulls.avgs.length} (${headCount.bulls} hd), cows: ${cows.avgs.length} (${headCount.cows} hd)`);
+
+  return {
+    label: 'topProducers',
+    finishWeightAvgs: finish.avgs,
+    feederWeightAvgs: [],
+    bullsWeightAvgs: bulls.avgs,
+    cowsWeightAvgs: cows.avgs,
+    headCount,
+  };
+}
+
 // ── Main Parse Function ─────────────────────────────────────────────────────
 
 async function parse({ id, browser, html, $ }) {
@@ -218,15 +348,6 @@ async function parse({ id, browser, html, $ }) {
       console.log(`[${id}] slaughter.holstein = ${JSON.stringify(slaughter.holstein)}`);
     }
 
-    // Market cows
-    const cowRow = findRow(rows, /market\s*cows/i);
-    const hiDressCow = findRow(rows, /high\s*dress/i);
-    // Market bulls
-    const bullRow = findRow(rows, /market\s*bulls/i);
-
-    // Store cows/bulls as supplemental info in repSales format
-    console.log(`[${id}] cows: ${JSON.stringify(cowRow)}, hiDress: ${JSON.stringify(hiDressCow)}, bulls: ${JSON.stringify(bullRow)}`);
-
   } else if (isFriday) {
     // ── Friday: Feeder prices ────────────────────────────────────────────
     // Weight-class rows like "300-500LB BEEF STEERS", "500-700LB BEEF HEIFERS"
@@ -310,6 +431,12 @@ async function parse({ id, browser, html, $ }) {
     return { slaughter: null, feeder: null, source: 'fetch_failed', error: 'no usable prices parsed from HTML' };
   }
 
+  // Parse Top Producers from Wednesday page (Friday is consignment listings, no prices)
+  let repSales = null;
+  if (isWednesday) {
+    repSales = parseTopProducers($, h5s, id);
+  }
+
   return {
     slaughter,
     feeder,
@@ -317,7 +444,7 @@ async function parse({ id, browser, html, $ }) {
     reportDate,
     saleDay,
     liteTestNote: null,
-    repSales: null,
+    repSales,
     hogs: null,
     source: 'scraped',
     error: null,
