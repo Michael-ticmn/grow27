@@ -1,8 +1,8 @@
 // scripts/grain/alcorn.js
 // Al-Corn Clean Fuel — cash bid scraper
-// Parses the DTN Cashbid widget on al-corn.com/cash-bids/
-// Single location, DTN table with column order:
-//   Delivery | Futures (month) | Futures (price) | Change | Basis | Bid (cash)
+// Single location (Claremont MN), corn only.
+// Widget type unknown — discovery parser that logs DOM structure,
+// then attempts multiple selector strategies to find bid data.
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -23,9 +23,19 @@ function parseBasis(str) {
   return isNaN(val) ? null : val;
 }
 
-function parseCbot(str) {
+// Normalize delivery label: "Mar 26" → "Mar26", "Mar 2026" → "Mar26"
+function normDelivery(str) {
   if (!str) return null;
-  return str.trim() || null;
+  const t = str.trim();
+  // "Mar 2026" → "Mar26"
+  const m1 = t.match(/^([A-Za-z]{3})\s*(\d{4})$/);
+  if (m1) return m1[1] + m1[2].slice(2);
+  // "Mar 26" → "Mar26"
+  const m2 = t.match(/^([A-Za-z]{3})\s+(\d{2})$/);
+  if (m2) return m2[1] + m2[2];
+  // Already "Mar26"
+  if (/^[A-Za-z]{3}\d{2}$/.test(t)) return t;
+  return t;
 }
 
 // ── Main Parse Function ─────────────────────────────────────────────────────
@@ -33,7 +43,6 @@ function parseCbot(str) {
 async function parse({ id, config, browser }) {
   const url = config.url;
   const locations = {};
-  let lastError = null;
 
   console.log(`[${id}] navigating to ${url}`);
   const page = await browser.newPage();
@@ -41,134 +50,320 @@ async function parse({ id, config, browser }) {
   try {
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-    // Wait for the DTN widget to render — try table first, then dropdown
-    await page.waitForSelector('#dtn-bids, table[summary="Cash Bid Offers"], select[id*="dtnCashbidDetailLocation"]', { timeout: 15000 });
-    console.log(`[${id}] page loaded, DTN widget found`);
+    // Give JS widgets time to render
+    await new Promise(r => setTimeout(r, 5000));
 
-    // Extra settle time for widget JS
-    await new Promise(r => setTimeout(r, 2000));
+    // ── Phase 1: Discovery — log what's on the page ──────────────────────
+    const discovery = await page.evaluate(() => {
+      const info = {
+        tables: [],
+        iframes: [],
+        widgets: [],
+        selects: [],
+        interestingDivs: [],
+      };
 
-    // Detect column order from header row, then parse all commodity sections
-    const bidData = await page.evaluate(() => {
-      const table = document.querySelector('#dtn-bids') ||
-                    document.querySelector('table[summary="Cash Bid Offers"]');
-      if (!table) return null;
+      // Find all tables
+      document.querySelectorAll('table').forEach((t, i) => {
+        const rows = t.querySelectorAll('tr');
+        const firstRowText = rows[0]?.textContent?.trim()?.substring(0, 200) || '';
+        info.tables.push({
+          index: i,
+          id: t.id || null,
+          className: t.className || null,
+          rows: rows.length,
+          firstRow: firstRowText,
+        });
+      });
 
+      // Find iframes
+      document.querySelectorAll('iframe').forEach(f => {
+        info.iframes.push({ src: f.src || null, id: f.id || null, className: f.className || null });
+      });
+
+      // Find common widget containers
+      const widgetSelectors = [
+        '[data-cmdty-widget]', 'cmdty-cash-bids', '.cmdty-cash-bids',
+        '#dtn-bids', '[id*="cashbid"]', '[class*="cashbid"]',
+        '[id*="cash-bid"]', '[class*="cash-bid"]',
+        '[data-widget]', '[id*="barchart"]', '[class*="barchart"]',
+        '#cash-bids-combined-table',
+      ];
+      for (const sel of widgetSelectors) {
+        const el = document.querySelector(sel);
+        if (el) {
+          info.widgets.push({
+            selector: sel,
+            tagName: el.tagName,
+            id: el.id || null,
+            className: (el.className && typeof el.className === 'string') ? el.className.substring(0, 200) : null,
+            childCount: el.children.length,
+            innerSnippet: el.innerHTML.substring(0, 300),
+          });
+        }
+      }
+
+      // Find select elements
+      document.querySelectorAll('select').forEach(s => {
+        const opts = Array.from(s.options).map(o => o.textContent.trim()).slice(0, 5);
+        info.selects.push({ id: s.id || null, className: s.className || null, optionCount: s.options.length, sampleOpts: opts });
+      });
+
+      // Find divs/elements that contain price-like text
+      const allElements = document.querySelectorAll('div, section, article, main');
+      for (const el of allElements) {
+        const text = el.textContent || '';
+        if (/\bCorn\b/i.test(text) && /\b(Delivery|Basis|Bid|Cash)\b/i.test(text) && el.children.length < 50) {
+          info.interestingDivs.push({
+            tagName: el.tagName,
+            id: el.id || null,
+            className: (el.className && typeof el.className === 'string') ? el.className.substring(0, 200) : null,
+            childCount: el.children.length,
+            textSnippet: text.substring(0, 300),
+          });
+        }
+      }
+
+      return info;
+    });
+
+    console.log(`[${id}] DISCOVERY:`);
+    console.log(`[${id}]   tables: ${discovery.tables.length}`);
+    discovery.tables.forEach(t => console.log(`[${id}]     table #${t.index}: id="${t.id}" class="${t.className}" rows=${t.rows} first="${t.firstRow}"`));
+    console.log(`[${id}]   iframes: ${discovery.iframes.length}`);
+    discovery.iframes.forEach(f => console.log(`[${id}]     iframe: src="${f.src}" id="${f.id}"`));
+    console.log(`[${id}]   widgets: ${discovery.widgets.length}`);
+    discovery.widgets.forEach(w => console.log(`[${id}]     widget: sel="${w.selector}" tag=${w.tagName} id="${w.id}" children=${w.childCount} snippet="${w.innerSnippet}"`));
+    console.log(`[${id}]   selects: ${discovery.selects.length}`);
+    discovery.selects.forEach(s => console.log(`[${id}]     select: id="${s.id}" opts=${s.optionCount} sample=${JSON.stringify(s.sampleOpts)}`));
+    console.log(`[${id}]   interesting divs: ${discovery.interestingDivs.length}`);
+    discovery.interestingDivs.forEach(d => console.log(`[${id}]     div: tag=${d.tagName} id="${d.id}" class="${d.className}" children=${d.childCount} text="${d.textSnippet}"`));
+
+    // ── Phase 2: Try to parse data using discovered structure ─────────────
+
+    // Strategy A: standard table with commodity sections
+    if (discovery.tables.length > 0) {
+      console.log(`[${id}] trying Strategy A: parse tables directly`);
+      const bidData = await page.evaluate(() => {
+        const result = {};
+        let currentCommodity = null;
+        let colMap = null;
+
+        // Try all tables on the page
+        const tables = document.querySelectorAll('table');
+        for (const table of tables) {
+          const allRows = table.querySelectorAll('tr');
+
+          for (const row of allRows) {
+            const cells = row.querySelectorAll('td, th');
+            const text = row.textContent.trim().toUpperCase();
+
+            // Detect commodity header — could be a row with just "CORN" text
+            if (/^CORN\s*[\^v]?\s*$/.test(text) || text === 'CORN') {
+              currentCommodity = 'corn';
+              result.corn = result.corn || [];
+              colMap = null;
+              continue;
+            }
+            if (/^SOYBEANS?\s*[\^v]?\s*$/.test(text) || text === 'BEANS') {
+              currentCommodity = 'beans';
+              result.beans = result.beans || [];
+              colMap = null;
+              continue;
+            }
+
+            // Detect column headers
+            if (currentCommodity && !colMap && cells.length >= 4) {
+              const headers = Array.from(cells).map(c => c.textContent.trim().toUpperCase());
+              if (headers.some(h => /DELIVER/i.test(h) || /^DEL$/i.test(h))) {
+                colMap = {};
+                headers.forEach((h, i) => {
+                  if (/DELIVER/i.test(h) || /^DEL$/i.test(h)) colMap.delivery = i;
+                  if (/^FUTURES$/i.test(h)) colMap.futuresMonth = i;
+                  if (/^BASIS$/i.test(h)) colMap.basis = i;
+                  if (/^BID$/i.test(h)) colMap.cash = i;
+                  if (/^CASH/i.test(h)) colMap.cash = i;
+                  if (/CHANGE/i.test(h) || /^CHG$/i.test(h)) colMap.change = i;
+                  if (/^CBOT$/i.test(h)) colMap.cbot = i;
+                });
+                continue;
+              }
+            }
+
+            // Parse data rows
+            if (currentCommodity && colMap && cells.length >= 4) {
+              const get = (idx) => idx != null && cells[idx] ? cells[idx].textContent.trim() : null;
+              const delivery = get(colMap.delivery);
+
+              if (delivery && /^[A-Za-z]{3}\s?\d{2}/i.test(delivery)) {
+                const row_data = {
+                  del: delivery.replace(/\s+/g, ''),
+                  cash: get(colMap.cash),
+                  basis: get(colMap.basis),
+                };
+                if (colMap.futuresMonth != null) row_data.month = get(colMap.futuresMonth);
+                if (colMap.change != null) row_data.chg = get(colMap.change);
+                if (colMap.cbot != null) row_data.cbot = get(colMap.cbot);
+                result[currentCommodity].push(row_data);
+              }
+            }
+          }
+        }
+
+        return Object.keys(result).length > 0 ? result : null;
+      });
+
+      if (bidData) {
+        console.log(`[${id}] Strategy A succeeded`);
+        return buildResult(id, bidData, locations);
+      }
+      console.log(`[${id}] Strategy A: no data found`);
+    }
+
+    // Strategy B: iframe — navigate into it
+    if (discovery.iframes.length > 0) {
+      console.log(`[${id}] trying Strategy B: check iframes`);
+      for (const frameInfo of discovery.iframes) {
+        if (!frameInfo.src) continue;
+        console.log(`[${id}]   checking iframe: ${frameInfo.src}`);
+
+        const frames = page.frames();
+        for (const frame of frames) {
+          if (!frame.url().includes(frameInfo.src?.substring(0, 30))) continue;
+
+          const iframeBidData = await frame.evaluate(() => {
+            const result = {};
+            let currentCommodity = null;
+            let colMap = null;
+            const tables = document.querySelectorAll('table');
+
+            for (const table of tables) {
+              for (const row of table.querySelectorAll('tr')) {
+                const cells = row.querySelectorAll('td, th');
+                const text = row.textContent.trim().toUpperCase();
+
+                if (/^CORN/.test(text) && cells.length <= 2) {
+                  currentCommodity = 'corn';
+                  result.corn = result.corn || [];
+                  colMap = null;
+                  continue;
+                }
+                if (/^SOYBEAN/.test(text) && cells.length <= 2) {
+                  currentCommodity = 'beans';
+                  result.beans = result.beans || [];
+                  colMap = null;
+                  continue;
+                }
+
+                if (currentCommodity && !colMap && cells.length >= 4) {
+                  const headers = Array.from(cells).map(c => c.textContent.trim().toUpperCase());
+                  if (headers.some(h => /DELIVER/i.test(h))) {
+                    colMap = {};
+                    headers.forEach((h, i) => {
+                      if (/DELIVER/i.test(h)) colMap.delivery = i;
+                      if (/^FUTURES$/i.test(h)) colMap.futuresMonth = i;
+                      if (/^BASIS$/i.test(h)) colMap.basis = i;
+                      if (/^BID$/i.test(h) || /^CASH/i.test(h)) colMap.cash = i;
+                      if (/CHANGE/i.test(h)) colMap.change = i;
+                    });
+                    continue;
+                  }
+                }
+
+                if (currentCommodity && colMap && cells.length >= 4) {
+                  const get = (idx) => idx != null && cells[idx] ? cells[idx].textContent.trim() : null;
+                  const delivery = get(colMap.delivery);
+                  if (delivery && /^[A-Za-z]{3}\s?\d{2}/i.test(delivery)) {
+                    const row_data = {
+                      del: delivery.replace(/\s+/g, ''),
+                      cash: get(colMap.cash),
+                      basis: get(colMap.basis),
+                    };
+                    if (colMap.futuresMonth != null) row_data.month = get(colMap.futuresMonth);
+                    if (colMap.change != null) row_data.chg = get(colMap.change);
+                    result[currentCommodity].push(row_data);
+                  }
+                }
+              }
+            }
+
+            return Object.keys(result).length > 0 ? result : null;
+          }).catch(() => null);
+
+          if (iframeBidData) {
+            console.log(`[${id}] Strategy B succeeded (iframe)`);
+            return buildResult(id, iframeBidData, locations);
+          }
+        }
+      }
+      console.log(`[${id}] Strategy B: no data in iframes`);
+    }
+
+    // Strategy C: cmdty web component — shadow DOM
+    const cmdtyData = await page.evaluate(() => {
+      const widget = document.querySelector('cmdty-cash-bids');
+      if (!widget) return null;
+
+      const root = widget.shadowRoot || widget;
       const result = {};
       let currentCommodity = null;
       let colMap = null;
 
-      const allRows = table.querySelectorAll('tr');
+      for (const table of root.querySelectorAll('table')) {
+        for (const row of table.querySelectorAll('tr')) {
+          const cells = row.querySelectorAll('td, th');
+          const text = row.textContent.trim().toUpperCase();
 
-      for (const row of allRows) {
-        const cells = row.querySelectorAll('td, th');
-        const text = row.textContent.trim().toUpperCase();
-
-        // Detect commodity header rows
-        if (text === 'CORN' || text === 'SOYBEANS' || text === 'BEANS') {
-          currentCommodity = (text === 'SOYBEANS' || text === 'BEANS') ? 'beans' : 'corn';
-          result[currentCommodity] = [];
-          colMap = null; // reset column map for each commodity section
-          continue;
-        }
-
-        // Detect column header row and build column map
-        if (currentCommodity && !colMap && cells.length >= 4) {
-          const headers = Array.from(cells).map(c => c.textContent.trim().toUpperCase());
-          if (headers.some(h => /DELIVER/i.test(h) || /^DEL$/i.test(h))) {
-            colMap = {};
-            headers.forEach((h, i) => {
-              if (/DELIVER/i.test(h) || /^DEL$/i.test(h)) colMap.delivery = i;
-              else if (/^FUTURES$/i.test(h))               colMap.futuresMonth = i;
-              else if (/^BASIS$/i.test(h))                 colMap.basis = i;
-              else if (/^BID$/i.test(h) || /^CASH$/i.test(h)) colMap.cash = i;
-              else if (/CHANGE/i.test(h) || /^CHG$/i.test(h)) colMap.change = i;
-              else if (/^CBOT$/i.test(h))                  colMap.cbot = i;
-            });
-            continue;
+          if (/^CORN/.test(text) && cells.length <= 2) {
+            currentCommodity = 'corn'; result.corn = []; colMap = null; continue;
           }
-        }
+          if (/^SOYBEAN/.test(text) && cells.length <= 2) {
+            currentCommodity = 'beans'; result.beans = []; colMap = null; continue;
+          }
 
-        // Parse data rows
-        if (currentCommodity && colMap && cells.length >= 4) {
-          const get = (idx) => idx != null && cells[idx] ? cells[idx].textContent.trim() : null;
-
-          const delivery = get(colMap.delivery);
-
-          // Validate: delivery should look like a month (Mar 26, Apr26, etc.)
-          if (delivery && /^[A-Za-z]{3}\s?\d{2}/i.test(delivery)) {
-            // Normalize delivery: "Mar 26" → "Mar26"
-            const del = delivery.replace(/\s+/g, '');
-
-            const row_data = {
-              del,
-              cash:  get(colMap.cash),
-              basis: get(colMap.basis),
-            };
-
-            // Futures month — could be in a dedicated column or same as CBOT
-            if (colMap.futuresMonth != null) {
-              row_data.month = get(colMap.futuresMonth);
-              // If there's a separate futures price column right after futures month,
-              // grab it for CBOT reference
-              if (colMap.futuresMonth + 1 < cells.length && colMap.cbot == null) {
-                const nextVal = cells[colMap.futuresMonth + 1]?.textContent?.trim();
-                if (nextVal && /^\d+\.\d+/.test(nextVal)) {
-                  row_data.cbot = nextVal;
-                }
-              }
+          if (currentCommodity && !colMap && cells.length >= 4) {
+            const headers = Array.from(cells).map(c => c.textContent.trim().toUpperCase());
+            if (headers.some(h => /DELIVER/i.test(h))) {
+              colMap = {};
+              headers.forEach((h, i) => {
+                if (/DELIVER/i.test(h)) colMap.delivery = i;
+                if (/^FUTURES$/i.test(h)) colMap.futuresMonth = i;
+                if (/^BASIS$/i.test(h)) colMap.basis = i;
+                if (/^BID$/i.test(h) || /^CASH/i.test(h)) colMap.cash = i;
+                if (/CHANGE/i.test(h)) colMap.change = i;
+              });
+              continue;
             }
-            if (colMap.change != null) row_data.chg = get(colMap.change);
-            if (colMap.cbot != null)   row_data.cbot = get(colMap.cbot);
+          }
 
-            result[currentCommodity].push(row_data);
+          if (currentCommodity && colMap && cells.length >= 4) {
+            const get = (idx) => idx != null && cells[idx] ? cells[idx].textContent.trim() : null;
+            const delivery = get(colMap.delivery);
+            if (delivery && /^[A-Za-z]{3}\s?\d{2}/i.test(delivery)) {
+              const row_data = { del: delivery.replace(/\s+/g, ''), cash: get(colMap.cash), basis: get(colMap.basis) };
+              if (colMap.futuresMonth != null) row_data.month = get(colMap.futuresMonth);
+              if (colMap.change != null) row_data.chg = get(colMap.change);
+              result[currentCommodity].push(row_data);
+            }
           }
         }
       }
 
-      return result;
+      return Object.keys(result).length > 0 ? result : null;
     });
 
-    if (!bidData || Object.keys(bidData).length === 0) {
-      console.warn(`[${id}] no bid data found`);
-      return { locations: {}, source: 'fetch_failed', error: 'no bid data in DTN table' };
+    if (cmdtyData) {
+      console.log(`[${id}] Strategy C succeeded (cmdty web component)`);
+      return buildResult(id, cmdtyData, locations);
     }
 
-    // Parse numeric values
-    const parsed = {};
-    for (const [commodity, rows] of Object.entries(bidData)) {
-      parsed[commodity] = rows.map(r => {
-        const entry = {
-          delivery:     r.del,
-          cash:         parseCash(r.cash),
-          basis:        parseBasis(r.basis),
-        };
-        if (r.month) {
-          // Normalize futures month: "May 26" → "May26"
-          entry.futuresMonth = r.month.replace(/\s+/g, '');
-        }
-        if (r.chg)  entry.change = r.chg;
-        if (r.cbot) entry.cbot   = parseCbot(r.cbot);
-        return entry;
-      }).filter(r => r.cash !== null);
-    }
+    // Strategy D: full page text scrape — last resort
+    console.log(`[${id}] trying Strategy D: full page text scan for price patterns`);
+    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 5000) || '');
+    console.log(`[${id}] page text (first 2000): ${pageText.substring(0, 2000)}`);
 
-    const slug = 'claremont';
-    locations[slug] = {
-      name: 'Al-Corn',
-      ...parsed,
-    };
-
-    const cornCount = parsed.corn?.length || 0;
-    const beanCount = parsed.beans?.length || 0;
-    console.log(`[${id}:${slug}] parsed — corn: ${cornCount} bids, beans: ${beanCount} bids`);
-
-    if (cornCount > 0) {
-      console.log(`[${id}:${slug}]   corn nearby: $${parsed.corn[0].cash} basis ${parsed.corn[0].basis} (${parsed.corn[0].delivery})`);
-    }
-    if (beanCount > 0) {
-      console.log(`[${id}:${slug}]   beans nearby: $${parsed.beans[0].cash} basis ${parsed.beans[0].basis} (${parsed.beans[0].delivery})`);
-    }
+    console.warn(`[${id}] all strategies failed — no bid data found`);
+    return { locations: {}, source: 'fetch_failed', error: 'widget structure not recognized — see discovery logs' };
 
   } catch (err) {
     console.error(`[${id}] PAGE LOAD FAILED: ${err.message}`);
@@ -176,15 +371,37 @@ async function parse({ id, config, browser }) {
   } finally {
     await page.close();
   }
+}
 
-  const locCount = Object.keys(locations).length;
-  console.log(`\n[${id}] scrape complete — ${locCount} locations captured`);
+// ── Build result from parsed bid data ────────────────────────────────────────
 
-  if (locCount === 0) {
-    return { locations, source: 'fetch_failed', error: lastError || 'no locations scraped' };
+function buildResult(id, bidData, locations) {
+  const parsed = {};
+  for (const [commodity, rows] of Object.entries(bidData)) {
+    parsed[commodity] = rows.map(r => {
+      const entry = {
+        delivery: normDelivery(r.del),
+        cash:     parseCash(r.cash),
+        basis:    parseBasis(r.basis),
+      };
+      if (r.month) entry.futuresMonth = r.month.replace(/\s+/g, '');
+      if (r.chg)   entry.change = r.chg;
+      if (r.cbot)  entry.cbot = r.cbot;
+      return entry;
+    }).filter(r => r.cash !== null);
   }
 
-  return { locations, source: 'scraped', error: lastError };
+  const slug = 'claremont';
+  locations[slug] = { name: 'Al-Corn', ...parsed };
+
+  const cornCount = parsed.corn?.length || 0;
+  const beanCount = parsed.beans?.length || 0;
+  console.log(`[${id}:${slug}] parsed — corn: ${cornCount} bids, beans: ${beanCount} bids`);
+  if (cornCount > 0) {
+    console.log(`[${id}:${slug}]   corn nearby: $${parsed.corn[0].cash} basis ${parsed.corn[0].basis} (${parsed.corn[0].delivery})`);
+  }
+
+  return { locations, source: 'scraped', error: null };
 }
 
 module.exports = { parse };
