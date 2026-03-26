@@ -148,22 +148,22 @@ async function parse({ id, browser, html, $ }) {
     }
   }
 
-  // Detect which report type from the URL path (page text has both words in nav)
-  const pageUrl = $('link[rel="canonical"]').attr('href')
-    || $('meta[property="og:url"]').attr('content')
-    || html.match(/https?:\/\/[^\s"']+/)?.[0]
-    || '';
-  const isWednesday = /wednesday/i.test(pageUrl);
-  const isFriday = /friday/i.test(pageUrl);
-  console.log(`[${id}] page type (from URL "${pageUrl}"): wednesday=${isWednesday}, friday=${isFriday}`);
+  // Parse all price rows from h5 sequence
+  const rows = parsePriceRows(h5s, id);
+
+  // Detect page type from actual content (nav text and canonical URL are unreliable)
+  // Wednesday = slaughter labels like "HIGH CHOICE BEEF"
+  // Friday    = weight-class labels like "300-500LB BEEF STEERS"
+  const hasSlaughterLabels = rows.some(r => /choice\s*(beef|all\s*natural|calf\s*fed|holstein)/i.test(r.label));
+  const hasWeightLabels = rows.some(r => /\d{3}\s*-\s*\d{3,4}\s*LB/i.test(r.label));
+  const isWednesday = hasSlaughterLabels && !hasWeightLabels;
+  const isFriday = hasWeightLabels;
+  console.log(`[${id}] page type (content-based): wednesday=${isWednesday}, friday=${isFriday} (slaughterLabels=${hasSlaughterLabels}, weightLabels=${hasWeightLabels})`);
 
   // Determine sale day
   let saleDay = null;
   if (isWednesday) saleDay = 'Wednesday';
   else if (isFriday) saleDay = 'Friday';
-
-  // Parse all price rows from h5 sequence
-  const rows = parsePriceRows(h5s, id);
 
   const slaughter = { beef: null, crossbred: null, holstein: null };
   const feeder = { beef: null, crossbred: null, holstein: null, liteTest: false };
