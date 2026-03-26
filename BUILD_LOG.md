@@ -37,6 +37,8 @@ Chronological record of what was built, when, and why.
 - **Animation speed** 1.2s → 7s — slow, deliberate grow from bottom up
 - **Background opacity** 75% → 95% — near-opaque during load
 - **Rotating taglines** — 5 brand taglines from BRAND.md fade in/out below logo in amber italic, random start, 2.8s per tagline
+- **Icon source** — switched from 192px (stretched) to 512px (downscaled to 360px, crisp)
+- **Tagline color** — bright gold `#e8b830` to match perceived brightness of logo "27"
 - Loader still cuts immediately when data loads — no waiting for animation to complete
 
 ### How To Updates
