@@ -8,9 +8,15 @@
     {
       "date": "2026-03-26",
       "slaughter": {
-        "beef": null,
+        "beef": {
+          "low": 220,
+          "high": 245
+        },
         "crossbred": null,
-        "holstein": null
+        "holstein": {
+          "low": 225,
+          "high": 237
+        }
       },
       "feeder": {
         "beef": null,
@@ -23,8 +29,7 @@
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
-      "source": "fetch_failed",
-      "error": "no usable prices parsed from HTML"
+      "source": "scraped"
     },
     {
       "date": "2026-03-25",
@@ -79,18 +84,144 @@
         "holstein": null
       },
       "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
+        "beef": {
+          "low": 289,
+          "high": 540
+        },
+        "crossbred": {
+          "low": null,
+          "high": 513
+        },
+        "holstein": {
+          "low": 230,
+          "high": 1025
+        },
         "liteTest": false
       },
-      "feederWeights": [],
+      "feederWeights": [
+        {
+          "range": "300–500#",
+          "low": 385,
+          "price": 540,
+          "types": [
+            "beef"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "500–700#",
+          "low": 315,
+          "price": 511,
+          "types": [
+            "beef"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "700–900#",
+          "low": 304,
+          "price": 394,
+          "types": [
+            "beef"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "300–500#",
+          "low": 385,
+          "price": 500,
+          "types": [
+            "beef"
+          ],
+          "sex": "heifer"
+        },
+        {
+          "range": "500–700#",
+          "low": 321,
+          "price": 415,
+          "types": [
+            "beef"
+          ],
+          "sex": "heifer"
+        },
+        {
+          "range": "700–900#",
+          "low": 289,
+          "price": 352,
+          "types": [
+            "beef"
+          ],
+          "sex": "heifer"
+        },
+        {
+          "range": "300–600#",
+          "low": null,
+          "price": 513,
+          "types": [
+            "crossbred"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "600–900#",
+          "low": null,
+          "price": 404,
+          "types": [
+            "crossbred"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "300–600#",
+          "low": null,
+          "price": 393,
+          "types": [
+            "crossbred"
+          ],
+          "sex": "heifer"
+        },
+        {
+          "range": "130–170#",
+          "low": null,
+          "price": 1025,
+          "types": [
+            "holstein"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "200–400#",
+          "low": 480,
+          "price": 675,
+          "types": [
+            "holstein"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "400–600#",
+          "low": 313,
+          "price": 450,
+          "types": [
+            "holstein"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "600–1000#",
+          "low": 230,
+          "price": 327,
+          "types": [
+            "holstein"
+          ],
+          "sex": "steer"
+        }
+      ],
       "saleDay": "Friday",
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
-      "source": "fetch_failed",
-      "error": "no usable prices parsed from HTML"
+      "source": "scraped"
     }
   ]
 }
