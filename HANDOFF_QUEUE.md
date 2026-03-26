@@ -277,3 +277,4 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - ✅ [Code] Al-Corn grain parser built — CIH widget, corn only, Claremont MN, GRAIN_SCRAPE_MAP wired — 2026-03-26 (v1.117–v1.121)
 - ✅ [Code] POET Biorefining parser built then shelved — Gradable WAF blocks headless browsers, disabled in config — 2026-03-26 (v1.123–v1.124)
 - ✅ [Code] Est. badge + hidden basis for non-scraped buyers, About page + How To updates — 2026-03-26 (v1.125)
+- ✅ [Code] About page brand-voice rewrite, page loader overhaul (360px logo, 7s grow, rotating taglines, 95% opacity) — 2026-03-26 (v1.126)

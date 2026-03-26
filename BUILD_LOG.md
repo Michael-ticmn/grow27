@@ -26,10 +26,22 @@ Chronological record of what was built, when, and why.
 - **Basis hidden** for estimated rows — basis column left blank when not from actual scraped data (was showing colored basis indistinguishable from real data)
 - Scraped buyers keep green datetime badge + colored basis as before
 
-### About Page & How To Updates
-- **About data sources** — added New Vision (22 loc), Crystal Valley (7 loc), Al-Corn (1 loc), POET (blocked). Fixed Lanesboro and Rock Creek from Pending → Active
-- **Grain How To** — added `est.` badge explanation
-- **Cattle How To** — added Charts section (Futures view with 5yr history/seasonal, Auction view with multi-barn overlay/sale calendar)
+### About Page Rewrite
+- **Full brand-voice rewrite** — origin story ("these aren't my numbers"), The Platform, Why It's Free, Built with AI, Where the Data Comes From
+- **Data sources updated** — added New Vision (22 loc), Crystal Valley (7 loc), Al-Corn (1 loc), Jennie-O reordered. Fixed Lanesboro and Rock Creek from Pending → Active
+- **Section descriptions** — "Scraped directly from each elevator's posted bids" intro for grain, "Scraped from each barn's posted market reports" for cattle
+- **Body text brightened** — `font-weight:500` + `color:#fff` for readability on dark background
+
+### Page Loader Overhaul
+- **Logo size** 64px → 360px — fills the screen
+- **Animation speed** 1.2s → 7s — slow, deliberate grow from bottom up
+- **Background opacity** 75% → 95% — near-opaque during load
+- **Rotating taglines** — 5 brand taglines from BRAND.md fade in/out below logo in amber italic, random start, 2.8s per tagline
+- Loader still cuts immediately when data loads — no waiting for animation to complete
+
+### How To Updates
+- **Grain** — added `est.` badge explanation
+- **Cattle** — added Charts section (Futures view with 5yr history/seasonal, Auction view with multi-barn overlay/sale calendar)
 
 ---
 
