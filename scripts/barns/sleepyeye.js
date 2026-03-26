@@ -1,275 +1,238 @@
 // scripts/barns/sleepyeye.js
 // Sleepy Eye Auction Market — Sleepy Eye MN
-// Parses HTML market reports embedded in a WordPress Advanced iFrame plugin.
+// Parses market reports from a published Google Sheet embedded via iframe.
 //
-// The report page at /market-reports/ contains an iframe with HTML tables
-// organized by cattle category (e.g. "CATTLE - Fats", "CATTLE - FatHfr").
-// Date selector tabs at the bottom switch reports; we parse the currently
-// displayed report and extract the date from the report heading (M/D/YYYY).
+// The WordPress page embeds a Google Sheets pubhtml via Advanced iFrame plugin.
+// Rather than parsing the JS-rendered HTML, we extract the spreadsheet URL from
+// the iframe src and fetch the CSV export directly — much more reliable.
+//
+// Google Sheets CSV export: append ?output=csv (or &gid=N for specific sheets).
+// The first sheet tab holds the most recent report.
+//
+// CSV layout (merged cells create empty columns):
+//   Col A: category header ("CATTLE - Fats") or description ("Blk Fats")
+//   Col C: Head count
+//   Col E: Avg_Wt
+//   Col H: $/CWT
+//   Col K: $/Head
+//   (Also: Hay Results in cols M-N, which we skip)
 //
 // Category mapping:
-//   Slaughter: Fats, FatHfr, FatStr (finished cattle, weights 1100+)
-//   Feeder:    StrClf, HfrClf, BullClf, FdrStr, FdrHfr, Feeder* (lighter cattle)
-//   Skipped:   BrCow, Bull, BC-HC, Hay (breeding stock, baby calves, hay)
+//   Slaughter (beef):     Fats, FatHfr          (Blk/Red/Color descriptions)
+//   Slaughter (holstein): FatStr                 (Hol/BrnSws descriptions)
+//   Slaughter (beef+hol): FatStr                 (Blk/Red descriptions → beef)
+//   Feeder:               FSt-Hf, FStr, FHfr    (lighter cattle)
+//   Skipped:              BrCow, Bull, BullClf, BC-HC, SLCow (cull/breeding)
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
 
+const https = require('https');
+const http  = require('http');
+
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// Google Sheets published spreadsheet base URL (extracted from iframe src on first run)
+const SHEETS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR21gPJvWlLmM010wpiEW3Q1XSr_Sel4aguwc3oadClksTc8BEoqktTIQIms5MW2XeVpzNsNVOPQyeI/pub?output=csv';
 
 // ── Category classification ─────────────────────────────────────────────────
 
-// Slaughter = finished/fat cattle
-const SLAUGHTER_RE = /^(Fats|FatHfr|FatStr|Fat\s*Steer|Fat\s*Heifer)/i;
-
-// Feeder = calves and lighter-weight growing cattle
-const FEEDER_RE = /^(Fdr|Feeder|StrClf|HfrClf|BullClf|Steer\s*C|Heifer\s*C|Bull\s*C)/i;
-
-// Skip these categories entirely
-const SKIP_RE = /^(BrCow|Bred|Bull$|BC-HC|Baby|Hay|Cow$|MktCow|Pair)/i;
-
 function classifyCategory(cat) {
-  if (SLAUGHTER_RE.test(cat)) return 'slaughter';
-  if (FEEDER_RE.test(cat)) return 'feeder';
-  if (SKIP_RE.test(cat)) return 'skip';
-  return 'unknown';
+  if (/^(Fats|FatHfr|FatStr)$/i.test(cat)) return 'slaughter';
+  if (/^(FSt-Hf|FStr|FHfr|Fdr|Feeder|StrClf|HfrClf)/i.test(cat)) return 'feeder';
+  return 'skip';  // BrCow, Bull, BullClf, BC-HC, SLCow, Hay, etc.
+}
+
+// Breed from description prefix
+function breedFromDesc(desc) {
+  if (/^Hol/i.test(desc))    return 'holstein';
+  if (/^BrnSws/i.test(desc)) return 'holstein';  // Brown Swiss → dairy
+  if (/^Jers/i.test(desc))   return 'holstein';  // Jersey → dairy
+  return 'beef';  // Blk, Red, Color, Bwf, Rwf → beef/crossbred
+}
+
+// ── Fetch CSV via HTTPS (follows redirects) ─────────────────────────────────
+
+function fetchCsv(url, id, maxRedirects = 3) {
+  return new Promise((resolve, reject) => {
+    const get = url.startsWith('https') ? https.get : http.get;
+    get(url, { timeout: 30000 }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        if (maxRedirects <= 0) return reject(new Error('too many redirects'));
+        console.log(`[${id}] CSV redirect → ${res.headers.location}`);
+        return fetchCsv(res.headers.location, id, maxRedirects - 1).then(resolve, reject);
+      }
+      if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        console.log(`[${id}] CSV fetched — ${text.length} chars`);
+        resolve(text);
+      });
+      res.on('error', reject);
+    }).on('error', reject);
+  });
+}
+
+// ── Parse CSV text ──────────────────────────────────────────────────────────
+
+function parseCsvLine(line) {
+  // Handle quoted fields with commas inside
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      fields.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current.trim());
+  return fields;
 }
 
 // ── Main parse function ─────────────────────────────────────────────────────
 
 async function parse({ id, browser }) {
-  const page = await browser.newPage();
-  let reportHtml;
-
+  // Step 1: Fetch the CSV export of the first sheet (most recent report)
+  let csvText;
   try {
-    console.log(`[${id}] navigating to market reports page...`);
-    await page.goto('https://sleepyeyeauctionmarket.com/market-reports/', {
-      waitUntil: 'networkidle2',
-      timeout: 45000,
-    });
-
-    // Wait for the Advanced iFrame to appear
-    await page.waitForSelector('#advanced_iframe', { timeout: 20000 });
-    console.log(`[${id}] iframe element found`);
-
-    // Give iframe content time to load
-    await new Promise(r => setTimeout(r, 3000));
-
-    // Try to access iframe content via contentFrame()
-    const iframeEl = await page.$('#advanced_iframe');
-    if (!iframeEl) throw new Error('iframe element not found');
-
-    // First try: get src and navigate directly (more reliable)
-    const iframeSrc = await page.evaluate(el => el.src || '', iframeEl);
-    let frame;
-
-    if (iframeSrc && iframeSrc !== 'about:blank') {
-      console.log(`[${id}] iframe src: ${iframeSrc}`);
-      // Navigate a new page to the iframe src for cleaner access
-      const iframePage = await browser.newPage();
-      try {
-        await iframePage.goto(iframeSrc, { waitUntil: 'networkidle2', timeout: 30000 });
-        reportHtml = await iframePage.content();
-      } finally {
-        await iframePage.close();
-      }
-    } else {
-      // Fallback: access via contentFrame
-      frame = await iframeEl.contentFrame();
-      if (!frame) throw new Error('iframe content not accessible (no src, no contentFrame)');
-      await frame.waitForSelector('body', { timeout: 10000 });
-      reportHtml = await frame.content();
-    }
-
-    console.log(`[${id}] got report content: ${reportHtml.length} chars`);
+    csvText = await fetchCsv(SHEETS_CSV_URL, id);
   } catch (err) {
-    console.error(`[${id}] iframe access failed: ${err.message}`);
+    console.error(`[${id}] CSV fetch failed: ${err.message}`);
     return {
       slaughter: null, feeder: null,
       source: 'fetch_failed',
-      error: `iframe access failed: ${err.message}`,
+      error: `CSV fetch failed: ${err.message}`,
     };
-  } finally {
-    await page.close();
   }
 
-  // Log a preview of the content for debugging
-  const textPreview = reportHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 500);
-  console.log(`[${id}] content preview: ${textPreview}`);
+  // Step 2: Parse CSV rows
+  const rows = csvText.split('\n').map(parseCsvLine);
+  console.log(`[${id}] parsed ${rows.length} CSV rows`);
 
-  // Parse the HTML
-  const cheerio = require('cheerio');
-  const $r = cheerio.load(reportHtml);
-
-  // ── Extract report date (M/D/YYYY format from heading) ──────────────────
+  // Step 3: Extract report date (M/D/YYYY in first few rows)
   let reportDate = null;
-  const dateMatch = reportHtml.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (dateMatch) {
-    const mm = dateMatch[1].padStart(2, '0');
-    const dd = dateMatch[2].padStart(2, '0');
-    reportDate = `${dateMatch[3]}-${mm}-${dd}`;
-    console.log(`[${id}] report date: ${reportDate}`);
+  for (const row of rows.slice(0, 5)) {
+    const text = row.join(' ');
+    const dm = text.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (dm) {
+      const mm = dm[1].padStart(2, '0');
+      const dd = dm[2].padStart(2, '0');
+      reportDate = `${dm[3]}-${mm}-${dd}`;
+      console.log(`[${id}] report date: ${reportDate}`);
+      break;
+    }
   }
 
-  // ── Parse all CATTLE categories ─────────────────────────────────────────
-  // Structure: bold heading "CATTLE - <Type>" followed by a table with rows
-  // Each row: Descr | Head | Avg_Wt | $/CWT | $/Head
-
+  // Step 4: Walk rows, detect category headers, collect price entries
   const slaughter = { beef: null, crossbred: null, holstein: null };
   const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
   const feederWeights = [];
 
-  const slaughterPrices = [];
-  const feederPrices = [];
-  const allCategories = [];
+  const slaughterBeef = [];
+  const slaughterHolstein = [];
+  const feederEntries = [];
 
-  // Strategy: find all text that looks like category headers, then extract
-  // table data near each header. The HTML could be <table> based or <div> based.
+  let currentCat = null;
+  let currentClass = null;
 
-  // Approach 1: Look for tables — each category section has its own table
-  const tables = $r('table');
-  console.log(`[${id}] found ${tables.length} tables`);
+  for (const fields of rows) {
+    const col0 = fields[0] || '';
 
-  // Approach 2: Look for category headers in bold/strong/heading text
-  const bodyText = $r('body').text();
-  const catMatches = [...bodyText.matchAll(/CATTLE\s*[-–—]\s*(\w+)/gi)];
-  console.log(`[${id}] found ${catMatches.length} category headers: ${catMatches.map(m => m[1]).join(', ')}`);
-
-  // Parse tables — look for rows with numeric data (Head, Avg_Wt, $/CWT, $/Head)
-  // Each table row should have: description text, head count, avg weight, price/cwt, price/head
-  const ROW_RE = /(\d+(?:,\d{3})*(?:\.\d{2})?)/g;
-
-  tables.each((ti, table) => {
-    const rows = $r(table).find('tr');
-    if (rows.length === 0) return;
-
-    // Check if this table has a category header above it or in its first row
-    let category = null;
-
-    // Look for "CATTLE - XXX" in the table or preceding elements
-    const tableText = $r(table).text();
-    const catMatch = tableText.match(/CATTLE\s*[-–—]\s*(\w+)/i);
+    // Detect category header: "CATTLE - Fats" in column A
+    const catMatch = col0.match(/^CATTLE\s*[-–—]\s*(.+)/i);
     if (catMatch) {
-      category = catMatch[1];
-    } else {
-      // Check previous sibling or parent for category
-      const prev = $r(table).prev();
-      const prevText = prev.text() || '';
-      const prevMatch = prevText.match(/CATTLE\s*[-–—]\s*(\w+)/i);
-      if (prevMatch) category = prevMatch[1];
+      currentCat = catMatch[1].trim();
+      currentClass = classifyCategory(currentCat);
+      console.log(`[${id}] category: ${currentCat} → ${currentClass}`);
+      continue;
     }
 
-    if (!category) return;
+    // Skip header rows and non-data
+    if (!currentCat || currentClass === 'skip') continue;
+    if (/^Descr|^Market Report|^$/i.test(col0)) continue;
 
-    const classification = classifyCategory(category);
-    allCategories.push({ category, classification, rows: rows.length - 1 });
-    console.log(`[${id}] table ${ti}: CATTLE - ${category} → ${classification} (${rows.length - 1} data rows)`);
+    // CSV columns (Google Sheets merged cells = empty columns between):
+    //   [0]=Descr  [1]='' [2]=Head [3]='' [4]=Avg_Wt [5]='' [6]='' [7]=$/CWT [8]='' [9]='' [10]=$/Head
+    // But actual positions vary — find the numeric values
+    const desc = col0;
 
-    if (classification === 'skip' || classification === 'unknown') return;
+    // Extract head count, avg weight, $/CWT from the row
+    // Find all numeric-looking values in the row
+    const nums = [];
+    for (let i = 1; i < fields.length && i < 12; i++) {
+      const v = fields[i].replace(/[$,]/g, '').trim();
+      if (v && /^\d+\.?\d*$/.test(v)) nums.push(parseFloat(v));
+    }
 
-    // Parse data rows (skip header row)
-    rows.each((ri, row) => {
-      if (ri === 0) return; // skip header
+    if (nums.length < 3) continue;
 
-      const cells = $r(row).find('td, th');
-      if (cells.length < 4) return;
+    // Pattern: head, avgWt, $/CWT, $/Head
+    const head = Math.round(nums[0]);
+    const avgWt = Math.round(nums[1]);
+    const priceCwt = nums[2];
 
-      const cellTexts = [];
-      cells.each((_, cell) => cellTexts.push($r(cell).text().trim()));
+    // Sanity checks
+    if (head < 1 || head > 500) continue;
+    if (avgWt < 50 || avgWt > 3000) continue;
+    if (priceCwt < 10 || priceCwt > 2000) continue;
 
-      // Expected: [Descr, Head, Avg_Wt, $/CWT, $/Head]
-      const desc    = cellTexts[0] || '';
-      const head    = parseInt((cellTexts[1] || '').replace(/,/g, ''));
-      const avgWt   = parseInt((cellTexts[2] || '').replace(/,/g, ''));
-      const priceCwt = parseFloat((cellTexts[3] || '').replace(/[$,]/g, ''));
-      const priceHd  = parseFloat((cellTexts[4] || '').replace(/[$,]/g, ''));
+    // Baby calves have very high $/CWT (e.g. 1880 for 63# calves) — that's $/head really
+    // Skip entries with $/CWT > 500 unless it's explicitly a feeder category
+    if (priceCwt > 500 && currentClass === 'slaughter') continue;
 
-      if (isNaN(priceCwt) || priceCwt < 10 || priceCwt > 500) return;
-      if (isNaN(avgWt) || avgWt < 50) return;
-      if (isNaN(head) || head < 1) return;
+    const breed = breedFromDesc(desc);
+    console.log(`[${id}]   ${desc} | ${head}hd | ${avgWt}# | $${priceCwt}/cwt [${breed}] → ${currentClass}`);
 
-      console.log(`[${id}]   ${desc} | ${head}hd | ${avgWt}# | $${priceCwt}/cwt | $${priceHd}/hd → ${classification}`);
-
-      if (classification === 'slaughter') {
-        slaughterPrices.push({ desc, head, avgWt, priceCwt, priceHd, category });
-      } else if (classification === 'feeder') {
-        feederPrices.push({ desc, head, avgWt, priceCwt, priceHd, category });
+    if (currentClass === 'slaughter') {
+      if (breed === 'holstein') {
+        slaughterHolstein.push({ desc, head, avgWt, priceCwt });
+      } else {
+        slaughterBeef.push({ desc, head, avgWt, priceCwt });
       }
-    });
-  });
-
-  // ── If table approach found nothing, try text-based parsing ─────────────
-  if (slaughterPrices.length === 0 && feederPrices.length === 0) {
-    console.log(`[${id}] table parsing found no data, trying text-based approach...`);
-
-    // Split body text into lines and look for price patterns
-    const lines = bodyText.split('\n').map(l => l.trim()).filter(Boolean);
-    let currentCategory = null;
-    let currentClassification = null;
-    let inHeader = false;
-
-    for (const line of lines) {
-      // Check for category header
-      const catM = line.match(/CATTLE\s*[-–—]\s*(\w+)/i);
-      if (catM) {
-        currentCategory = catM[1];
-        currentClassification = classifyCategory(currentCategory);
-        inHeader = true;
-        console.log(`[${id}] text: category ${currentCategory} → ${currentClassification}`);
-        continue;
-      }
-
-      // Skip header line (Descr, Head, etc.)
-      if (/^\s*Descr/i.test(line)) { inHeader = false; continue; }
-      if (inHeader) continue;
-      if (!currentCategory || currentClassification === 'skip') continue;
-
-      // Try to parse a data line: "Color Fats 6 1528 235.50 $3,599.23"
-      // or "Blk FatHfr 1 1370 234.00 $3,205.80"
-      const dataMatch = line.match(/^(.+?)\s+(\d+)\s+(\d{3,4})\s+([\d,.]+)\s+\$?([\d,.]+)/);
-      if (!dataMatch) continue;
-
-      const desc = dataMatch[1].trim();
-      const head = parseInt(dataMatch[2]);
-      const avgWt = parseInt(dataMatch[3]);
-      const priceCwt = parseFloat(dataMatch[4].replace(/,/g, ''));
-      const priceHd = parseFloat(dataMatch[5].replace(/,/g, ''));
-
-      if (isNaN(priceCwt) || priceCwt < 10 || priceCwt > 500) continue;
-      if (isNaN(avgWt) || avgWt < 50) continue;
-
-      console.log(`[${id}]   text: ${desc} | ${head}hd | ${avgWt}# | $${priceCwt}/cwt → ${currentClassification}`);
-
-      if (currentClassification === 'slaughter') {
-        slaughterPrices.push({ desc, head, avgWt, priceCwt, priceHd, category: currentCategory });
-      } else if (currentClassification === 'feeder') {
-        feederPrices.push({ desc, head, avgWt, priceCwt, priceHd, category: currentCategory });
-      }
+    } else if (currentClass === 'feeder') {
+      feederEntries.push({ desc, head, avgWt, priceCwt, breed });
     }
   }
 
-  // ── Build slaughter {low, high} from all slaughter entries ──────────────
-  if (slaughterPrices.length > 0) {
-    const prices = slaughterPrices.map(e => e.priceCwt);
+  // ── Build slaughter ranges ────────────────────────────────────────────────
+  if (slaughterBeef.length > 0) {
+    const prices = slaughterBeef.map(e => e.priceCwt);
     slaughter.beef = {
       low:  parseFloat(Math.min(...prices).toFixed(2)),
       high: parseFloat(Math.max(...prices).toFixed(2)),
     };
-    console.log(`[${id}] slaughter.beef = ${JSON.stringify(slaughter.beef)} (from ${slaughterPrices.length} rows)`);
+    console.log(`[${id}] slaughter.beef = ${JSON.stringify(slaughter.beef)} (${slaughterBeef.length} rows)`);
+  }
+  if (slaughterHolstein.length > 0) {
+    const prices = slaughterHolstein.map(e => e.priceCwt);
+    slaughter.holstein = {
+      low:  parseFloat(Math.min(...prices).toFixed(2)),
+      high: parseFloat(Math.max(...prices).toFixed(2)),
+    };
+    console.log(`[${id}] slaughter.holstein = ${JSON.stringify(slaughter.holstein)} (${slaughterHolstein.length} rows)`);
   }
 
-  // ── Build feeder {low, high} and feederWeights ──────────────────────────
-  if (feederPrices.length > 0) {
-    const prices = feederPrices.map(e => e.priceCwt);
+  // ── Build feeder ranges and weight buckets ────────────────────────────────
+  if (feederEntries.length > 0) {
+    const prices = feederEntries.map(e => e.priceCwt);
     feeder.beef = {
       low:  parseFloat(Math.min(...prices).toFixed(2)),
       high: parseFloat(Math.max(...prices).toFixed(2)),
     };
-    console.log(`[${id}] feeder.beef = ${JSON.stringify(feeder.beef)} (from ${feederPrices.length} rows)`);
+    console.log(`[${id}] feeder.beef = ${JSON.stringify(feeder.beef)} (${feederEntries.length} rows)`);
 
-    // Group feeder entries by weight range (100-lb buckets)
+    // Group by 100-lb weight buckets
     const buckets = {};
-    for (const e of feederPrices) {
+    for (const e of feederEntries) {
       const bucket = Math.floor(e.avgWt / 100) * 100;
       const range = `${bucket}–${bucket + 99}#`;
       if (!buckets[range]) buckets[range] = { prices: [], types: ['beef'] };
@@ -287,16 +250,16 @@ async function parse({ id, browser }) {
     console.log(`[${id}] feederWeights: ${feederWeights.length} buckets`);
   }
 
-  const hasSlaughter = slaughter.beef !== null;
+  const hasSlaughter = slaughter.beef !== null || slaughter.holstein !== null;
   const hasFeeder = feeder.beef !== null;
 
   if (!hasSlaughter && !hasFeeder) {
-    console.error(`[${id}] no prices extracted from report`);
+    console.error(`[${id}] no prices extracted from CSV`);
     return {
       slaughter: null, feeder: null,
       reportDate,
       source: 'fetch_failed',
-      error: 'no prices found in report HTML',
+      error: 'no prices found in CSV data',
     };
   }
 
@@ -307,8 +270,7 @@ async function parse({ id, browser }) {
     saleDay = DAYS[d.getDay()];
   }
 
-  console.log(`[${id}] result — slaughter: ${hasSlaughter}, feeder: ${hasFeeder}, date: ${reportDate}, day: ${saleDay}`);
-  console.log(`[${id}] categories found: ${allCategories.map(c => `${c.category}(${c.classification})`).join(', ')}`);
+  console.log(`[${id}] ✓ slaughter.beef=${JSON.stringify(slaughter.beef)}, slaughter.holstein=${JSON.stringify(slaughter.holstein)}, feeder.beef=${JSON.stringify(feeder.beef)}, date=${reportDate}, day=${saleDay}`);
 
   return {
     slaughter,
