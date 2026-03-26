@@ -1,6 +1,6 @@
 # Current State — grow27
 
-**Version:** 1.125
+**Version:** 1.126
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
 **Last updated:** 2026-03-26
