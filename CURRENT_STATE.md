@@ -1,6 +1,6 @@
 # Current State — grow27
 
-**Version:** 1.116
+**Version:** 1.121
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
 **Last updated:** 2026-03-26
@@ -25,7 +25,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Component | Schedule | Status |
 |-----------|----------|--------|
 | Barn scraper (Central, Lanesboro, Rock Creek) | Daily 4am + 7am CT | Running |
-| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision) | Mon–Fri 4am + 7am CT | Running |
+| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley) | Mon–Fri 4am + 7am CT | Running |
 | Auto-push data to main | After each scrape | Running |
 
 ### Barn Parsers
@@ -46,6 +46,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | CHS | `scripts/grain/chs.js` | 2 | Active |
 | Jennie-O | `scripts/grain/jennieo.js` | 4 | Active — cash-only via farmbucks.com |
 | New Vision | `scripts/grain/newvision.js` | 22 | Active — AgriCharts JSON API, corn+beans, basis+basisMonth stored |
+| Al-Corn | `scripts/grain/alcorn.js` | 1 | Active — CIH widget, corn only, Claremont MN |
 
 ### Overlap / Gap Notes (New Vision)
 | New Vision Location | Overlap | Status |
@@ -68,7 +69,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Component | Schedule | Status |
 |-----------|----------|--------|
 | Barn scraper (Central, Lanesboro, Rock Creek) | Daily 4am + 7am CT | Running |
-| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision) | Mon–Fri 4am + 7am CT | Running |
+| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley) | Mon–Fri 4am + 7am CT | Running |
 | Futures history scraper (LE, GF, ZC, ZS, DC, ZM) | Mon–Fri 5pm + 7pm CT | New |
 | Auto-push data to main | After each scrape | Running |
 
@@ -86,7 +87,7 @@ ABOUT — data sources, app info
 
 ### Key Data Files
 - `data/barns-config.json` — 5 barns registered
-- `data/grain-config.json` — 6 sources (all active)
+- `data/grain-config.json` — 8 sources (all active)
 - `data/prices/index.json` — latest barn snapshot
 - `data/prices/grain/index.json` — latest grain snapshot
 - History files: no cap (was 14, removed v1.82) — monitor site speed

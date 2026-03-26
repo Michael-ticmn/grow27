@@ -127,5 +127,17 @@
       { "slug": "claremont", "name": "Al-Corn" }
     ],
     "commodities": ["corn"]
+  },
+  {
+    "id": "poet",
+    "name": "POET Biorefining",
+    "url": "https://poet.gradable.com/market/Bingham-Lake--MN",
+    "disabled": true,
+    "disabledReason": "Gradable platform returns 403 to headless browsers from datacenter IPs (Cloudflare/WAF)",
+    "locations": [
+      { "slug": "bingham-lake", "name": "Bingham Lake" },
+      { "slug": "albert-lea", "name": "Albert Lea" }
+    ],
+    "commodities": ["corn", "beans"]
   }
 ]
