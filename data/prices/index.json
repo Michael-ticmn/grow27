@@ -2196,29 +2196,117 @@
     "id": "sleepyeye",
     "name": "Sleepy Eye Auction Market",
     "location": "Sleepy Eye MN",
-    "lastSuccess": null,
+    "lastSuccess": "2026-03-25",
     "slaughter": {
-      "beef": null,
+      "beef": {
+        "low": 199,
+        "high": 235.5
+      },
       "crossbred": null,
-      "holstein": null
+      "holstein": {
+        "low": 168,
+        "high": 213
+      }
     },
-    "slaughterSaleDay": null,
-    "slaughterDate": null,
+    "slaughterSaleDay": "Wednesday",
+    "slaughterDate": "2026-03-25",
     "feeder": {
-      "beef": null,
+      "beef": {
+        "low": 230.77,
+        "high": 425
+      },
       "crossbred": null,
       "holstein": null,
       "liteTest": false
     },
-    "feederWeights": [],
-    "feederSaleDay": null,
-    "feederDate": null,
+    "feederWeights": [
+      {
+        "range": "200–299#",
+        "low": 230.77,
+        "price": 230.77,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "300–399#",
+        "low": 425,
+        "price": 425,
+        "types": [
+          "beef"
+        ]
+      },
+      {
+        "range": "500–599#",
+        "low": 345,
+        "price": 345,
+        "types": [
+          "beef"
+        ]
+      }
+    ],
+    "feederSaleDay": "Wednesday",
+    "feederDate": "2026-03-25",
     "repSales": null,
-    "saleDay": null,
+    "saleDay": "Wednesday",
     "liteTestNote": null,
-    "saleDays": null,
+    "saleDays": [
+      {
+        "day": "Wednesday",
+        "date": "2026-03-25",
+        "slaughter": {
+          "beef": {
+            "low": 199,
+            "high": 235.5
+          },
+          "crossbred": null,
+          "holstein": {
+            "low": 168,
+            "high": 213
+          }
+        },
+        "feeder": {
+          "beef": {
+            "low": 230.77,
+            "high": 425
+          },
+          "crossbred": null,
+          "holstein": null,
+          "liteTest": false
+        },
+        "feederWeights": [
+          {
+            "range": "200–299#",
+            "low": 230.77,
+            "price": 230.77,
+            "types": [
+              "beef"
+            ]
+          },
+          {
+            "range": "300–399#",
+            "low": 425,
+            "price": 425,
+            "types": [
+              "beef"
+            ]
+          },
+          {
+            "range": "500–599#",
+            "low": 345,
+            "price": 345,
+            "types": [
+              "beef"
+            ]
+          }
+        ],
+        "repSales": null,
+        "hogs": null,
+        "liteTestNote": null
+      }
+    ],
     "trend": null,
-    "source": "pending"
+    "source": "scraped"
   },
   {
     "id": "pipestone",
