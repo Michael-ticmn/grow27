@@ -131,5 +131,12 @@ Do not access saved credentials, autofill data, or browser storage from any brow
 
 ---
 
+## Sync Files
+STRATEGY.md, HANDOFF_QUEUE.md, BRAND.md, BUILD_LOG.md, CURRENT_STATE.md live
+in the repo root. Read them at the start of every session. Update the relevant
+file before ending any session. Commit them with the same push as code changes.
+
+---
+
 ## Never touch directly
 Never edit files directly on main. All changes to index.html, js/, and css/ must be made on UserUpdates and promoted to main via push-main.ps1. Exception: scraper workflows automatically push `data/prices/` to main.

@@ -25,8 +25,12 @@
     "id": "lanesboro",
     "name": "Lanesboro Sales Commission",
     "location": "Lanesboro MN",
-    "reportUrl": null,
-    "hasTypeBreakdown": false
+    "hasTypeBreakdown": true,
+    "reports": [
+      { "day": "Wednesday", "url": "https://www.lanesborosalescommission.com/wednesday-auction" },
+      { "day": "Friday",    "url": "https://www.lanesborosalescommission.com/friday-auction" }
+    ],
+    "reportUrl": "https://www.lanesborosalescommission.com/wednesday-auction"
   },
   {
     "id": "rockcreek",
