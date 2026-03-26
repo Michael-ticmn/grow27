@@ -44,6 +44,7 @@
   .clock-bar{font-size:11px;color:var(--txt3);display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
   .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--up);margin-right:6px;animation:pulse 2.5s infinite;}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   /* ── BETA BADGE + FEEDBACK ── */
   .beta-badge{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#0f0f0f;background:var(--corn);border-radius:3px;padding:2px 6px;flex-shrink:0;}

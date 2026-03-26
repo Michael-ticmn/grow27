@@ -1,0 +1,50 @@
+name: Scrape Futures History
+on:
+  schedule:
+    - cron: '0 23 * * 1-5'   # 5pm CT Mon-Fri (after market close)
+    - cron: '0 1 * * 2-6'    # 7pm CT Mon-Fri (backup)
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: UserUpdates
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          clean: true
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run futures history scraper
+        run: node scripts/scrape-futures-history.js
+
+      - name: Show git status
+        run: git status
+
+      - name: Commit updated futures history to UserUpdates
+        run: |
+          git config user.name "grow27-bot"
+          git config user.email "bot@grow27.com"
+          git add data/prices/futures-history.json
+          git diff --staged --quiet || git commit -m "data: futures history $(date -u +%Y-%m-%dT%H:%MZ)"
+          git pull --rebase origin UserUpdates
+          git push --force-with-lease origin UserUpdates
+
+      - name: Push data to main for live site
+        run: |
+          COMMIT_MSG="data: futures history $(date -u +%Y-%m-%dT%H:%MZ)"
+          git fetch origin main
+          git checkout main
+          git checkout UserUpdates -- data/prices/futures-history.json
+          git add data/prices/futures-history.json
+          git diff --staged --quiet || git commit -m "$COMMIT_MSG"
+          git push origin main
+          git checkout UserUpdates

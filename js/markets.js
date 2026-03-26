@@ -253,8 +253,9 @@ async function _fetchYahooRaw(sym) {
   const now = Date.now();
   const cached = _yahooCache[sym];
   if (cached && (now - cached.ts) < YAHOO_CACHE_TTL) return cached.data;
-  const url = 'https://query2.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?range=1d&interval=1d';
-  const proxies = [url, 'https://corsproxy.io/?' + encodeURIComponent(url), 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)];
+  // Use raw sym in path (not encodeURIComponent) so proxies don't double-encode %3D
+  const url = 'https://query2.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=1d';
+  const proxies = [url, 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url), 'https://corsproxy.io/?' + encodeURIComponent(url), 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url)];
   try {
     let r;
     for (const p of proxies) { try { r = await fetch(p, { signal: AbortSignal.timeout(6000) }); if (r.ok) break; } catch(_) {} }
@@ -289,7 +290,8 @@ async function prefetchYahoo() {
   function parseCm(str) { const p = str.split(' '); return { name: p[0], year: 2000 + parseInt(p[1]) }; }
   const cn2sym = grainYahooSym('ZC', parseCm(cm.cornNewCrop).name, parseCm(cm.cornNewCrop).year);
   const sb2sym = grainYahooSym('ZS', parseCm(cm.soyNewCrop).name, parseCm(cm.soyNewCrop).year);
-  const tickers = ['ZC=F', cn2sym, 'ZS=F', sb2sym, 'LE=F', 'GF=F', 'DC=F', 'ZM=F'];
+  const gfFallback = getNearbyContract('GF', [0,2,3,4,7,8,9,10], 'CME');
+  const tickers = ['ZC=F', cn2sym, 'ZS=F', sb2sym, 'LE=F', 'GF=F', gfFallback, 'DC=F', 'ZM=F'];
   // Stagger slightly (200ms gaps) to avoid Yahoo rate-limiting
   const results = [];
   for (let i = 0; i < tickers.length; i++) {
@@ -306,6 +308,20 @@ async function prefetchYahoo() {
 function grainYahooSym(prefix, monthName, year) {
   const codes = { Jan:'F', Mar:'H', May:'K', Jul:'N', Aug:'Q', Sep:'U', Nov:'X', Dec:'Z' };
   return prefix + (codes[monthName] || 'K') + String(year).slice(2) + '.CBT';
+}
+
+// Build specific-month Yahoo symbol for any futures product.
+// contractMonths: array of 0-based month indices the product trades (e.g. [0,2,3,4,7,8,9,10] for feeder cattle)
+// exchange: 'CME' or 'CBT'
+// Returns e.g. 'GFJ26.CME' for feeder cattle April 2026
+function getNearbyContract(prefix, contractMonths, exchange) {
+  const CODES = ['F','G','H','J','K','M','N','Q','U','V','X','Z']; // Jan=F ... Dec=Z
+  const now = new Date();
+  const m = now.getMonth(), y = now.getFullYear();
+  for (const cm of contractMonths) {
+    if (cm > m || (cm === m && now.getDate() < 15)) return prefix + CODES[cm] + String(y).slice(2) + '.' + exchange;
+  }
+  return prefix + CODES[contractMonths[0]] + String(y + 1).slice(2) + '.' + exchange;
 }
 
 // Fallback values — used only if Yahoo fetch fails AND no scraped CBOT available
@@ -367,7 +383,10 @@ let CATTLE_DATA={lc:null,fc:null,cn:null},histRange=90,charts={};
 async function loadCattlePrices(){
   const fb={lc:{price:231.50,open:230.90,high:232.10,low:229.80,change:0.60,pct:0.26},fc:{price:354.50,open:349.85,high:355.35,low:345.08,change:4.65,pct:1.33},cn:{price:4.5250,open:4.4875,high:4.5750,low:4.4600,change:0.0375,pct:0.84}};
   // Yahoo: LE=F (live cattle), GF=F (feeder cattle), ZC=F (corn — cents, /100 for $/bu)
-  const[lc,fc,cn]=await Promise.all([fetchYahoo('LE=F',1),fetchYahoo('GF=F',1),fetchYahoo('ZC=F',100)]);
+  // GF=F fails through CORS proxies — try specific contract as fallback
+  const _gfSym = getNearbyContract('GF', [0,2,3,4,7,8,9,10], 'CME');
+  async function fetchGF() { return (await fetchYahoo('GF=F',1)) || (await fetchYahoo(_gfSym,1)); }
+  const[lc,fc,cn]=await Promise.all([fetchYahoo('LE=F',1),fetchGF(),fetchYahoo('ZC=F',100)]);
   CATTLE_DATA={lc:lc||fb.lc,fc:fc||fb.fc,cn:cn||fb.cn};
   function set(id,suffix,d,isCorn){const fmt=v=>isCorn?v.toFixed(4):v.toFixed(2);const el=document.getElementById('p-'+id+suffix);if(!el)return;el.textContent=isCorn?'$'+fmt(d.price):fmt(d.price);el.style.color=d.change>0.005?'var(--up)':d.change<-0.005?'var(--down)':'var(--corn)';const h=document.getElementById('h-'+id+suffix);const l=document.getElementById('l-'+id+suffix);const v=document.getElementById('v-'+id+suffix);if(h)h.textContent=fmt(d.high);if(l)l.textContent=fmt(d.low);if(v)v.textContent=fmt(d.open);setBadge('b-'+id+suffix,d.change,d.pct);}
   set('lc','-c',CATTLE_DATA.lc,false); // NOTE: cattle corn card uses suffix -c to avoid ID clash with grain
@@ -462,15 +481,683 @@ function updateCattleInsight() {
   }
 }
 
-// ── CATTLE CHARTS ─────────────────────────────────────────────────────────────
-function genHistory(price,days,vol=0.008){const arr=[];let p=price*(1-(Math.random()*0.05));for(let i=0;i<days;i++){p=p*(1+(Math.random()-0.49)*vol);arr.push(parseFloat(p.toFixed(3)));}arr.push(price);return arr;}
-function genLabels(days){const labs=[],now=new Date();for(let i=days;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);labs.push((d.getMonth()+1)+'/'+d.getDate());}return labs;}
+// ── CATTLE CHARTS — pre-built historical data from futures-history.json ──────
+// Data is scraped daily by GitHub Actions (scripts/scrape-futures-history.js)
+// and served as a static JSON file — no CORS proxies needed.
+var _futuresHistory = null; // cached after first load
+
+async function loadFuturesHistory() {
+  if (_futuresHistory) return _futuresHistory;
+  try {
+    const r = await fetchTimeout('data/prices/futures-history.json', 8000);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    _futuresHistory = await r.json();
+    console.log('[charts] loaded futures-history.json (' + (_futuresHistory.updated || '?') + ')');
+    return _futuresHistory;
+  } catch(e) {
+    console.warn('[charts] failed to load futures-history.json:', e.message);
+    return null;
+  }
+}
+
+// Convert static data { timestamps, closes } to chart-ready { labels, closes, fullDates }
+function histFromStatic(key, section) {
+  if (!section || !section[key]) return null;
+  const d = section[key];
+  if (!d.timestamps || !d.closes) return null;
+  const MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const labels = d.timestamps.map(function(t) {
+    var dt = new Date(t * 1000);
+    return (dt.getMonth()+1) + '/' + dt.getDate();
+  });
+  // Full date strings for tooltips (e.g. "Mar 25, 2025")
+  const fullDates = d.timestamps.map(function(t) {
+    var dt = new Date(t * 1000);
+    return MO[dt.getMonth()] + ' ' + dt.getDate() + ', ' + dt.getFullYear();
+  });
+  return { labels: labels, closes: d.closes, fullDates: fullDates };
+}
+
 // Monthly helpers — used by dairy premium chart (rolling 13 months)
 function genMonthlyLabels(n){const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],labs=[],now=new Date();for(let i=n-1;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);labs.push(MO[d.getMonth()]+' \''+(d.getFullYear()%100).toString().padStart(2,'0'));}return labs;}
 function genMonthlyHistory(premium,n,vol=0.015){const arr=[];let p=premium*(1-(Math.random()*0.04));for(let i=0;i<n-1;i++){p=p*(1+(Math.random()-0.49)*vol);arr.push(parseFloat(p.toFixed(3)));}arr.push(premium);return arr;}
-function makeLine(id,labels,datasets,opts={}){if(charts[id])charts[id].destroy();const ctx=document.getElementById(id);if(!ctx)return;charts[id]=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:{x:{ticks:{color:'#5e6369',font:{size:11},maxTicksLimit:8,maxRotation:0},grid:{color:'#252a31'}},y:{ticks:{color:'#5e6369',font:{size:11}},grid:{color:'#252a31'}}},elements:{point:{radius:0,hitRadius:12},line:{tension:0.35}}}});}
-function renderHistCharts(){const{lc,fc,cn}=CATTLE_DATA;if(!lc)return;const labs=genLabels(histRange);makeLine('hist-lc',labs,[{label:'Live Cattle',data:genHistory(lc.price,histRange,0.01),borderColor:'#c46a40',borderWidth:2,fill:false}]);makeLine('hist-fc',labs,[{label:'Feeder Cattle',data:genHistory(fc.price,histRange,0.012),borderColor:'#d4a027',borderWidth:2,fill:false}]);makeLine('hist-cn-chart',labs,[{label:'Corn',data:genHistory(cn.price,histRange,0.015),borderColor:'#3ea8aa',borderWidth:2,fill:false}]);const lcH=genHistory(lc.price,histRange,0.01),fcH=genHistory(fc.price,histRange,0.012);makeLine('hist-spread',labs,[{label:'Spread',data:lcH.map((v,i)=>parseFloat((v-fcH[i]).toFixed(2))),borderColor:'#d4a027',borderWidth:2,fill:true,backgroundColor:'rgba(212,160,39,.07)'}]);}
-function setRange(r,btn){histRange=r;document.querySelectorAll('.hist-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderHistCharts();}
+function makeLine(id,labels,datasets,opts={}){if(charts[id])charts[id].destroy();const ctx=document.getElementById(id);if(!ctx)return;var fullDates=opts.fullDates||null;charts[id]=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{title:function(items){if(fullDates&&items.length&&fullDates[items[0].dataIndex])return fullDates[items[0].dataIndex];return items[0].label;}}}},scales:{x:{ticks:{color:'#5e6369',font:{size:11},maxTicksLimit:10,maxRotation:0},grid:{color:'#252a31'}},y:{ticks:{color:'#5e6369',font:{size:11}},grid:{color:'#252a31'}}},elements:{point:{radius:0,hitRadius:12},line:{tension:0.35}}}});}
+
+async function renderHistCharts(){
+  // Show loading indicator (hidden once charts render)
+  const loadingEl = document.getElementById('chart-loading');
+  if (loadingEl) loadingEl.style.display = '';
+  // Read from pre-built futures-history.json (scraped daily by GitHub Actions)
+  const hist = await loadFuturesHistory();
+  const lcFull = histFromStatic('LE', hist?.daily);
+  const fcFull = histFromStatic('GF', hist?.daily);
+  const cnFull = histFromStatic('ZC', hist?.daily);
+  // Slice to selected day count
+  function sliceDays(hist, days) {
+    if (!hist) return null;
+    const n = Math.min(days, hist.closes.length);
+    // For ranges > 90 days, use "Mon 'YY" labels to show year context
+    var labels;
+    if (days > 90 && hist.fullDates) {
+      var MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var raw = hist.fullDates.slice(-n);
+      labels = raw.map(function(fd) {
+        var parts = fd.split(' '); // "Mar 25, 2025"
+        return parts[0] + ' \'' + parts[2].slice(2); // "Mar '25"
+      });
+    } else {
+      labels = hist.labels.slice(-n);
+    }
+    return { labels: labels, closes: hist.closes.slice(-n), fullDates: (hist.fullDates || []).slice(-n) };
+  }
+  const lcHist = sliceDays(lcFull, histRange);
+  const fcHist = sliceDays(fcFull, histRange);
+  const cnHist = sliceDays(cnFull, histRange);
+  // Hide loading indicator
+  if (loadingEl) loadingEl.style.display = 'none';
+
+  if (!lcHist && !fcHist && !cnHist) {
+    console.warn('[charts] Yahoo history fetch failed — no data for any chart');
+    return;
+  }
+
+  // Apply cattle type discount to chart data (CME = beef baseline, adjust for holstein/crossbred)
+  const slDisc = CATTLE_TYPE_DISCOUNTS[cattleType]?.discountCwt || 0;
+  const fdDisc = slDisc * 0.4; // feeder discount is 40% of slaughter
+
+  // Render each chart independently — don't let one failure kill the rest
+  if (lcHist) makeLine('hist-lc', lcHist.labels, [{label:'Live Cattle', data:lcHist.closes.map(v => v != null ? v - slDisc : null), borderColor:'#c46a40', borderWidth:2, fill:false}], {fullDates:lcHist.fullDates});
+  if (fcHist) makeLine('hist-fc', fcHist.labels, [{label:'Feeder Cattle', data:fcHist.closes.map(v => v != null ? v - fdDisc : null), borderColor:'#d4a027', borderWidth:2, fill:false}], {fullDates:fcHist.fullDates});
+  // Corn: Yahoo returns cents, convert to $/bu
+  if (cnHist) {
+    const cnCloses = cnHist.closes.map(v => v != null ? v / 100 : null);
+    makeLine('hist-cn-chart', cnHist.labels, [{label:'Corn', data:cnCloses, borderColor:'#3ea8aa', borderWidth:2, fill:false}], {fullDates:cnHist.fullDates});
+  }
+  // Spread: LC - FC with type discounts (only if both available)
+  if (lcHist && fcHist) {
+    const spreadLen = Math.min(lcHist.closes.length, fcHist.closes.length);
+    const spreadData = [];
+    for (let i = 0; i < spreadLen; i++) {
+      const lc = lcHist.closes[lcHist.closes.length - spreadLen + i];
+      const fc = fcHist.closes[fcHist.closes.length - spreadLen + i];
+      spreadData.push(lc != null && fc != null ? parseFloat(((lc - slDisc) - (fc - fdDisc)).toFixed(2)) : null);
+    }
+    const spreadLabels = lcHist.labels.slice(lcHist.labels.length - spreadLen);
+    const spreadDates = (lcHist.fullDates || []).slice(lcHist.labels.length - spreadLen);
+    makeLine('hist-spread', spreadLabels, [{label:'Spread', data:spreadData, borderColor:'#d4a027', borderWidth:2, fill:true, backgroundColor:'rgba(212,160,39,.07)'}], {fullDates:spreadDates});
+  }
+
+  // ── Chart insights ──
+  updateChartInsights(lcHist, fcHist, cnHist, slDisc, fdDisc);
+  // Render seasonal chart in companion panel
+  renderSeasonalCompanion();
+}
+
+function updateChartInsights(lcHist, fcHist, cnHist, slDisc, fdDisc) {
+  const topEl = document.getElementById('chart-insight-top');
+  const detailEl = document.getElementById('chart-insight-detail');
+  if (!topEl) return;
+
+  const typeLabel = CATTLE_TYPE_DISCOUNTS[cattleType]?.label || 'Beef Steer';
+  const rangeLabel = histRange + '-day';
+
+  // Helpers
+  function valid(arr) { return (arr || []).filter(v => v != null); }
+  function pctChange(arr) {
+    const v = valid(arr);
+    if (v.length < 2) return 0;
+    return ((v[v.length-1] - v[0]) / v[0]) * 100;
+  }
+  function hi(arr) { const v = valid(arr); return v.length ? Math.max(...v) : null; }
+  function lo(arr) { const v = valid(arr); return v.length ? Math.min(...v) : null; }
+  function last(arr) { const v = valid(arr); return v.length ? v[v.length-1] : null; }
+  function first(arr) { const v = valid(arr); return v.length ? v[0] : null; }
+  function arrow(pct) { return pct > 0.5 ? '▲' : pct < -0.5 ? '▼' : '▬'; }
+  function color(pct) { return pct > 0.5 ? 'var(--up)' : pct < -0.5 ? 'var(--down)' : 'var(--txt3)'; }
+
+  // Compute adjusted series
+  const lcAdj = lcHist ? lcHist.closes.map(v => v != null ? v - slDisc : null) : null;
+  const fcAdj = fcHist ? fcHist.closes.map(v => v != null ? v - fdDisc : null) : null;
+  const cnDollars = cnHist ? cnHist.closes.map(v => v != null ? v / 100 : null) : null;
+
+  const lcPct = lcAdj ? pctChange(lcAdj) : 0;
+  const fcPct = fcAdj ? pctChange(fcAdj) : 0;
+  const cnPct = cnDollars ? pctChange(cnDollars) : 0;
+
+  // ── Top insight: single most important takeaway (market-level, not type-specific) ──
+  // Trends are identical across beef/crossbred/holstein — discounts are flat offsets.
+  // Use raw CME data for trend detection, keep language generic.
+  const lcRaw = lcHist ? lcHist.closes : null;
+  const fcRaw = fcHist ? fcHist.closes : null;
+  const lcRawPct = lcRaw ? pctChange(lcRaw) : 0;
+  const fcRawPct = fcRaw ? pctChange(fcRaw) : 0;
+
+  let topMsg = '';
+  if (lcRaw && fcRaw) {
+    const spreadNow = last(lcRaw) - last(fcRaw);
+    const spreadStart = first(lcRaw) - first(fcRaw);
+    const spreadDir = spreadNow > spreadStart + 2 ? 'widening' : spreadNow < spreadStart - 2 ? 'narrowing' : 'stable';
+
+    if (lcRawPct > 3 && fcRawPct > 3) {
+      topMsg = '<strong>Cattle market rallying</strong> — both live and feeder up over ' + rangeLabel + '. Strong selling conditions.';
+    } else if (lcRawPct > 3 && spreadDir === 'widening') {
+      topMsg = '<strong>Spread widening</strong> — live cattle outpacing feeders. Favor finishing over buying replacements.';
+    } else if (lcRawPct < -3 && fcRawPct < -3) {
+      topMsg = '<strong>Market under pressure</strong> — both live and feeder declining over ' + rangeLabel + '. Review margin exposure.';
+    } else if (cnPct > 5) {
+      topMsg = '<strong>Corn rising sharply</strong> (' + arrow(cnPct) + ' ' + cnPct.toFixed(1) + '%) — feed costs increasing. Check your cost-of-gain breakeven.';
+    } else if (cnPct < -5) {
+      topMsg = '<strong>Corn dropping</strong> (' + arrow(cnPct) + ' ' + Math.abs(cnPct).toFixed(1) + '% over ' + rangeLabel + ') — feed costs easing. Favorable for feedlot margins.';
+    } else if (spreadDir === 'narrowing') {
+      topMsg = '<strong>Spread narrowing</strong> — feeder prices catching up to live. Replacement cost rising relative to sell price.';
+    } else {
+      topMsg = 'Cattle market <strong>steady</strong> over ' + rangeLabel + '. Live ' + arrow(lcRawPct) + ' ' + Math.abs(lcRawPct).toFixed(1) + '%, feeder ' + arrow(fcRawPct) + ' ' + Math.abs(fcRawPct).toFixed(1) + '%.';
+    }
+  } else if (lcRaw) {
+    topMsg = 'Live cattle ' + arrow(lcRawPct) + ' <strong>' + Math.abs(lcRawPct).toFixed(1) + '%</strong> over ' + rangeLabel + '.';
+  }
+  topEl.innerHTML = topMsg || 'Loading chart data…';
+
+  // ── Bottom detail panel ──
+  if (!detailEl) return;
+  let rows = [];
+
+  if (lcAdj) {
+    const lcNow = last(lcAdj), lcHi = hi(lcAdj), lcLo = lo(lcAdj);
+    const lcRange = lcHi - lcLo;
+    const lcPos = lcRange > 0 ? ((lcNow - lcLo) / lcRange * 100).toFixed(0) : 50;
+    rows.push('<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">' +
+      '<div><strong style="color:var(--cattle);">Live Cattle</strong> <span style="color:var(--txt3);font-size:12px;">(' + typeLabel + ')</span></div>' +
+      '<div style="text-align:right;"><span style="color:' + color(lcPct) + ';font-weight:700;">' + arrow(lcPct) + ' ' + (lcPct>=0?'+':'') + lcPct.toFixed(1) + '%</span>' +
+      ' <span style="font-size:12px;color:var(--txt3);">· ' + lcNow.toFixed(2) + '¢ · ' + rangeLabel + ' range ' + lcLo.toFixed(0) + '–' + lcHi.toFixed(0) + ' · at ' + lcPos + '% of range</span></div></div>');
+  }
+
+  if (fcAdj) {
+    const fcNow = last(fcAdj), fcHi = hi(fcAdj), fcLo = lo(fcAdj);
+    const fcRange = fcHi - fcLo;
+    const fcPos = fcRange > 0 ? ((fcNow - fcLo) / fcRange * 100).toFixed(0) : 50;
+    rows.push('<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">' +
+      '<div><strong style="color:var(--cattle);">Feeder Cattle</strong> <span style="color:var(--txt3);font-size:12px;">(' + typeLabel + ')</span></div>' +
+      '<div style="text-align:right;"><span style="color:' + color(fcPct) + ';font-weight:700;">' + arrow(fcPct) + ' ' + (fcPct>=0?'+':'') + fcPct.toFixed(1) + '%</span>' +
+      ' <span style="font-size:12px;color:var(--txt3);">· ' + fcNow.toFixed(2) + '¢ · ' + rangeLabel + ' range ' + fcLo.toFixed(0) + '–' + fcHi.toFixed(0) + ' · at ' + fcPos + '% of range</span></div></div>');
+  }
+
+  if (cnDollars) {
+    const cnNow = last(cnDollars), cnHi = hi(cnDollars), cnLo = lo(cnDollars);
+    const cnRange = cnHi - cnLo;
+    const cnPos = cnRange > 0 ? ((cnNow - cnLo) / cnRange * 100).toFixed(0) : 50;
+    rows.push('<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">' +
+      '<div><strong style="color:var(--corn);">Corn</strong> <span style="color:var(--txt3);font-size:12px;">(feed cost)</span></div>' +
+      '<div style="text-align:right;"><span style="color:' + color(-cnPct) + ';font-weight:700;">' + arrow(cnPct) + ' ' + (cnPct>=0?'+':'') + cnPct.toFixed(1) + '%</span>' +
+      ' <span style="font-size:12px;color:var(--txt3);">· $' + cnNow.toFixed(4) + ' · ' + rangeLabel + ' range $' + cnLo.toFixed(2) + '–$' + cnHi.toFixed(2) + ' · at ' + cnPos + '% of range</span></div></div>');
+  }
+
+  if (lcAdj && fcAdj) {
+    const spreadNow = last(lcAdj) - last(fcAdj);
+    const spreadStart = first(lcAdj) - first(fcAdj);
+    const spreadChange = spreadNow - spreadStart;
+    const spreadDir = spreadChange > 2 ? 'Widening' : spreadChange < -2 ? 'Narrowing' : 'Stable';
+    const spreadColor = spreadChange > 2 ? 'var(--up)' : spreadChange < -2 ? 'var(--down)' : 'var(--txt3)';
+    rows.push('<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">' +
+      '<div><strong style="color:var(--txt1);">LC–FC Spread</strong> <span style="color:var(--txt3);font-size:12px;">(margin indicator)</span></div>' +
+      '<div style="text-align:right;"><span style="color:' + spreadColor + ';font-weight:700;">' + spreadDir + '</span>' +
+      ' <span style="font-size:12px;color:var(--txt3);">· now ' + spreadNow.toFixed(1) + '¢ · was ' + spreadStart.toFixed(1) + '¢ · ' + (spreadChange>=0?'+':'') + spreadChange.toFixed(1) + '¢ over ' + rangeLabel + '</span></div></div>');
+  }
+
+  // Actionable summary
+  let summary = '';
+  if (lcAdj && cnDollars) {
+    const margin = last(lcAdj) * 12 - last(cnDollars) * 56; // rough $/head proxy (1200lb steer, 56bu corn)
+    const marginStart = first(lcAdj) * 12 - first(cnDollars) * 56;
+    const marginDir = margin > marginStart + 20 ? 'improving' : margin < marginStart - 20 ? 'deteriorating' : 'holding steady';
+    summary = '<div style="padding:10px 0 4px;font-size:13px;color:var(--txt2);border-top:1px solid var(--border);margin-top:4px;">' +
+      'Rough feedlot margin proxy (' + typeLabel.toLowerCase() + '): <strong style="color:' + (marginDir === 'improving' ? 'var(--up)' : marginDir === 'deteriorating' ? 'var(--down)' : 'var(--txt1)') + ';">' +
+      marginDir + '</strong> over ' + rangeLabel + '. Sell revenue ' + (lcPct>=0?'up':'down') + ', feed costs ' + (cnPct>=0?'up':'down') + '.</div>';
+  }
+
+  detailEl.innerHTML = '<div class="panel-title">' + rangeLabel.charAt(0).toUpperCase() + rangeLabel.slice(1) + ' Trend Analysis — ' + typeLabel + '</div>' +
+    '<div style="padding:0 12px;">' + rows.join('') + summary + '</div>';
+}
+
+function setRange(r,btn){histRange=r;document.querySelectorAll('#chart-view-futures .hist-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderHistCharts();}
+
+// ── Chart mode: Futures vs Auction ──────────────────────────────────────────
+var _chartMode = 'futures';
+var _auctionCat = 'slaughter';
+var _auctionCache = {};  // barnId → history data
+var _auctionChart = null;
+
+function setChartMode(mode, btn) {
+  _chartMode = mode;
+  document.getElementById('chart-mode-futures').classList.toggle('active', mode === 'futures');
+  document.getElementById('chart-mode-auction').classList.toggle('active', mode === 'auction');
+  document.getElementById('chart-view-futures').style.display = mode === 'futures' ? '' : 'none';
+  document.getElementById('chart-view-auction').style.display = mode === 'auction' ? '' : 'none';
+  if (mode === 'auction') renderAuctionChart();
+  if (mode === 'futures') renderHistCharts();
+}
+
+function setAuctionCat(cat, btn) {
+  _auctionCat = cat;
+  document.getElementById('auction-cat-slaughter').classList.toggle('active', cat === 'slaughter');
+  document.getElementById('auction-cat-feeder').classList.toggle('active', cat === 'feeder');
+  renderAuctionChart();
+}
+
+// Barn colors for the combined chart
+var BARN_COLORS = {
+  central:   { line: '#c46a40', bg: 'rgba(196,106,64,0.08)' },
+  lanesboro: { line: '#3ea8aa', bg: 'rgba(62,168,170,0.08)' },
+  rockcreek: { line: '#d4a027', bg: 'rgba(212,160,39,0.08)' },
+  sleepyeye: { line: '#7a8bbf', bg: 'rgba(122,139,191,0.08)' },
+  pipestone: { line: '#9b6fa3', bg: 'rgba(155,111,163,0.08)' },
+};
+
+async function renderAuctionChart() {
+  var type = typeof cattleType !== 'undefined' ? cattleType : 'beef';
+  var cat = _auctionCat;
+  var titleEl = document.getElementById('auction-chart-title');
+  var footEl = document.getElementById('auction-chart-foot');
+  var typeLabels = { beef: 'Beef Steer', crossbred: 'Beef × Dairy', holstein: 'Holstein' };
+  var catLabel = cat === 'slaughter' ? 'Slaughter' : 'Feeder';
+  if (titleEl) titleEl.textContent = 'Auction Barn Prices — ' + catLabel + ' · ' + typeLabels[type] + ' (¢/lb)';
+
+  // Fetch all barn histories (cached)
+  var barnIds = Object.keys(BARNS_DATA).filter(function(k) { return BARNS_DATA[k].dataSource !== 'pending'; });
+  await Promise.all(barnIds.map(async function(id) {
+    if (_auctionCache[id]) return;
+    try {
+      var r = await fetch('data/prices/' + id + '.json');
+      if (!r.ok) return;
+      _auctionCache[id] = await r.json();
+    } catch(e) {}
+  }));
+
+  // Build per-barn series
+  var datasets = [];
+  var allDates = new Set();
+  var barnSeries = {};
+  var totalSaleDays = 0;
+
+  barnIds.forEach(function(id) {
+    var data = _auctionCache[id];
+    if (!data || !data.history) return;
+    var scraped = data.history
+      .filter(function(e) { return e.source === 'scraped' && e[cat]; })
+      .filter(function(e) { return e[cat][type] != null; });
+    // Dedup by date+saleDay
+    var byKey = {};
+    scraped.forEach(function(e) { byKey[e.date + '|' + (e.saleDay || '')] = e; });
+    var entries = Object.values(byKey).sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+    var points = {};
+    entries.forEach(function(e) {
+      var mid = priceMid(e[cat][type]);
+      if (mid != null) { points[e.date] = mid; allDates.add(e.date); }
+    });
+    if (Object.keys(points).length > 0) {
+      barnSeries[id] = points;
+      totalSaleDays += Object.keys(points).length;
+    }
+  });
+
+  var sortedDates = Array.from(allDates).sort();
+  if (sortedDates.length === 0) {
+    if (footEl) footEl.textContent = 'No ' + catLabel.toLowerCase() + ' data for ' + typeLabels[type] + ' in barn history.';
+    if (_auctionChart) { _auctionChart.destroy(); _auctionChart = null; }
+    return;
+  }
+
+  var labels = sortedDates.map(function(d) {
+    var dt = new Date(d + 'T12:00:00');
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+
+  Object.keys(barnSeries).forEach(function(id) {
+    var barn = BARNS_DATA[id];
+    var color = BARN_COLORS[id] || { line: '#888', bg: 'rgba(136,136,136,0.08)' };
+    var data = sortedDates.map(function(d) { return barnSeries[id][d] || null; });
+    datasets.push({
+      label: barn.name,
+      data: data,
+      borderColor: color.line,
+      borderWidth: 2,
+      backgroundColor: color.bg,
+      fill: false,
+      pointRadius: 3,
+      pointBackgroundColor: color.line,
+      hitRadius: 12,
+      spanGaps: true,
+    });
+  });
+
+  if (_auctionChart) _auctionChart.destroy();
+  var ctx = document.getElementById('hist-auction');
+  if (!ctx) return;
+  _auctionChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { color: '#9ca3af', font: { size: 12 }, boxWidth: 14, padding: 16 } },
+        tooltip: { mode: 'index', intersect: false, callbacks: { label: function(c) { return c.dataset.label + ': ' + c.raw.toFixed(2) + '¢'; } } }
+      },
+      scales: {
+        x: { ticks: { color: '#5e6369', font: { size: 11 }, maxTicksLimit: 10, maxRotation: 0 }, grid: { color: '#252a31' } },
+        y: { ticks: { color: '#5e6369', font: { size: 11 }, callback: function(v) { return v.toFixed(0) + '¢'; } }, grid: { color: '#252a31' } }
+      },
+      elements: { line: { tension: 0.25 } }
+    }
+  });
+
+  var barnCount = Object.keys(barnSeries).length;
+  if (footEl) footEl.textContent = barnCount + ' barns · ' + totalSaleDays + ' sale days · ' + catLabel.toLowerCase() + ' · ' + typeLabels[type] + ' · scraped from barn reports';
+
+  // ── Auction insights + sale calendar ──
+  updateAuctionInsights(barnSeries, sortedDates, cat, type, typeLabels);
+  renderSaleCalendar();
+}
+
+// ── COMPANION PANELS ─────────────────────────────────────────────────────────
+
+// Futures companion: seasonal pattern chart — computed from real 5-year CME data
+async function renderSeasonalCompanion() {
+  var el = document.getElementById('chart-companion');
+  if (!el) return;
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var curMonth = new Date().getMonth();
+
+  // Read 5-year monthly data from pre-built futures-history.json
+  var hist = await loadFuturesHistory();
+  var monthlyData = hist?.monthly?.LE || null;
+
+  if (!monthlyData || !monthlyData.timestamps || monthlyData.timestamps.length < 12) {
+    el.innerHTML = '<div class="panel-title">Seasonal Pattern — CME Live Cattle</div>' +
+      '<div style="padding:20px;color:var(--txt3);font-size:13px;">Could not load historical data for seasonal analysis.</div>';
+    return;
+  }
+
+  // Group monthly closes by year, compute per-year annual average, then monthly deviation %
+  var yearMonthPrices = {}; // { year: { month: price } }
+  var yearTotals = {};      // { year: { sum, count } }
+  for (var i = 0; i < monthlyData.timestamps.length; i++) {
+    var price = monthlyData.closes[i];
+    if (price == null) continue;
+    var dt = new Date(monthlyData.timestamps[i] * 1000);
+    var yr = dt.getFullYear();
+    var mo = dt.getMonth();
+    if (!yearMonthPrices[yr]) yearMonthPrices[yr] = {};
+    yearMonthPrices[yr][mo] = price;
+    if (!yearTotals[yr]) yearTotals[yr] = { sum: 0, count: 0 };
+    yearTotals[yr].sum += price;
+    yearTotals[yr].count++;
+  }
+
+  // Only use years with 8+ months of data (skip partial first/last year)
+  var seasonal = [];
+  var yearsUsed = Object.keys(yearTotals).filter(function(yr) { return yearTotals[yr].count >= 8; });
+  var startYear = yearsUsed.length ? Math.min.apply(null, yearsUsed.map(Number)) : null;
+  var endYear = yearsUsed.length ? Math.max.apply(null, yearsUsed.map(Number)) : null;
+
+  for (var mo = 0; mo < 12; mo++) {
+    var deviations = [];
+    yearsUsed.forEach(function(yr) {
+      var annualAvg = yearTotals[yr].sum / yearTotals[yr].count;
+      var monthPrice = yearMonthPrices[yr] && yearMonthPrices[yr][mo];
+      if (monthPrice != null) {
+        deviations.push(((monthPrice - annualAvg) / annualAvg) * 100);
+      }
+    });
+    seasonal.push(deviations.length > 0 ? parseFloat((deviations.reduce(function(a, b) { return a + b; }, 0) / deviations.length).toFixed(1)) : 0);
+  }
+
+  // Find peak & trough
+  var curVal = seasonal[curMonth];
+  var nextVal = seasonal[(curMonth + 1) % 12];
+  var trend = nextVal > curVal ? 'rising' : nextVal < curVal ? 'falling' : 'flat';
+  var peakMonth = months[seasonal.indexOf(Math.max.apply(null, seasonal))];
+  var troughMonth = months[seasonal.indexOf(Math.min.apply(null, seasonal))];
+
+  var note = '';
+  if (curVal > 2) note = 'Seasonally strong — historically one of the best months to sell.';
+  else if (curVal > 0) note = 'Above average. ' + (trend === 'rising' ? 'Seasonal trend favors waiting.' : 'Seasonal peak may be passing.');
+  else if (curVal > -1) note = 'Near average. Seasonal pressure building.';
+  else note = 'Seasonally weak — ' + troughMonth + ' is the typical trough. Prices recover toward ' + peakMonth + '.';
+
+  var yearRange = startYear && endYear ? startYear + '–' + endYear : '5yr';
+  el.innerHTML = '<div class="panel-title">Seasonal Pattern — CME Live Cattle</div>' +
+    '<div style="position:relative;width:100%;height:180px;"><canvas id="seasonal-companion-chart"></canvas></div>' +
+    '<div style="font-size:12px;color:var(--txt2);padding:8px 12px 4px;">' + months[curMonth] + ': <strong style="color:' + (curVal >= 0 ? 'var(--up)' : 'var(--down)') + ';">' + (curVal >= 0 ? '+' : '') + curVal.toFixed(1) + '%</strong> vs annual avg. ' + note + '</div>' +
+    '<div style="font-size:11px;color:var(--txt3);padding:0 12px 8px;">Computed from ' + yearsUsed.length + ' years of CME LE=F daily closes (' + yearRange + ') · each bar = avg monthly % deviation from that year\'s annual mean · peak ' + peakMonth + ' · trough ' + troughMonth + '</div>';
+
+  var colors = seasonal.map(function(v, i) {
+    return i === curMonth ? '#d4a027' : v >= 0 ? 'rgba(60,185,106,.55)' : 'rgba(224,80,80,.5)';
+  });
+
+  if (charts['seasonal-companion']) charts['seasonal-companion'].destroy();
+  var ctx = document.getElementById('seasonal-companion-chart');
+  if (!ctx) return;
+  charts['seasonal-companion'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: months, datasets: [{ data: seasonal, backgroundColor: colors, borderRadius: 3 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return months[c.dataIndex] + ': ' + (c.raw >= 0 ? '+' : '') + c.raw.toFixed(1) + '% vs annual avg'; } } } },
+      scales: {
+        x: { ticks: { color: '#5e6369', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#5e6369', font: { size: 10 }, callback: function(v) { return (v >= 0 ? '+' : '') + v + '%'; } }, grid: { color: '#252a31' } }
+      }
+    }
+  });
+}
+
+// Auction companion: sale day calendar
+function renderSaleCalendar() {
+  var el = document.getElementById('chart-companion');
+  if (!el) return;
+
+  var DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var today = new Date();
+  today.setHours(0,0,0,0);
+
+  // Sale type by barn + day of week (from barn report pages / CLAUDE.md)
+  // dow: 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
+  var SALE_TYPES = {
+    central:   { 1: 'Cattle',            2: 'Cattle',   3: 'Cattle & Hogs' },
+    lanesboro: { 3: 'Slaughter',         5: 'Feeder' },
+    rockcreek: { 1: 'Cattle',            3: 'Cattle' },
+    sleepyeye: { 3: 'Cattle' },
+    pipestone: { 4: 'Cattle' },
+  };
+
+  // Build next 14 days of sale events from barn data
+  var events = [];
+  Object.keys(BARNS_DATA).forEach(function(id) {
+    var b = BARNS_DATA[id];
+    var freq = b.freq || '';
+    var color = BARN_COLORS[id] ? BARN_COLORS[id].line : '#888';
+    var saleTypeMap = SALE_TYPES[id] || {};
+
+    // Parse freq strings like "Mon·Tue·Wed", "Wed & Fri", "Every Wed", "2nd & 4th Thu"
+    var saleDays = [];
+    DAYS.forEach(function(day, idx) {
+      var short3 = day.slice(0, 3);
+      if (freq.indexOf(short3) !== -1 || freq.indexOf(day) !== -1) saleDays.push(idx);
+    });
+
+    // Check for "2nd & 4th" pattern
+    var biweekly = freq.match(/2nd\s*&\s*4th/i);
+
+    // Get latest price for this barn
+    var latestPrice = null;
+    if (b.finishPrices && b.finishPrices[cattleType] != null) latestPrice = priceMid(b.finishPrices[cattleType]);
+    else if (b.basePrice) latestPrice = b.basePrice;
+
+    // Generate events for next 14 days
+    for (var d = 0; d < 14; d++) {
+      var date = new Date(today);
+      date.setDate(date.getDate() + d);
+      var dow = date.getDay();
+      if (saleDays.indexOf(dow) === -1) continue;
+
+      // Handle biweekly (2nd & 4th week)
+      if (biweekly) {
+        var weekOfMonth = Math.ceil(date.getDate() / 7);
+        if (weekOfMonth !== 2 && weekOfMonth !== 4) continue;
+      }
+
+      events.push({
+        date: date,
+        dayOfWeek: dow,
+        barnId: id,
+        barnName: b.name,
+        loc: b.loc,
+        color: color,
+        price: latestPrice,
+        saleType: saleTypeMap[dow] || 'Cattle',
+        isToday: date.getTime() === today.getTime()
+      });
+    }
+  });
+
+  // Sort by date, then barn name
+  events.sort(function(a, b) { return a.date - b.date || a.barnName.localeCompare(b.barnName); });
+
+  // Group by date
+  var grouped = {};
+  events.forEach(function(e) {
+    var key = e.date.toISOString().slice(0, 10);
+    if (!grouped[key]) grouped[key] = { date: e.date, events: [] };
+    grouped[key].events.push(e);
+  });
+
+  var rows = Object.values(grouped).map(function(g) {
+    var d = g.date;
+    var isToday = d.getTime() === today.getTime();
+    var dateStr = DAY_SHORT[d.getDay()] + ' ' + (d.getMonth()+1) + '/' + d.getDate();
+    var barns = g.events.map(function(e) {
+      var priceStr = e.price ? ' ' + e.price.toFixed(0) + '¢' : '';
+      var typeTag = '<span style="font-size:10px;color:var(--txt3);background:var(--bg3);padding:1px 5px;border-radius:2px;margin-left:3px;">' + e.saleType + '</span>';
+      return '<span style="color:' + e.color + ';font-weight:600;">' + e.barnName.split(' ')[0] + '</span>' +
+        typeTag + '<span style="color:var(--txt3);font-size:11px;">' + priceStr + '</span>';
+    }).join(' &nbsp;·&nbsp; ');
+
+    var bg = isToday ? 'background:var(--bg3);' : '';
+    var todayTag = isToday ? ' <span style="font-size:10px;color:var(--cattle);font-weight:700;">TODAY</span>' : '';
+    return '<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);' + bg + '">' +
+      '<div style="min-width:65px;font-size:12px;color:var(--txt3);white-space:nowrap;">' + dateStr + todayTag + '</div>' +
+      '<div style="font-size:13px;">' + barns + '</div></div>';
+  });
+
+  var upcomingCount = events.length;
+  el.innerHTML = '<div class="panel-title">Sale Calendar — Next 14 Days</div>' +
+    '<div style="padding:0 12px;">' + (rows.length ? rows.join('') : '<div style="color:var(--txt3);font-size:13px;padding:12px 0;">No upcoming sales found.</div>') + '</div>' +
+    '<div style="font-size:11px;color:var(--txt3);padding:8px 12px;">' + upcomingCount + ' sales across ' + Object.keys(BARNS_DATA).length + ' barns · based on posted schedules</div>';
+}
+
+function updateAuctionInsights(barnSeries, sortedDates, cat, type, typeLabels) {
+  var topEl = document.getElementById('chart-insight-top');
+  var detailEl = document.getElementById('chart-insight-detail');
+  if (!topEl) return;
+
+  var catLabel = cat === 'slaughter' ? 'Slaughter' : 'Feeder';
+  var typeLabel = typeLabels[type] || type;
+  var barnIds = Object.keys(barnSeries);
+
+  if (barnIds.length === 0 || sortedDates.length === 0) {
+    topEl.innerHTML = 'No ' + catLabel.toLowerCase() + ' auction data for ' + typeLabel + '.';
+    if (detailEl) detailEl.innerHTML = '';
+    return;
+  }
+
+  // Per-barn: latest price, all-time high/low, trend
+  var barnStats = [];
+  barnIds.forEach(function(id) {
+    var pts = barnSeries[id];
+    var dates = sortedDates.filter(function(d) { return pts[d] != null; });
+    if (dates.length === 0) return;
+    var prices = dates.map(function(d) { return pts[d]; });
+    var latest = prices[prices.length - 1];
+    var latestDate = dates[dates.length - 1];
+    var high = Math.max.apply(null, prices);
+    var low = Math.min.apply(null, prices);
+    var first = prices[0];
+    var pct = prices.length >= 2 ? ((latest - first) / first) * 100 : 0;
+    var barn = BARNS_DATA[id];
+    barnStats.push({
+      id: id,
+      name: barn ? barn.name : id,
+      latest: latest,
+      latestDate: latestDate,
+      high: high,
+      low: low,
+      first: first,
+      pct: pct,
+      saleDays: prices.length,
+      color: BARN_COLORS[id] ? BARN_COLORS[id].line : '#888'
+    });
+  });
+
+  if (barnStats.length === 0) {
+    topEl.innerHTML = 'No ' + catLabel.toLowerCase() + ' auction data for ' + typeLabel + '.';
+    if (detailEl) detailEl.innerHTML = '';
+    return;
+  }
+
+  // Sort by latest price descending
+  barnStats.sort(function(a, b) { return b.latest - a.latest; });
+  var best = barnStats[0];
+  var worst = barnStats[barnStats.length - 1];
+
+  // Top insight — single line
+  var topMsg = '';
+  if (barnStats.length >= 2) {
+    var spread = best.latest - worst.latest;
+    if (spread > 5) {
+      topMsg = '<strong>' + best.name + '</strong> leading at <strong>' + best.latest.toFixed(2) + '¢</strong> — ' + spread.toFixed(0) + '¢ above ' + worst.name + '. Shop your barns.';
+    } else {
+      topMsg = catLabel + ' prices <strong>tightly grouped</strong> across barns — ' + spread.toFixed(1) + '¢ spread. ' + best.name + ' top at <strong>' + best.latest.toFixed(2) + '¢</strong>.';
+    }
+  } else {
+    topMsg = best.name + ' ' + catLabel.toLowerCase() + ': <strong>' + best.latest.toFixed(2) + '¢/lb</strong> · ' + best.saleDays + ' sale days on record.';
+  }
+
+  // Check if all barns trending same direction
+  var allUp = barnStats.every(function(b) { return b.pct > 1; });
+  var allDown = barnStats.every(function(b) { return b.pct < -1; });
+  if (allUp) topMsg += ' All barns trending up.';
+  else if (allDown) topMsg += ' All barns trending down.';
+
+  topEl.innerHTML = topMsg;
+
+  // Bottom detail — per-barn breakdown
+  if (!detailEl) return;
+  var rows = barnStats.map(function(b) {
+    var range = b.high - b.low;
+    var pos = range > 0 ? ((b.latest - b.low) / range * 100).toFixed(0) : 50;
+    var arrow = b.pct > 0.5 ? '▲' : b.pct < -0.5 ? '▼' : '▬';
+    var clr = b.pct > 0.5 ? 'var(--up)' : b.pct < -0.5 ? 'var(--down)' : 'var(--txt3)';
+    var d = new Date(b.latestDate + 'T12:00:00');
+    var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">' +
+      '<div><strong style="color:' + b.color + ';">' + b.name + '</strong> <span style="color:var(--txt3);font-size:12px;">(' + b.saleDays + ' sales)</span></div>' +
+      '<div style="text-align:right;"><span style="color:' + clr + ';font-weight:700;">' + arrow + ' ' + (b.pct>=0?'+':'') + b.pct.toFixed(1) + '%</span>' +
+      ' <span style="font-size:12px;color:var(--txt3);">· ' + b.latest.toFixed(2) + '¢ on ' + dateStr + ' · range ' + b.low.toFixed(0) + '–' + b.high.toFixed(0) + ' · at ' + pos + '% of range</span></div></div>';
+  });
+
+  // Cross-barn summary
+  var avgLatest = barnStats.reduce(function(s, b) { return s + b.latest; }, 0) / barnStats.length;
+  var summary = '<div style="padding:10px 0 4px;font-size:13px;color:var(--txt2);border-top:1px solid var(--border);margin-top:4px;">' +
+    'Avg across ' + barnStats.length + ' barns: <strong>' + avgLatest.toFixed(2) + '¢/lb</strong>';
+  if (barnStats.length >= 2) {
+    summary += ' · barn-to-barn spread: <strong>' + (best.latest - worst.latest).toFixed(1) + '¢</strong>';
+  }
+  summary += '</div>';
+
+  detailEl.innerHTML = '<div class="panel-title">Auction Analysis — ' + catLabel + ' · ' + typeLabel + '</div>' +
+    '<div style="padding:0 12px;">' + rows.join('') + summary + '</div>';
+}
 function renderSeasonal(){if(charts['seasonal-chart'])charts['seasonal-chart'].destroy();const ctx=document.getElementById('seasonal-chart');if(!ctx)return;const seasonal=[2.1,1.8,3.2,3.8,3.5,1.2,-0.8,-1.5,-2.1,-0.5,2.2,1.4];const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const curMonth=new Date().getMonth();const colors=seasonal.map((_,i)=>i===curMonth?'#d4a027':seasonal[i]>=0?'rgba(60,185,106,.55)':'rgba(224,80,80,.5)');charts['seasonal-chart']=new Chart(ctx,{type:'bar',data:{labels:months,datasets:[{data:seasonal,backgroundColor:colors,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.raw>=0?'+':'')+c.raw+'% vs annual avg'}}},scales:{x:{ticks:{color:'#5e6369',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#5e6369',font:{size:11},callback:v=>(v>=0?'+':'')+v+'%'},grid:{color:'#252a31'}}}}});}
 
 // ── CATTLE MARGIN CALC ───────────────────────────────────────────────────────
@@ -598,6 +1285,19 @@ async function loadGrainScrapedData() {
       // Apply to all copies: region source + current ELEVATORS
       const targets = [REGION_A.elevators[elevKey], REGION_B.elevators[elevKey], ELEVATORS[elevKey]].filter(Boolean);
       if (!targets.length) continue;
+      // Check if a bid is a forward contract (delivery > next month)
+      function isForwardBid(bid) {
+        if (!bid?.delivery) return false;
+        const m = bid.delivery.match(/^([A-Za-z]{3})(\d{2})$/);
+        if (!m) return false;
+        const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+        const bidMonth = months[m[1]];
+        const bidYear = 2000 + parseInt(m[2]);
+        if (bidMonth == null) return false;
+        const now = new Date();
+        const cutoff = new Date(now.getFullYear(), now.getMonth() + 2, 1); // current + 1 month
+        return new Date(bidYear, bidMonth, 1) >= cutoff;
+      }
       const cornNearby = locData.corn?.[0];
       const beanNearby = locData.beans?.[0];
       for (const elev of targets) {
@@ -612,6 +1312,7 @@ async function loadGrainScrapedData() {
           elev.cornDelivery = cornNearby.delivery || null;
           elev.cornActual = true;
           elev.cornActualDate = scrapeDate;
+          elev.cornForward = isForwardBid(cornNearby);
         }
         if (beanNearby && (beanNearby.basis != null || beanNearby.cash != null)) {
           if (beanNearby.basis != null) { elev.soyBasis = beanNearby.basis; elev.soyScrapedBasis = true; }
@@ -620,6 +1321,7 @@ async function loadGrainScrapedData() {
           elev.soyFuturesMonth = beanNearby.futuresMonth;
           elev.soyDelivery = beanNearby.delivery || null;
           elev.soyActual = true;
+          elev.soyForward = isForwardBid(beanNearby);
           elev.soyActualDate = scrapeDate;
         }
       }
@@ -684,11 +1386,11 @@ function updateGrainInsight(){
     return;
   }
 
-  // No buyer selected or no actual data — show best actual prices
+  // No buyer selected or no actual data — show best actual prices (skip forward-only contracts)
   let bestCorn=null,bestCornName='',bestSoy=null,bestSoyName='',cornCount=0,soyCount=0;
   for(const[k,e]of Object.entries(ELEVATORS)){
-    if(e.cornActual&&e.cornCash!=null){cornCount++;if(bestCorn===null||e.cornCash>bestCorn){bestCorn=e.cornCash;bestCornName=e.name;}}
-    if(e.soyActual&&e.soyCash!=null){soyCount++;if(bestSoy===null||e.soyCash>bestSoy){bestSoy=e.soyCash;bestSoyName=e.name;}}
+    if(e.cornActual&&e.cornCash!=null&&!e.cornForward){cornCount++;if(bestCorn===null||e.cornCash>bestCorn){bestCorn=e.cornCash;bestCornName=e.name;}}
+    if(e.soyActual&&e.soyCash!=null&&!e.soyForward){soyCount++;if(bestSoy===null||e.soyCash>bestSoy){bestSoy=e.soyCash;bestSoyName=e.name;}}
   }
   if(bestCorn!==null||bestSoy!==null){
     const parts=[];
@@ -929,6 +1631,9 @@ function setCattleType(type) {
     if(spVal){ setFieldVal('sp-val', adjPrice); }
     calc();
   }
+  // Re-render charts with type discount applied (cached data, no new fetch)
+  if (_chartMode === 'auction') renderAuctionChart();
+  else renderHistCharts();
   // Update insight strip with best barn prices for this type
   updateCattleInsight();
 }

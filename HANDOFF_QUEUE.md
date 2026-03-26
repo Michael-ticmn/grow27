@@ -212,6 +212,18 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - **Prerequisites:** Dedicated CBOT scraper (above), `basisMonth` already stored in New Vision data
 - **Approach:** Scraper stores basis per elevator per delivery month. Frontend reads `cbot.json` for live futures. `cash = futures[basisMonth] + basis`. All other scrapers would need to store `basisMonth` too.
 
+### [ ] [FROM: Code] Grain Charts tab — mirror cattle chart architecture — QUEUED 2026-03-25
+- **Date queued:** 2026-03-25
+- **Task:** Add a Charts tab to the Grain module, mirroring the cattle charts architecture
+- **Why:** Cattle now has Futures/Auction toggle, 5-year history, seasonal pattern, insights, sale calendar. Grain has none of this — the data is already in `futures-history.json` (ZC, ZS, ZM daily) but no charts exist.
+- **Scope:**
+  - Futures view: corn nearby, soybeans nearby, soybean meal, corn/soy spread charts with 7D–5Y range selection
+  - Seasonal pattern for corn (compute from ZC 5yr monthly, same methodology as cattle)
+  - Insights: trend analysis, range position, spread direction
+  - Grain-specific companion panel (e.g. basis trend from scraped data, planting progress calendar)
+  - No "Auction" equivalent needed — grain doesn't have barn-style auctions
+- **Data ready:** `futures-history.json` already includes ZC, ZS, ZM daily. May need to add ZC monthly to the scraper for seasonal analysis.
+
 ---
 
 ## Pending Decisions
@@ -261,3 +273,4 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - ✅ [Code] Lanesboro Sales Commission parser built — Wed slaughter + Top Producers, Fri feeder, HTML scrape — 2026-03-25 (v1.106–v1.114)
 - ✅ [Code] Trend modal fix: sale day count uses actual data points not total entries — 2026-03-25 (v1.114)
 - ✅ [Code] Yahoo Finance migration: replaced Stooq with Yahoo for all futures cards, cached batch fetch, exchange timestamps — 2026-03-25 (v1.115)
+- ✅ [Code] Cattle charts overhaul: real 5yr historical data, server-side scraper, Futures/Auction toggle, seasonal pattern, insights, sale calendar, expanded range buttons — 2026-03-25 (v1.116)
