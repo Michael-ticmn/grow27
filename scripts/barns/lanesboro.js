@@ -148,11 +148,14 @@ async function parse({ id, browser, html, $ }) {
     }
   }
 
-  // Detect which report type: Wednesday (slaughter) or Friday (feeder)
-  const pageText = $.text().toLowerCase();
-  const isWednesday = /wednesday/i.test(pageText);
-  const isFriday = /friday/i.test(pageText);
-  console.log(`[${id}] page type: wednesday=${isWednesday}, friday=${isFriday}`);
+  // Detect which report type from the URL path (page text has both words in nav)
+  const pageUrl = $('link[rel="canonical"]').attr('href')
+    || $('meta[property="og:url"]').attr('content')
+    || html.match(/https?:\/\/[^\s"']+/)?.[0]
+    || '';
+  const isWednesday = /wednesday/i.test(pageUrl);
+  const isFriday = /friday/i.test(pageUrl);
+  console.log(`[${id}] page type (from URL "${pageUrl}"): wednesday=${isWednesday}, friday=${isFriday}`);
 
   // Determine sale day
   let saleDay = null;
@@ -238,8 +241,10 @@ async function parse({ id, browser, html, $ }) {
       const label = row.label.toUpperCase();
 
       let types;
-      if (/HOLSTEIN|DAIRY/i.test(label)) {
+      if (/HOLSTEIN/i.test(label)) {
         types = ['holstein'];
+      } else if (/BEEF\s*ON\s*DAIRY|DAIRY[\s-]*X/i.test(label)) {
+        types = ['crossbred'];
       } else {
         types = ['beef'];
       }
@@ -256,9 +261,10 @@ async function parse({ id, browser, html, $ }) {
       }
     }
 
-    // Aggregate feeder.beef and feeder.holstein from weight classes
+    // Aggregate feeder prices from weight classes
     const beefWeights = feederWeights.filter(w => w.types.includes('beef'));
     const holWeights = feederWeights.filter(w => w.types.includes('holstein'));
+    const xbredWeights = feederWeights.filter(w => w.types.includes('crossbred'));
 
     if (beefWeights.length > 0) {
       const lows = beefWeights.map(w => w.low).filter(v => v != null);
@@ -278,6 +284,16 @@ async function parse({ id, browser, html, $ }) {
         high: Math.max(...highs),
       };
       console.log(`[${id}] feeder.holstein = ${JSON.stringify(feeder.holstein)}`);
+    }
+
+    if (xbredWeights.length > 0) {
+      const lows = xbredWeights.map(w => w.low).filter(v => v != null);
+      const highs = xbredWeights.map(w => w.price).filter(v => v != null);
+      feeder.crossbred = {
+        low: lows.length > 0 ? Math.min(...lows) : null,
+        high: Math.max(...highs),
+      };
+      console.log(`[${id}] feeder.crossbred = ${JSON.stringify(feeder.crossbred)}`);
     }
 
     // Market cows & bulls from Friday page
