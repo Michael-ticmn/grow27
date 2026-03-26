@@ -3,8 +3,8 @@
 // Single location (Claremont MN), corn only.
 // Uses a CIH (Commodity Information Hub) widget — not DTN.
 // Widget structure: table.cih-table inside div.cih-loc-card containers.
-// Select#cih-location-filter, select#cih-commodity-filter.
-// Columns: Delivery | Futures (month+price) | Change | Basis | Bid (cash)
+// Select#cih-location-filter for filtering locations.
+// Columns: Delivery | Futures (month + price in same cell) | Change | Basis | Bid (cash)
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -37,6 +37,23 @@ function normDelivery(str) {
   return t;
 }
 
+// Split CIH futures cell: "May 26\n \n 4.6550" → { month: "May26", price: "4.6550" }
+function parseFuturesCell(str) {
+  if (!str) return { month: null, price: null };
+  // Split on newlines and filter empty
+  const parts = str.split(/\n/).map(s => s.trim()).filter(Boolean);
+  let month = null;
+  let price = null;
+  for (const p of parts) {
+    if (/^[A-Za-z]{3}\s?\d{2,4}$/.test(p)) {
+      month = normDelivery(p);
+    } else if (/^\d+\.\d+/.test(p)) {
+      price = p;
+    }
+  }
+  return { month, price };
+}
+
 // ── Main Parse Function ─────────────────────────────────────────────────────
 
 async function parse({ id, config, browser }) {
@@ -56,48 +73,88 @@ async function parse({ id, config, browser }) {
     // Extra settle time
     await new Promise(r => setTimeout(r, 2000));
 
-    // Parse all location cards with their tables
+    // Use the location filter to isolate Al-Corn data
+    // select#cih-location-filter has options: "Location", "", "Al-Corn", "HCP"
+    const filterResult = await page.evaluate(() => {
+      const select = document.querySelector('#cih-location-filter');
+      if (!select) return { filtered: false, options: [] };
+
+      const options = Array.from(select.options).map(o => ({
+        value: o.value, text: o.textContent.trim()
+      }));
+
+      // Find the Al-Corn option
+      const alcornOpt = options.find(o => /al.?corn/i.test(o.text));
+      if (alcornOpt) {
+        select.value = alcornOpt.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        return { filtered: true, options, selected: alcornOpt.text };
+      }
+
+      return { filtered: false, options };
+    });
+
+    console.log(`[${id}] location filter: ${JSON.stringify(filterResult)}`);
+
+    if (filterResult.filtered) {
+      // Wait for filter to take effect
+      await new Promise(r => setTimeout(r, 2000));
+    }
+
+    // Parse all visible location cards
     const bidData = await page.evaluate(() => {
-      const result = {};
+      const allCards = [];
 
-      // Each location card wraps a commodity section with a table
       const cards = document.querySelectorAll('.cih-loc-card');
-      if (cards.length === 0) {
-        // Fallback: just grab all cih-tables directly
+      if (cards.length > 0) {
+        for (const card of cards) {
+          // Check if card is hidden (filtered out)
+          const style = window.getComputedStyle(card);
+          if (style.display === 'none' || style.visibility === 'hidden') continue;
+
+          // Try every possible way to get the location name from the card
+          const nameEl = card.querySelector('.cih-loc-name, .cih-name, [class*="loc-name"], [class*="location-name"]');
+          let locName = nameEl ? nameEl.textContent.trim() : null;
+
+          if (!locName) {
+            // Try the first non-table child that has text
+            for (const child of card.children) {
+              if (child.tagName === 'TABLE') continue;
+              const text = child.textContent.trim();
+              if (text && text.length < 50 && !/Delivery|Futures|Basis/i.test(text)) {
+                locName = text;
+                break;
+              }
+            }
+          }
+
+          // Get all text content of the card for debugging
+          const cardText = card.textContent.substring(0, 200);
+
+          const table = card.querySelector('table.cih-table');
+          if (!table) continue;
+
+          allCards.push({
+            locName,
+            cardText,
+            rows: parseTableRows(table),
+          });
+        }
+      } else {
+        // No cards — parse tables directly
         const tables = document.querySelectorAll('table.cih-table');
-        if (tables.length === 0) return null;
-
-        // Parse first table as Al-Corn corn
-        result['al-corn'] = { corn: parseTable(tables[0]) };
-        return result;
+        for (let i = 0; i < tables.length; i++) {
+          allCards.push({
+            locName: `table-${i}`,
+            cardText: '',
+            rows: parseTableRows(tables[i]),
+          });
+        }
       }
 
-      for (const card of cards) {
-        // Get location name from card header
-        const header = card.querySelector('.cih-loc-name, h3, h4, [class*="header"], [class*="title"]');
-        const locName = header ? header.textContent.trim() : null;
+      return allCards;
 
-        // Get commodity name from card
-        const commodityEl = card.querySelector('.cih-commodity-name, [class*="commodity"]');
-        const commodityText = commodityEl ? commodityEl.textContent.trim().toUpperCase() : '';
-
-        const table = card.querySelector('table.cih-table');
-        if (!table) continue;
-
-        const rows = parseTable(table);
-        if (rows.length === 0) continue;
-
-        // Use location name as key, default to card index
-        const key = locName || 'unknown';
-        if (!result[key]) result[key] = {};
-
-        const commodity = commodityText.includes('SOY') ? 'beans' : 'corn';
-        result[key][commodity] = rows;
-      }
-
-      return Object.keys(result).length > 0 ? result : null;
-
-      function parseTable(table) {
+      function parseTableRows(table) {
         const rows = [];
         const allRows = table.querySelectorAll('tr');
         let colMap = null;
@@ -112,17 +169,16 @@ async function parse({ id, config, browser }) {
           if (!colMap && headers.some(h => /DELIVER/i.test(h))) {
             colMap = {};
             headers.forEach((h, i) => {
-              if (/DELIVER/i.test(h))             colMap.delivery = i;
-              if (/^FUTURES$/i.test(h))           colMap.futures = i;
-              if (/^BASIS$/i.test(h))             colMap.basis = i;
-              if (/^BID$/i.test(h))               colMap.cash = i;
-              if (/^CASH/i.test(h))               colMap.cash = i;
-              if (/CHANGE/i.test(h))              colMap.change = i;
+              if (/DELIVER/i.test(h))   colMap.delivery = i;
+              if (/^FUTURES$/i.test(h)) colMap.futures = i;
+              if (/^BASIS$/i.test(h))   colMap.basis = i;
+              if (/^BID$/i.test(h))     colMap.cash = i;
+              if (/^CASH/i.test(h))     colMap.cash = i;
+              if (/CHANGE/i.test(h))    colMap.change = i;
             });
             continue;
           }
 
-          // Parse data rows
           if (colMap && cells.length >= 4) {
             const get = (idx) => idx != null && cells[idx] ? cells[idx].textContent.trim() : null;
             const delivery = get(colMap.delivery);
@@ -132,25 +188,8 @@ async function parse({ id, config, browser }) {
                 del: delivery,
                 cash: get(colMap.cash),
                 basis: get(colMap.basis),
+                futures: get(colMap.futures),  // raw: "May 26\n \n 4.6550"
               };
-
-              // Futures column contains both month and price
-              if (colMap.futures != null) {
-                const futuresText = get(colMap.futures);
-                if (futuresText) {
-                  // "May 26" or "May26" — just the month reference
-                  entry.month = futuresText;
-                }
-                // Check if there's a price value in the next cell (some layouts split month + price)
-                const nextIdx = colMap.futures + 1;
-                if (nextIdx < cells.length && colMap.change !== nextIdx && colMap.basis !== nextIdx && colMap.cash !== nextIdx) {
-                  const nextVal = cells[nextIdx]?.textContent?.trim();
-                  if (nextVal && /^\d+\.\d+/.test(nextVal)) {
-                    entry.futuresPrice = nextVal;
-                  }
-                }
-              }
-
               if (colMap.change != null) entry.chg = get(colMap.change);
               rows.push(entry);
             }
@@ -161,47 +200,50 @@ async function parse({ id, config, browser }) {
       }
     });
 
-    if (!bidData) {
+    console.log(`[${id}] found ${bidData.length} cards`);
+    bidData.forEach((c, i) => {
+      console.log(`[${id}]   card ${i}: locName="${c.locName}" rows=${c.rows.length} cardText="${c.cardText.substring(0, 100)}"`);
+      if (c.rows.length > 0) {
+        console.log(`[${id}]     first row: ${JSON.stringify(c.rows[0])}`);
+      }
+    });
+
+    // Use the first visible card (should be Al-Corn after filtering)
+    // If filtering didn't work, take the first card that has reasonable corn prices
+    let targetCard = bidData[0];
+    if (bidData.length > 1) {
+      // Prefer card named Al-Corn
+      const alcornCard = bidData.find(c => c.locName && /al.?corn/i.test(c.locName));
+      if (alcornCard) targetCard = alcornCard;
+    }
+
+    if (!targetCard || targetCard.rows.length === 0) {
       console.warn(`[${id}] no bid data found`);
       return { locations: {}, source: 'fetch_failed', error: 'no data in CIH tables' };
     }
 
-    console.log(`[${id}] raw locations found: ${Object.keys(bidData).join(', ')}`);
+    // Parse numeric values and split futures cell
+    const corn = targetCard.rows.map(r => {
+      const { month, price } = parseFuturesCell(r.futures);
+      const entry = {
+        delivery: normDelivery(r.del),
+        cash:     parseCash(r.cash),
+        basis:    parseBasis(r.basis),
+      };
+      if (month) entry.futuresMonth = month;
+      if (price) entry.cbot = price;
+      if (r.chg)  entry.change = r.chg;
+      return entry;
+    }).filter(r => r.cash !== null);
 
-    // Process each location
-    for (const [locName, commodities] of Object.entries(bidData)) {
-      // Only capture Al-Corn, skip HCP
-      const nameLower = locName.toLowerCase();
-      if (nameLower.includes('hcp')) {
-        console.log(`[${id}] skipping location: ${locName}`);
-        continue;
-      }
+    const slug = 'claremont';
+    locations[slug] = { name: 'Al-Corn', corn };
 
-      const slug = 'claremont';
-      const parsed = {};
-
-      for (const [commodity, rows] of Object.entries(commodities)) {
-        parsed[commodity] = rows.map(r => {
-          const entry = {
-            delivery: normDelivery(r.del),
-            cash:     parseCash(r.cash),
-            basis:    parseBasis(r.basis),
-          };
-          if (r.month) entry.futuresMonth = normDelivery(r.month);
-          if (r.chg)   entry.change = r.chg;
-          if (r.futuresPrice) entry.cbot = r.futuresPrice;
-          return entry;
-        }).filter(r => r.cash !== null);
-      }
-
-      locations[slug] = { name: 'Al-Corn', ...parsed };
-
-      const cornCount = parsed.corn?.length || 0;
-      console.log(`[${id}:${slug}] parsed — corn: ${cornCount} bids`);
-      if (cornCount > 0) {
-        console.log(`[${id}:${slug}]   corn nearby: $${parsed.corn[0].cash} basis ${parsed.corn[0].basis} (${parsed.corn[0].delivery})`);
-      }
+    console.log(`[${id}:${slug}] parsed — corn: ${corn.length} bids`);
+    if (corn.length > 0) {
+      console.log(`[${id}:${slug}]   corn nearby: $${corn[0].cash} basis ${corn[0].basis} (${corn[0].delivery}) futures=${corn[0].futuresMonth} cbot=${corn[0].cbot}`);
     }
+
   } catch (err) {
     console.error(`[${id}] PAGE LOAD FAILED: ${err.message}`);
     return { locations: {}, source: 'fetch_failed', error: err.message };
