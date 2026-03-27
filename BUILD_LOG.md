@@ -4,6 +4,21 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.143–v1.148 (2026-03-27T17:00Z)
+
+### Service Worker — Mobile PWA Price Card Fix (v1.143)
+- **`sw.js`** — added `finance.yahoo.com`, `allorigins.win`, `corsproxy.io`, `codetabs.com` to `isApi` network-only list. Yahoo Finance and CORS proxies were falling into the "cache first" handler, serving stale market data on mobile PWA. Symptom: corn card showed wrong color + 2-day-old timestamp while price value was correct (scraped CBOT had overridden it).
+
+### CI — push-main.ps1 Merge Fix (v1.145)
+- **`push-main.ps1`** — added `git reset --hard origin/main` before `git merge UserUpdates`. Previously, when the scraper had pushed new commits to `origin/main` between UserUpdates pushes, local main was behind and data files in the working tree blocked the merge step.
+
+### CI — npm Caching for Scraper Workflows (v1.146–v1.148)
+- **`package.json` + `package-lock.json`** — added to repo root with all scraper deps (cheerio, puppeteer, tesseract.js, sharp, pdf-parse). Required for `cache: 'npm'` in `setup-node@v4`.
+- **All scraper workflows** (`scrape-barns.yml`, `scrape-grain.yml`, `test-scrapers.yml`) — switched from `npm install <packages>` to `npm ci`. Prevents `package-lock.json` modification during runs (which was blocking `git pull --rebase`). Also added `cache: 'npm'` to all `setup-node` steps — first cache miss run completed, cache now warm for subsequent runs.
+- **Note:** npm install takes ~13s even on cache miss; actual scrape time (~5 min) is dominated by OCR + sequential Puppeteer launches. Decided to let it run for a week to establish a baseline before optimizing further.
+
+---
+
 ## v1.143 (2026-03-27T00:00Z)
 
 ### Service Worker — Yahoo Finance Cache Bug Fix

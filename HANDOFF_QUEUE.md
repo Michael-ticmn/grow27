@@ -233,8 +233,8 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - **Status:** Not urgent, not on the radar. Future build when needed.
 
 ### 2. Remaining barn parsers
-- **Context:** 2 of 5 configured barns (Sleepy Eye, Pipestone) have no parser — they return `pending`. Rock Creek completed 2026-03-24. Lanesboro completed 2026-03-25.
-- **Decision needed:** Priority order for remaining two? Do Sleepy Eye or Pipestone publish online reports?
+- **Context:** Sleepy Eye completed 2026-03-27. Pipestone still returns `pending`.
+- **Decision needed:** Does Pipestone publish online reports? Worth building a parser?
 
 ### 3. Herd / Fields / Finance modules
 - **Context:** All three are placeholder stubs (2-line JS files). The tab structure exists in `index.html` but no content.
@@ -252,6 +252,12 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - **Context:** New Vision Cooperative lists ADM Mankato as a location. No dedicated ADM scraper exists. New Vision will be the only price source for this location.
 - **Decision needed:** Is a dedicated ADM parser worth building later? ADM is a major buyer in southern MN.
 - **Status:** Flagged. New Vision covers it for now.
+
+---
+
+### 7. Barn scraper runtime — MONITORING
+- **Context:** Scraper runs ~5.5 min total (down from ~5.5 min pre-cache, will improve on cache hit). Sequential Puppeteer launches for 6 barns + OCR on Central images is the bottleneck. Parallelizing would bring it to ~1.5 min.
+- **Status:** Letting it run for a week to establish a baseline. Revisit if still slow.
 
 ---
 
