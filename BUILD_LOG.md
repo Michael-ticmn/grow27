@@ -4,6 +4,26 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.138–v1.140 (2026-03-27)
+
+### Scraper Workflow Migration to Main
+- **Simplified all 3 production workflows** (barns, grain, futures) — scrapers now run on `main` and commit data directly to `main`. Removed the cross-branch copy step that committed to UserUpdates first then copied to main.
+- **`push-main.ps1` auto-syncs data** — before merging UserUpdates→main, the script now pulls latest `data/prices/` from main so scraped history isn't lost during promotion.
+- **New `test-scrapers.yml`** — dry-run dev workflow triggered on push to UserUpdates (path-filtered: `scripts/`, config, workflow files). Runs all 3 scrapers in parallel with no commit. Also available via `workflow_dispatch`.
+- **Staleness alerts** — `scripts/check-staleness.js` runs at the end of each scraper workflow. If any active source hasn't updated within its threshold (barns: 7 days, grain/futures: 3 days), the workflow fails and GitHub sends a failure notification email. Skips `pending` and `directory` entries.
+- **Upgraded** `actions/checkout@v3` → `@v4` across all workflows.
+
+### Blue Earth Stockyard — Directory Entry
+- **Added to `barns-config.json`** — directory-only entry (no `reportUrl`, no parser). `"status": "directory"`.
+- **Added to `BARNS_DATA` + `BARN_DATA`** in `markets.js` — shows in barn directory with address, phone, sale schedule, CattleUSA + Facebook links. Filtered from price table, barn select, auction charts, and USDA/CME fallback pricing.
+- **About page** — added Blue Earth as "Directory only" in cattle barn table.
+
+### About Page Data Sources
+- **Status colors** — Active/Live → gold (`--corn`), Pending → blue (`--dairy`), Disabled → red (`--down`), Directory only → muted (`--txt3`). Previously all used undefined `--green` variable.
+- **POET added** — listed as Disabled with note about Gradable WAF blocking automated access.
+
+---
+
 ## v1.128 (2026-03-27)
 
 ### Sleepy Eye Auction Market — Parser + Index Fixes

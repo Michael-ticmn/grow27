@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.127
+**Version:** 1.140
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-03-26
+**Last updated:** 2026-03-27
 
 ---
 
@@ -24,9 +24,10 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 ### Data Pipeline
 | Component | Schedule | Status |
 |-----------|----------|--------|
-| Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running |
-| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley) | Mon–Fri 4am + 7am CT | Running |
-| Auto-push data to main | After each scrape | Running |
+| Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running on main |
+| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley) | Mon–Fri 4am + 7am CT | Running on main |
+| Staleness check | After each scrape | Fails workflow if source stale (7d barns, 3d grain/futures) |
+| Test scrapers (dry run) | Push to UserUpdates (path-filtered) | Validates parsers without committing |
 
 ### Barn Parsers
 | Barn | Parser | Status |
@@ -36,6 +37,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Rock Creek (Pine City) | `scripts/barns/rockcreek.js` | Active — PDF parser, Mon+Wed, batch YTD |
 | Sleepy Eye | `scripts/barns/sleepyeye.js` | Active — Google Sheets CSV, Wed (slaughter) + Sat (feeder), batch tabs |
 | Pipestone | `scripts/barns/_default.js` | Pending — no parser |
+| Blue Earth Stockyard | none | Directory only — no results published online |
 
 ### Grain Parsers
 | Source | Parser | Locations | Status |
@@ -69,10 +71,11 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 ### Data Pipeline
 | Component | Schedule | Status |
 |-----------|----------|--------|
-| Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running |
-| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley) | Mon–Fri 4am + 7am CT | Running |
-| Futures history scraper (LE, GF, ZC, ZS, DC, ZM) | Mon–Fri 5pm + 7pm CT | New |
-| Auto-push data to main | After each scrape | Running |
+| Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running on main |
+| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley) | Mon–Fri 4am + 7am CT | Running on main |
+| Futures history scraper (LE, GF, ZC, ZS, DC, ZM) | Mon–Fri 5pm + 7pm CT | Running on main |
+| Staleness check (`scripts/check-staleness.js`) | After each scrape | Alerts on stale sources |
+| Test scrapers (`test-scrapers.yml`) | Push to UserUpdates | Dry-run validation |
 
 ### PWA Modules & Tabs
 ```
@@ -87,7 +90,7 @@ ABOUT — data sources, app info
 ```
 
 ### Key Data Files
-- `data/barns-config.json` — 5 barns registered
+- `data/barns-config.json` — 6 barns registered (5 active/pending, 1 directory-only)
 - `data/grain-config.json` — 9 sources (8 active, POET disabled)
 - `data/prices/index.json` — latest barn snapshot
 - `data/prices/grain/index.json` — latest grain snapshot
