@@ -3,13 +3,14 @@
 // Parses market reports from a published Google Sheet embedded via iframe.
 //
 // The WordPress page embeds a Google Sheets pubhtml via Advanced iFrame plugin.
-// Rather than parsing the JS-rendered HTML, we extract the spreadsheet URL from
-// the iframe src and fetch the CSV export directly — much more reliable.
+// Each sheet tab is a sale report named by date (e.g. "March 3, 2026").
+// Tab names don't always match the report date inside the sheet.
 //
-// Google Sheets CSV export: append ?output=csv&gid=N for specific sheets.
-// Sheet tabs are named by date (e.g. "March 3, 2026"). The parser discovers
-// all tabs from the pubhtml page, picks the most recent by date, and fetches
-// that tab's CSV.
+// Strategy:
+//   1. Discover all sheet tabs (name + gid) from the pubhtml page
+//   2. Check existing history for captured gids and report dates
+//   3. Fetch CSV only for tabs we haven't seen (by gid or report date)
+//   4. Return batch entries for all new tabs (like Rock Creek's PDF batch)
 //
 // CSV layout (merged cells create empty columns):
 //   Col A: category header ("CATTLE - Fats") or description ("Blk Fats")
@@ -17,22 +18,26 @@
 //   Col E: Avg_Wt
 //   Col H: $/CWT
 //   Col K: $/Head
-//   (Also: Hay Results in cols M-N, which we skip)
 //
 // Category mapping:
 //   Slaughter (beef):     Fats, FatHfr          (Blk/Red/Color descriptions)
 //   Slaughter (holstein): FatStr                 (Hol/BrnSws descriptions)
 //   Slaughter (beef+hol): FatStr                 (Blk/Red descriptions → beef)
-//   Feeder:               FSt-Hf, FStr, FHfr    (lighter cattle)
+//   Feeder:               FSt-Hf, FStr, FHfr, Feeder Bull (lighter cattle)
 //   Skipped:              BrCow, Bull, BullClf, BC-HC, SLCow (cull/breeding)
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
 
+const fs    = require('fs');
+const path  = require('path');
 const https = require('https');
 const http  = require('http');
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+const ROOT       = path.join(__dirname, '..', '..');
+const PRICES_DIR = path.join(ROOT, 'data', 'prices');
 
 // Google Sheets published spreadsheet base URL
 const SHEETS_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR21gPJvWlLmM010wpiEW3Q1XSr_Sel4aguwc3oadClksTc8BEoqktTIQIms5MW2XeVpzNsNVOPQyeI/pub';
@@ -43,32 +48,60 @@ const MONTHS = {
 };
 
 // ── Sheet tab discovery ─────────────────────────────────────────────────────
-// The pubhtml page contains JS with sheet tab names and gids.
-// Tab names are dates like "March 3, 2026". We parse them, pick the most
-// recent, and fetch that tab's CSV via &gid=N.
+// The pubhtml page JS contains tab metadata: name + gid.
+// Tab names are dates like "March 3, 2026" but may not match report content.
 
 function discoverSheets(html, id) {
-  // Pattern: name: "March 3, 2026" ... gid: "2019930084"
   const tabs = [];
   const re = /name:\s*"([^"]+)"[^}]*?gid:\s*"(\d+)"/g;
   let m;
   while ((m = re.exec(html)) !== null) {
     const name = m[1];
     const gid = m[2];
-    // Parse "Month D, YYYY" → Date
     const dm = name.match(/^(\w+)\s+(\d{1,2}),?\s+(\d{4})$/);
     if (dm) {
       const month = MONTHS[dm[1].toLowerCase()];
       if (month) {
         const day = parseInt(dm[2]);
         const year = parseInt(dm[3]);
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        tabs.push({ name, gid, dateStr });
+        const tabDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        tabs.push({ name, gid, tabDate });
       }
     }
     console.log(`[${id}] sheet tab: "${name}" → gid=${gid}`);
   }
-  return tabs.sort((a, b) => b.dateStr.localeCompare(a.dateStr)); // newest first
+  return tabs;
+}
+
+// ── Select which tabs to process ────────────────────────────────────────────
+// Skip tabs whose gid we've already captured OR whose report date we already have.
+
+function selectNewTabs(tabs, id) {
+  let existingGids = new Set();
+  let existingDates = new Set();
+
+  try {
+    const histPath = path.join(PRICES_DIR, `${id}.json`);
+    const data = JSON.parse(fs.readFileSync(histPath, 'utf8'));
+    const scraped = (data.history || []).filter(e => e.source === 'scraped');
+    for (const e of scraped) {
+      if (e.sheetGid) existingGids.add(e.sheetGid);
+      if (e.date) existingDates.add(e.date);
+    }
+  } catch (e) { /* no history file */ }
+
+  const selected = [];
+  for (const tab of tabs) {
+    if (existingGids.has(tab.gid)) {
+      console.log(`[${id}] skip tab "${tab.name}" — gid ${tab.gid} already captured`);
+      continue;
+    }
+    // Can't check report date yet (need to fetch CSV first) — will check after parse
+    selected.push(tab);
+  }
+
+  console.log(`[${id}] ${selected.length} of ${tabs.length} tabs to process (${existingGids.size} gids, ${existingDates.size} dates in history)`);
+  return { selected, existingDates };
 }
 
 // ── Category classification ─────────────────────────────────────────────────
@@ -76,15 +109,16 @@ function discoverSheets(html, id) {
 function classifyCategory(cat) {
   if (/^(Fats|FatHfr|FatStr)$/i.test(cat)) return 'slaughter';
   if (/^(FSt-Hf|FStr|FHfr|Fdr|Feeder|StrClf|HfrClf)/i.test(cat)) return 'feeder';
-  return 'skip';  // BrCow, Bull, BullClf, BC-HC, SLCow, Hay, etc.
+  if (/^Feeder\s+Bull/i.test(cat)) return 'feeder';
+  return 'skip';
 }
 
 // Breed from description prefix
 function breedFromDesc(desc) {
   if (/^Hol/i.test(desc))    return 'holstein';
-  if (/^BrnSws/i.test(desc)) return 'holstein';  // Brown Swiss → dairy
-  if (/^Jers/i.test(desc))   return 'holstein';  // Jersey → dairy
-  return 'beef';  // Blk, Red, Color, Bwf, Rwf → beef/crossbred
+  if (/^BrnSws/i.test(desc)) return 'holstein';
+  if (/^Jers/i.test(desc))   return 'holstein';
+  return 'beef';
 }
 
 // ── Fetch CSV via HTTPS (follows redirects) ─────────────────────────────────
@@ -114,7 +148,6 @@ function fetchCsv(url, id, maxRedirects = 3) {
 // ── Parse CSV text ──────────────────────────────────────────────────────────
 
 function parseCsvLine(line) {
-  // Handle quoted fields with commas inside
   const fields = [];
   let current = '';
   let inQuotes = false;
@@ -134,10 +167,146 @@ function parseCsvLine(line) {
   return fields;
 }
 
+// ── Parse one sheet's CSV into a result entry ───────────────────────────────
+
+function parseCsvData(csvText, id, tab) {
+  const rows = csvText.split('\n').map(parseCsvLine);
+  console.log(`[${id}] parsed ${rows.length} CSV rows for tab "${tab.name}"`);
+
+  // Extract report date (M/D/YYYY in first few rows)
+  let reportDate = null;
+  for (const row of rows.slice(0, 5)) {
+    const text = row.join(' ');
+    const dm = text.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (dm) {
+      const mm = dm[1].padStart(2, '0');
+      const dd = dm[2].padStart(2, '0');
+      reportDate = `${dm[3]}-${mm}-${dd}`;
+      console.log(`[${id}] report date: ${reportDate} (tab name: "${tab.name}")`);
+      break;
+    }
+  }
+
+  // Walk rows, detect categories, collect entries
+  const slaughter = { beef: null, crossbred: null, holstein: null };
+  const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
+  const feederWeights = [];
+  const slaughterBeef = [];
+  const slaughterHolstein = [];
+  const feederEntries = [];
+
+  let currentCat = null;
+  let currentClass = null;
+
+  for (const fields of rows) {
+    const col0 = fields[0] || '';
+
+    const catMatch = col0.match(/^CATTLE\s*[-–—]\s*(.+)/i);
+    if (catMatch) {
+      currentCat = catMatch[1].trim();
+      currentClass = classifyCategory(currentCat);
+      console.log(`[${id}] category: ${currentCat} → ${currentClass}`);
+      continue;
+    }
+
+    if (!currentCat || currentClass === 'skip') continue;
+    if (/^Descr|^Market Report|^$/i.test(col0)) continue;
+
+    const desc = col0;
+    const nums = [];
+    for (let i = 1; i < fields.length && i < 12; i++) {
+      const v = fields[i].replace(/[$,]/g, '').trim();
+      if (v && /^\d+\.?\d*$/.test(v)) nums.push(parseFloat(v));
+    }
+    if (nums.length < 3) continue;
+
+    const head = Math.round(nums[0]);
+    const avgWt = Math.round(nums[1]);
+    const priceCwt = nums[2];
+
+    if (head < 1 || head > 500) continue;
+    if (avgWt < 50 || avgWt > 3000) continue;
+    if (priceCwt < 10 || priceCwt > 2000) continue;
+    if (priceCwt > 500 && currentClass === 'slaughter') continue;
+
+    const breed = breedFromDesc(desc);
+    console.log(`[${id}]   ${desc} | ${head}hd | ${avgWt}# | $${priceCwt}/cwt [${breed}] → ${currentClass}`);
+
+    if (currentClass === 'slaughter') {
+      if (breed === 'holstein') slaughterHolstein.push({ desc, head, avgWt, priceCwt });
+      else slaughterBeef.push({ desc, head, avgWt, priceCwt });
+    } else if (currentClass === 'feeder') {
+      feederEntries.push({ desc, head, avgWt, priceCwt, breed });
+    }
+  }
+
+  // Build slaughter ranges
+  if (slaughterBeef.length > 0) {
+    const prices = slaughterBeef.map(e => e.priceCwt);
+    slaughter.beef = { low: parseFloat(Math.min(...prices).toFixed(2)), high: parseFloat(Math.max(...prices).toFixed(2)) };
+    console.log(`[${id}] slaughter.beef = ${JSON.stringify(slaughter.beef)} (${slaughterBeef.length} rows)`);
+  }
+  if (slaughterHolstein.length > 0) {
+    const prices = slaughterHolstein.map(e => e.priceCwt);
+    slaughter.holstein = { low: parseFloat(Math.min(...prices).toFixed(2)), high: parseFloat(Math.max(...prices).toFixed(2)) };
+    console.log(`[${id}] slaughter.holstein = ${JSON.stringify(slaughter.holstein)} (${slaughterHolstein.length} rows)`);
+  }
+
+  // Build feeder ranges and weight buckets
+  if (feederEntries.length > 0) {
+    const prices = feederEntries.map(e => e.priceCwt);
+    feeder.beef = { low: parseFloat(Math.min(...prices).toFixed(2)), high: parseFloat(Math.max(...prices).toFixed(2)) };
+    console.log(`[${id}] feeder.beef = ${JSON.stringify(feeder.beef)} (${feederEntries.length} rows)`);
+
+    const buckets = {};
+    for (const e of feederEntries) {
+      const bucket = Math.floor(e.avgWt / 100) * 100;
+      const range = `${bucket}–${bucket + 99}#`;
+      if (!buckets[range]) buckets[range] = { prices: [], types: ['beef'] };
+      buckets[range].prices.push(e.priceCwt);
+    }
+    for (const [range, data] of Object.entries(buckets)) {
+      feederWeights.push({
+        range,
+        low:   parseFloat(Math.min(...data.prices).toFixed(2)),
+        price: parseFloat(Math.max(...data.prices).toFixed(2)),
+        types: data.types,
+      });
+    }
+    feederWeights.sort((a, b) => parseInt(a.range) - parseInt(b.range));
+    console.log(`[${id}] feederWeights: ${feederWeights.length} buckets`);
+  }
+
+  // Build repSales
+  const repSales = buildRepSales(slaughterBeef, slaughterHolstein, feederEntries, id);
+
+  const hasSlaughter = slaughter.beef !== null || slaughter.holstein !== null;
+  const hasFeeder = feeder.beef !== null;
+
+  let saleDay = null;
+  if (reportDate) {
+    const d = new Date(reportDate + 'T12:00:00');
+    saleDay = DAYS[d.getDay()];
+  }
+
+  console.log(`[${id}] ✓ tab "${tab.name}" → date=${reportDate}, day=${saleDay}, slaughter=${hasSlaughter}, feeder=${hasFeeder}`);
+
+  return {
+    slaughter: hasSlaughter ? slaughter : null,
+    feeder: hasFeeder ? feeder : null,
+    feederWeights,
+    reportDate,
+    saleDay,
+    liteTestNote: null,
+    repSales,
+    hogs: null,
+    sheetGid: tab.gid,
+    source: (hasSlaughter || hasFeeder) ? 'scraped' : 'fetch_failed',
+    error: (!hasSlaughter && !hasFeeder) ? 'no prices found in CSV data' : null,
+  };
+}
+
 // ── Build repSales from individual sale entries ─────────────────────────────
-// Groups entries into 100-lb weight buckets with weighted-average prices,
-// matching the shape used by Central/Rock Creek so the PWA can show
-// "barn reported" per weight class instead of estimates.
 
 function buildRepSales(beefEntries, holsteinEntries, feederEntries, id) {
   function bucketAvgs(entries, byType) {
@@ -190,206 +359,78 @@ function buildRepSales(beefEntries, holsteinEntries, feederEntries, id) {
 // ── Main parse function ─────────────────────────────────────────────────────
 
 async function parse({ id, browser, html }) {
-  // Step 1: Discover sheet tabs from the pubhtml page (passed by orchestrator).
-  // Pick the most recent tab by date, then fetch its CSV via &gid=N.
+  // 1. Discover all sheet tabs from the pubhtml page
   const tabs = discoverSheets(html || '', id);
-  let csvUrl = SHEETS_BASE + '?output=csv';  // default: first sheet
-
-  if (tabs.length > 0) {
-    const newest = tabs[0];
-    csvUrl = `${SHEETS_BASE}?output=csv&gid=${newest.gid}`;
-    console.log(`[${id}] selected newest tab: "${newest.name}" (${newest.dateStr}) gid=${newest.gid}`);
-  } else {
-    console.log(`[${id}] no tabs discovered — using default (first sheet)`);
+  if (tabs.length === 0) {
+    console.log(`[${id}] no sheet tabs discovered — fetching default CSV`);
+    const csvUrl = SHEETS_BASE + '?output=csv';
+    let csvText;
+    try { csvText = await fetchCsv(csvUrl, id); }
+    catch (err) {
+      return { slaughter: null, feeder: null, source: 'fetch_failed', error: err.message };
+    }
+    return parseCsvData(csvText, id, { name: 'default', gid: '0', tabDate: null });
   }
 
-  let csvText;
-  try {
-    csvText = await fetchCsv(csvUrl, id);
-  } catch (err) {
-    console.error(`[${id}] CSV fetch failed: ${err.message}`);
+  // 2. Filter to tabs we haven't captured (by gid); track existing report dates
+  const { selected, existingDates } = selectNewTabs(tabs, id);
+
+  if (selected.length === 0) {
+    console.log(`[${id}] all tabs already captured — nothing new`);
     return {
       slaughter: null, feeder: null,
-      source: 'fetch_failed',
-      error: `CSV fetch failed: ${err.message}`,
+      reportDate: tabs[0].tabDate,
+      source: 'scraped',
+      error: null,
     };
   }
 
-  // Step 2: Parse CSV rows
-  const rows = csvText.split('\n').map(parseCsvLine);
-  console.log(`[${id}] parsed ${rows.length} CSV rows`);
+  // 3. Process each new tab (oldest tabDate first for chronological history)
+  const sorted = [...selected].sort((a, b) => (a.tabDate || '').localeCompare(b.tabDate || ''));
+  const batchEntries = [];
 
-  // Step 3: Extract report date (M/D/YYYY in first few rows)
-  let reportDate = null;
-  for (const row of rows.slice(0, 5)) {
-    const text = row.join(' ');
-    const dm = text.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (dm) {
-      const mm = dm[1].padStart(2, '0');
-      const dd = dm[2].padStart(2, '0');
-      reportDate = `${dm[3]}-${mm}-${dd}`;
-      console.log(`[${id}] report date: ${reportDate}`);
-      break;
-    }
-  }
+  for (const tab of sorted) {
+    console.log(`\n[${id}] ▸ processing tab: "${tab.name}" gid=${tab.gid}`);
 
-  // Step 4: Walk rows, detect category headers, collect price entries
-  const slaughter = { beef: null, crossbred: null, holstein: null };
-  const feeder    = { beef: null, crossbred: null, holstein: null, liteTest: false };
-  const feederWeights = [];
-
-  const slaughterBeef = [];
-  const slaughterHolstein = [];
-  const feederEntries = [];
-
-  let currentCat = null;
-  let currentClass = null;
-
-  for (const fields of rows) {
-    const col0 = fields[0] || '';
-
-    // Detect category header: "CATTLE - Fats" in column A
-    const catMatch = col0.match(/^CATTLE\s*[-–—]\s*(.+)/i);
-    if (catMatch) {
-      currentCat = catMatch[1].trim();
-      currentClass = classifyCategory(currentCat);
-      console.log(`[${id}] category: ${currentCat} → ${currentClass}`);
+    let csvText;
+    try {
+      csvText = await fetchCsv(`${SHEETS_BASE}?output=csv&gid=${tab.gid}`, id);
+    } catch (err) {
+      console.error(`[${id}] tab "${tab.name}" CSV fetch failed: ${err.message}`);
       continue;
     }
 
-    // Skip header rows and non-data
-    if (!currentCat || currentClass === 'skip') continue;
-    if (/^Descr|^Market Report|^$/i.test(col0)) continue;
+    const result = parseCsvData(csvText, id, tab);
 
-    // CSV columns (Google Sheets merged cells = empty columns between):
-    //   [0]=Descr  [1]='' [2]=Head [3]='' [4]=Avg_Wt [5]='' [6]='' [7]=$/CWT [8]='' [9]='' [10]=$/Head
-    // But actual positions vary — find the numeric values
-    const desc = col0;
-
-    // Extract head count, avg weight, $/CWT from the row
-    // Find all numeric-looking values in the row
-    const nums = [];
-    for (let i = 1; i < fields.length && i < 12; i++) {
-      const v = fields[i].replace(/[$,]/g, '').trim();
-      if (v && /^\d+\.?\d*$/.test(v)) nums.push(parseFloat(v));
+    // Dedup by report date — skip if we already have this date (handles renamed tabs)
+    if (result.reportDate && existingDates.has(result.reportDate)) {
+      console.log(`[${id}] skip tab "${tab.name}" — report date ${result.reportDate} already in history`);
+      continue;
     }
 
-    if (nums.length < 3) continue;
-
-    // Pattern: head, avgWt, $/CWT, $/Head
-    const head = Math.round(nums[0]);
-    const avgWt = Math.round(nums[1]);
-    const priceCwt = nums[2];
-
-    // Sanity checks
-    if (head < 1 || head > 500) continue;
-    if (avgWt < 50 || avgWt > 3000) continue;
-    if (priceCwt < 10 || priceCwt > 2000) continue;
-
-    // Baby calves have very high $/CWT (e.g. 1880 for 63# calves) — that's $/head really
-    // Skip entries with $/CWT > 500 unless it's explicitly a feeder category
-    if (priceCwt > 500 && currentClass === 'slaughter') continue;
-
-    const breed = breedFromDesc(desc);
-    console.log(`[${id}]   ${desc} | ${head}hd | ${avgWt}# | $${priceCwt}/cwt [${breed}] → ${currentClass}`);
-
-    if (currentClass === 'slaughter') {
-      if (breed === 'holstein') {
-        slaughterHolstein.push({ desc, head, avgWt, priceCwt });
-      } else {
-        slaughterBeef.push({ desc, head, avgWt, priceCwt });
-      }
-    } else if (currentClass === 'feeder') {
-      feederEntries.push({ desc, head, avgWt, priceCwt, breed });
+    if (result.source !== 'scraped') {
+      console.log(`[${id}] tab "${tab.name}" produced no data — skipping`);
+      continue;
     }
+
+    batchEntries.push(result);
   }
 
-  // ── Build slaughter ranges ────────────────────────────────────────────────
-  if (slaughterBeef.length > 0) {
-    const prices = slaughterBeef.map(e => e.priceCwt);
-    slaughter.beef = {
-      low:  parseFloat(Math.min(...prices).toFixed(2)),
-      high: parseFloat(Math.max(...prices).toFixed(2)),
-    };
-    console.log(`[${id}] slaughter.beef = ${JSON.stringify(slaughter.beef)} (${slaughterBeef.length} rows)`);
-  }
-  if (slaughterHolstein.length > 0) {
-    const prices = slaughterHolstein.map(e => e.priceCwt);
-    slaughter.holstein = {
-      low:  parseFloat(Math.min(...prices).toFixed(2)),
-      high: parseFloat(Math.max(...prices).toFixed(2)),
-    };
-    console.log(`[${id}] slaughter.holstein = ${JSON.stringify(slaughter.holstein)} (${slaughterHolstein.length} rows)`);
-  }
-
-  // ── Build feeder ranges and weight buckets ────────────────────────────────
-  if (feederEntries.length > 0) {
-    const prices = feederEntries.map(e => e.priceCwt);
-    feeder.beef = {
-      low:  parseFloat(Math.min(...prices).toFixed(2)),
-      high: parseFloat(Math.max(...prices).toFixed(2)),
-    };
-    console.log(`[${id}] feeder.beef = ${JSON.stringify(feeder.beef)} (${feederEntries.length} rows)`);
-
-    // Group by 100-lb weight buckets
-    const buckets = {};
-    for (const e of feederEntries) {
-      const bucket = Math.floor(e.avgWt / 100) * 100;
-      const range = `${bucket}–${bucket + 99}#`;
-      if (!buckets[range]) buckets[range] = { prices: [], types: ['beef'] };
-      buckets[range].prices.push(e.priceCwt);
-    }
-    for (const [range, data] of Object.entries(buckets)) {
-      feederWeights.push({
-        range,
-        low:   parseFloat(Math.min(...data.prices).toFixed(2)),
-        price: parseFloat(Math.max(...data.prices).toFixed(2)),
-        types: data.types,
-      });
-    }
-    feederWeights.sort((a, b) => parseInt(a.range) - parseInt(b.range));
-    console.log(`[${id}] feederWeights: ${feederWeights.length} buckets`);
-  }
-
-  // ── Build repSales weight-class averages from individual entries ─────────
-  // This gives the PWA actual barn-reported prices per weight class instead
-  // of estimates derived from the overall range.
-  const repSales = buildRepSales(slaughterBeef, slaughterHolstein, feederEntries, id);
-
-  const hasSlaughter = slaughter.beef !== null || slaughter.holstein !== null;
-  const hasFeeder = feeder.beef !== null;
-
-  if (!hasSlaughter && !hasFeeder) {
-    console.error(`[${id}] no prices extracted from CSV`);
+  if (batchEntries.length === 0) {
     return {
       slaughter: null, feeder: null,
-      reportDate,
-      source: 'fetch_failed',
-      error: 'no prices found in CSV data',
+      reportDate: tabs[0].tabDate,
+      source: 'scraped',
+      error: null,
     };
   }
 
-  // Determine sale day from report date
-  let saleDay = null;
-  if (reportDate) {
-    const d = new Date(reportDate + 'T12:00:00');
-    saleDay = DAYS[d.getDay()];
-  }
+  console.log(`[${id}] batch complete — ${batchEntries.length} new entries`);
 
-  console.log(`[${id}] ✓ slaughter.beef=${JSON.stringify(slaughter.beef)}, slaughter.holstein=${JSON.stringify(slaughter.holstein)}, feeder.beef=${JSON.stringify(feeder.beef)}, date=${reportDate}, day=${saleDay}`);
-
-  return {
-    slaughter,
-    feeder,
-    feederWeights,
-    reportDate,
-    saleDay,
-    liteTestNote: null,
-    repSales,
-    hogs: null,
-    source: 'scraped',
-    error: null,
-  };
+  // Return newest as main result; older entries in _batchEntries for orchestrator
+  const newest = batchEntries[batchEntries.length - 1];
+  newest._batchEntries = batchEntries.slice(0, -1);
+  return newest;
 }
 
 module.exports = { parse };
