@@ -763,7 +763,7 @@ async function renderAuctionChart() {
   if (titleEl) titleEl.textContent = 'Auction Barn Prices — ' + catLabel + ' · ' + typeLabels[type] + ' (¢/lb)';
 
   // Fetch all barn histories (cached)
-  var barnIds = Object.keys(BARNS_DATA).filter(function(k) { return BARNS_DATA[k].dataSource !== 'pending'; });
+  var barnIds = Object.keys(BARNS_DATA).filter(function(k) { return BARNS_DATA[k].dataSource !== 'pending' && BARNS_DATA[k].dataSource !== 'directory'; });
   await Promise.all(barnIds.map(async function(id) {
     if (_auctionCache[id]) return;
     try {
@@ -1650,6 +1650,7 @@ const BARNS_DATA = {
   rockcreek: { id:'rockcreek', name:'Rock Creek Livestock',    loc:'Pine City MN',   lat:45.9524, lon:-92.9577, freq:'Mon & Wed',   phone:null,           url:'https://rockcreeklivestockmarket.com', basePrice:230.50, reportDate:'Mar 2026', dataSource:null, finishPrices:null, feederWeights:null },
   sleepyeye: { id:'sleepyeye', name:'Sleepy Eye Auction',      loc:'Sleepy Eye MN',  lat:44.2972, lon:-94.7244, freq:'Every Wed',   phone:null,           url:'https://sleepyeyeauctionmarket.com', basePrice:231.50, reportDate:'Mar 2026', dataSource:null, finishPrices:null, feederWeights:null },
   pipestone:  { id:'pipestone', name:'Pipestone Livestock',    loc:'Pipestone MN',   lat:43.9939, lon:-96.3172, freq:'2nd & 4th Thu',phone:null,           url:'https://www.pipestonelivestock.com', basePrice:230.00, reportDate:'Mar 2026', dataSource:null, finishPrices:null, feederWeights:null },
+  blueearth:  { id:'blueearth', name:'Blue Earth Stockyard', loc:'Blue Earth MN',  lat:43.6383, lon:-94.0977, freq:'Every Wed',     phone:'(507) 526-3261', url:null, basePrice:null, reportDate:null, dataSource:'directory', finishPrices:null, feederWeights:null },
 };
 
 let barnPriceDate = 'Recent values';
@@ -1675,6 +1676,7 @@ async function loadBarnPrices() {
       if(usda > 180 && usda < 350) {
         // Apply regional adjustment — IA-MN typically runs slight premium to national
         Object.keys(BARNS_DATA).forEach(k => {
+          if (BARNS_DATA[k].dataSource === 'directory') return;
           BARNS_DATA[k].basePrice = usda;
           if(!BARNS_DATA[k].dataSource) BARNS_DATA[k].dataSource = 'usda';
         });
@@ -1691,6 +1693,7 @@ async function loadBarnPrices() {
     if(CATTLE_DATA.lc && CATTLE_DATA.lc.price > 0) {
       const proxy = CATTLE_DATA.lc.price;
       Object.keys(BARNS_DATA).forEach((k,i) => {
+        if (BARNS_DATA[k].dataSource === 'directory') return;
         // Small barn-specific variance ±1.5¢
         const variance = [-0.5, -1.0, -1.5, -0.8, -1.2][i] || 0;
         BARNS_DATA[k].basePrice = parseFloat((proxy + variance).toFixed(2));
@@ -1907,7 +1910,7 @@ function rebuildBarnSelect() {
   const sel = document.getElementById('cattle-barn-select'); if(!sel) return;
   const cur = sel.value;
   sel.innerHTML = '<option value="">Select auction barn…</option>';
-  const keys = Object.keys(BARNS_DATA);
+  const keys = Object.keys(BARNS_DATA).filter(k => BARNS_DATA[k].dataSource !== 'directory');
   const sorted = userLat
     ? keys.slice().sort((a,b) => distMiles(userLat,userLon,BARNS_DATA[a].lat,BARNS_DATA[a].lon) - distMiles(userLat,userLon,BARNS_DATA[b].lat,BARNS_DATA[b].lon))
     : keys;
@@ -2007,7 +2010,7 @@ function buildBarnTable() {
   const typeInfo = CATTLE_TYPE_DISCOUNTS[cattleType];
   const disc = typeInfo.discountCwt;
   const typeLabel = typeInfo.label;
-  const keys = Object.keys(BARNS_DATA);
+  const keys = Object.keys(BARNS_DATA).filter(k => BARNS_DATA[k].dataSource !== 'directory');
   const sorted = userLat
     ? keys.slice().sort((a,b) => distMiles(userLat,userLon,BARNS_DATA[a].lat,BARNS_DATA[a].lon) - distMiles(userLat,userLon,BARNS_DATA[b].lat,BARNS_DATA[b].lon))
     : keys;
@@ -2472,6 +2475,19 @@ const BARN_DATA = [
     links: [
       { label: 'Website ↗', url: 'https://www.pipestonelivestock.com' },
       { label: 'Bid Online ↗', url: 'https://lmaauctions.com' },
+    ]
+  },
+  {
+    id: 'blueearth',
+    name: 'Blue Earth Stockyard LLC',
+    address: '207 S East St, Blue Earth, MN 56013',
+    lat: 43.6383, lon: -94.0977,
+    phone: '(507) 526-3261',
+    freq: 'Every Wednesday',
+    desc: 'Hay 9:30am · Feeders 11:00am. Online bidding via CattleUSA.',
+    links: [
+      { label: 'Bid Online ↗', url: 'https://www.cattleusa.com/auctions/165' },
+      { label: 'Facebook ↗', url: 'https://www.facebook.com/p/Blue-Earth-Stockyard-LLC-100063830640816' },
     ]
   },
 ];
