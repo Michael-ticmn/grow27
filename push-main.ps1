@@ -13,6 +13,7 @@ if ($hasChanges) {
 }
 
 git checkout $TO
+git reset --hard "origin/$TO"
 git merge $FROM --no-edit
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Merge conflict - resolve in VS Code before pushing" -ForegroundColor Red
