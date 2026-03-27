@@ -153,27 +153,19 @@ function buildRepSales(beefEntries, holsteinEntries, feederEntries, id) {
 
 // ── Main parse function ─────────────────────────────────────────────────────
 
-async function parse({ id, browser, html }) {
-  // The orchestrator fetches the CSV URL via Puppeteer and passes the page
-  // content as `html`. For a CSV URL, the rendered page wraps the CSV in
-  // a <pre> tag. Extract the raw CSV text from it.
+async function parse({ id, browser }) {
+  // The orchestrator points Puppeteer at the pubhtml URL (lightweight).
+  // We fetch the CSV export directly via https — no Puppeteer needed for data.
   let csvText;
-  if (html && html.includes('CATTLE')) {
-    // Puppeteer rendered the CSV — strip HTML tags to get raw CSV
-    csvText = html.replace(/<[^>]+>/g, '').trim();
-    console.log(`[${id}] using CSV from orchestrator fetch (${csvText.length} chars)`);
-  } else {
-    // Fallback: fetch CSV directly (e.g. if orchestrator URL changes)
-    try {
-      csvText = await fetchCsv(SHEETS_CSV_URL, id);
-    } catch (err) {
-      console.error(`[${id}] CSV fetch failed: ${err.message}`);
-      return {
-        slaughter: null, feeder: null,
-        source: 'fetch_failed',
-        error: `CSV fetch failed: ${err.message}`,
-      };
-    }
+  try {
+    csvText = await fetchCsv(SHEETS_CSV_URL, id);
+  } catch (err) {
+    console.error(`[${id}] CSV fetch failed: ${err.message}`);
+    return {
+      slaughter: null, feeder: null,
+      source: 'fetch_failed',
+      error: `CSV fetch failed: ${err.message}`,
+    };
   }
 
   // Step 2: Parse CSV rows
