@@ -6,8 +6,10 @@
 // Rather than parsing the JS-rendered HTML, we extract the spreadsheet URL from
 // the iframe src and fetch the CSV export directly — much more reliable.
 //
-// Google Sheets CSV export: append ?output=csv (or &gid=N for specific sheets).
-// The first sheet tab holds the most recent report.
+// Google Sheets CSV export: append ?output=csv&gid=N for specific sheets.
+// Sheet tabs are named by date (e.g. "March 3, 2026"). The parser discovers
+// all tabs from the pubhtml page, picks the most recent by date, and fetches
+// that tab's CSV.
 //
 // CSV layout (merged cells create empty columns):
 //   Col A: category header ("CATTLE - Fats") or description ("Blk Fats")
@@ -32,8 +34,42 @@ const http  = require('http');
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-// Google Sheets published spreadsheet base URL (extracted from iframe src on first run)
-const SHEETS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR21gPJvWlLmM010wpiEW3Q1XSr_Sel4aguwc3oadClksTc8BEoqktTIQIms5MW2XeVpzNsNVOPQyeI/pub?output=csv';
+// Google Sheets published spreadsheet base URL
+const SHEETS_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR21gPJvWlLmM010wpiEW3Q1XSr_Sel4aguwc3oadClksTc8BEoqktTIQIms5MW2XeVpzNsNVOPQyeI/pub';
+
+const MONTHS = {
+  january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
+  july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
+};
+
+// ── Sheet tab discovery ─────────────────────────────────────────────────────
+// The pubhtml page contains JS with sheet tab names and gids.
+// Tab names are dates like "March 3, 2026". We parse them, pick the most
+// recent, and fetch that tab's CSV via &gid=N.
+
+function discoverSheets(html, id) {
+  // Pattern: name: "March 3, 2026" ... gid: "2019930084"
+  const tabs = [];
+  const re = /name:\s*"([^"]+)"[^}]*?gid:\s*"(\d+)"/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const name = m[1];
+    const gid = m[2];
+    // Parse "Month D, YYYY" → Date
+    const dm = name.match(/^(\w+)\s+(\d{1,2}),?\s+(\d{4})$/);
+    if (dm) {
+      const month = MONTHS[dm[1].toLowerCase()];
+      if (month) {
+        const day = parseInt(dm[2]);
+        const year = parseInt(dm[3]);
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        tabs.push({ name, gid, dateStr });
+      }
+    }
+    console.log(`[${id}] sheet tab: "${name}" → gid=${gid}`);
+  }
+  return tabs.sort((a, b) => b.dateStr.localeCompare(a.dateStr)); // newest first
+}
 
 // ── Category classification ─────────────────────────────────────────────────
 
@@ -153,12 +189,23 @@ function buildRepSales(beefEntries, holsteinEntries, feederEntries, id) {
 
 // ── Main parse function ─────────────────────────────────────────────────────
 
-async function parse({ id, browser }) {
-  // The orchestrator points Puppeteer at the pubhtml URL (lightweight).
-  // We fetch the CSV export directly via https — no Puppeteer needed for data.
+async function parse({ id, browser, html }) {
+  // Step 1: Discover sheet tabs from the pubhtml page (passed by orchestrator).
+  // Pick the most recent tab by date, then fetch its CSV via &gid=N.
+  const tabs = discoverSheets(html || '', id);
+  let csvUrl = SHEETS_BASE + '?output=csv';  // default: first sheet
+
+  if (tabs.length > 0) {
+    const newest = tabs[0];
+    csvUrl = `${SHEETS_BASE}?output=csv&gid=${newest.gid}`;
+    console.log(`[${id}] selected newest tab: "${newest.name}" (${newest.dateStr}) gid=${newest.gid}`);
+  } else {
+    console.log(`[${id}] no tabs discovered — using default (first sheet)`);
+  }
+
   let csvText;
   try {
-    csvText = await fetchCsv(SHEETS_CSV_URL, id);
+    csvText = await fetchCsv(csvUrl, id);
   } catch (err) {
     console.error(`[${id}] CSV fetch failed: ${err.message}`);
     return {
