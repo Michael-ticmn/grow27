@@ -265,6 +265,7 @@ async function run() {
             hogs:         result.hogs ?? null,
             source:       result.source,
           };
+          if (result.sheetGid) entry.sheetGid = result.sheetGid;
           if (result.error) entry.error = result.error;
           if (result.source === 'scraped') {
             const successDate = result.reportDate || todayStr;
@@ -288,6 +289,7 @@ async function run() {
                 hogs:         be.hogs ?? null,
                 source:       be.source,
               };
+              if (be.sheetGid) batchEntry.sheetGid = be.sheetGid;
               if (be.source === 'scraped') {
                 const sd = be.reportDate || todayStr;
                 if (!barnData.lastSuccess || sd > barnData.lastSuccess) barnData.lastSuccess = sd;
