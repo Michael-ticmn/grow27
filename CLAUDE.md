@@ -69,7 +69,8 @@ Claude edits files directly in the local repo. Michael validates locally before 
 - `scripts/scrape-barns.js` — **orchestrator**. Loops barns, fetches pages via Puppeteer, delegates parsing to barn-specific modules, writes output. Exports shared helpers (`normalizePrice`, `extractLinePrice`, regex constants) for barn parsers.
 - `scripts/barns/<id>.js` — barn-specific parser module. Exports `parse({ id, browser, html, $ })` returning `{ slaughter, feeder, feederWeights, repSales, ... }`. Currently: `central.js` (OCR + rep sales), `lanesboro.js` (plain HTML), `rockcreek.js` (PDF).
 - `scripts/barns/_default.js` — fallback parser for barns without custom logic (returns `pending`).
-- `.github/workflows/scrape-barns.yml` — runs on `UserUpdates`, triggers daily 4am CT + 7am CT backup (`0 10,12 * * *`) and via `workflow_dispatch`. Commits price files to `UserUpdates`, then copies `data/prices/` to `main` so the live site always has fresh data.
+- `.github/workflows/scrape-barns.yml` — runs on `main`, triggers daily 4am CT + 7am CT backup (`0 10,12 * * *`) and via `workflow_dispatch`. Commits price files directly to `main`.
+- `.github/workflows/test-scrapers.yml` — runs on `UserUpdates` push when `scripts/`, config, or workflow files change. Dry-run validation of all three scrapers (no commit). Also available via `workflow_dispatch`.
 
 **Adding a new barn parser:** Create `scripts/barns/<id>.js` matching the id in `barns-config.json`. Export `parse({ id, browser, html, $ })`. The orchestrator picks it up automatically — no changes to `scrape-barns.js` needed. **Also update the Data Sources section in the About page** (`index.html` → `#mod-about` → `#about-sources`).
 
@@ -98,7 +99,7 @@ Claude edits files directly in the local repo. Michael validates locally before 
 - `scripts/scrape-grain.js` — **orchestrator**. Loops grain sources, launches Puppeteer, delegates parsing to source-specific modules, writes output.
 - `scripts/grain/<id>.js` — source-specific parser module. Exports `parse({ id, config, browser })` returning `{ locations: { [slug]: { name, corn: [...], beans: [...] } }, source, error }`.
 - `scripts/grain/_default.js` — fallback parser (returns `pending`).
-- `.github/workflows/scrape-grain.yml` — runs on `UserUpdates`, triggers Mon–Fri 4am CT + 7am CT backup (`0 10,12 * * 1-5`) and via `workflow_dispatch`. Commits to `UserUpdates`, then copies `data/prices/grain/` to `main` so the live site always has fresh data.
+- `.github/workflows/scrape-grain.yml` — runs on `main`, triggers Mon–Fri 4am CT + 7am CT backup (`0 10,12 * * 1-5`) and via `workflow_dispatch`. Commits price files directly to `main`.
 
 **Currently configured:** CFS (Central Farm Service) — 13 locations across southern MN. Uses DTN Cashbid widget; parser selects each location from dropdown and reads `<table id="dtn-bids">`.
 

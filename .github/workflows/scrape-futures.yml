@@ -11,12 +11,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          ref: UserUpdates
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-          clean: true
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -29,22 +26,11 @@ jobs:
       - name: Show git status
         run: git status
 
-      - name: Commit updated futures history to UserUpdates
+      - name: Commit updated futures history
         run: |
           git config user.name "grow27-bot"
           git config user.email "bot@grow27.com"
           git add data/prices/futures-history.json
           git diff --staged --quiet || git commit -m "data: futures history $(date -u +%Y-%m-%dT%H:%MZ)"
-          git pull --rebase origin UserUpdates
-          git push --force-with-lease origin UserUpdates
-
-      - name: Push data to main for live site
-        run: |
-          COMMIT_MSG="data: futures history $(date -u +%Y-%m-%dT%H:%MZ)"
-          git fetch origin main
-          git checkout main
-          git checkout UserUpdates -- data/prices/futures-history.json
-          git add data/prices/futures-history.json
-          git diff --staged --quiet || git commit -m "$COMMIT_MSG"
+          git pull --rebase origin main || true
           git push origin main
-          git checkout UserUpdates
