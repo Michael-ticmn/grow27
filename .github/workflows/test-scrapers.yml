@@ -1,0 +1,66 @@
+name: Test Scrapers (Dry Run)
+on:
+  push:
+    branches: [UserUpdates]
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/scrape-*.yml'
+      - '.github/workflows/test-scrapers.yml'
+      - 'data/barns-config.json'
+      - 'data/grain-config.json'
+  workflow_dispatch:
+
+jobs:
+  test-barns:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install cheerio puppeteer tesseract.js sharp pdf-parse@1.1.1
+
+      - name: Run barn scraper (dry run)
+        run: node scripts/scrape-barns.js
+
+      - name: Verify output
+        run: |
+          test -f data/prices/index.json && echo "index.json OK" || exit 1
+
+  test-grain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install puppeteer cheerio
+
+      - name: Run grain scraper (dry run)
+        run: node scripts/scrape-grain.js
+
+      - name: Verify output
+        run: |
+          test -f data/prices/grain/index.json && echo "grain index.json OK" || exit 1
+
+  test-futures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run futures scraper (dry run)
+        run: node scripts/scrape-futures-history.js
+
+      - name: Verify output
+        run: |
+          test -f data/prices/futures-history.json && echo "futures-history.json OK" || exit 1
