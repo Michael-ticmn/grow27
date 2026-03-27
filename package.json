@@ -1,0 +1,13 @@
+{
+  "name": "grow27-scrapers",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dependencies for grow27 GitHub Actions scraper workflows",
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "pdf-parse": "1.1.1",
+    "puppeteer": "^22.0.0",
+    "sharp": "^0.33.0",
+    "tesseract.js": "^5.0.0"
+  }
+}
