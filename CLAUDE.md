@@ -67,7 +67,7 @@ Claude edits files directly in the local repo. Michael validates locally before 
 - `data/prices/<id>.json` — per-barn history, max 14 entries / 14 days
 - `data/prices/index.json` — latest snapshot, one entry per barn (what the PWA reads)
 - `scripts/scrape-barns.js` — **orchestrator**. Loops barns, fetches pages via Puppeteer, delegates parsing to barn-specific modules, writes output. Exports shared helpers (`normalizePrice`, `extractLinePrice`, regex constants) for barn parsers.
-- `scripts/barns/<id>.js` — barn-specific parser module. Exports `parse({ id, browser, html, $ })` returning `{ slaughter, feeder, feederWeights, repSales, ... }`. Currently: `central.js` (OCR + rep sales), `lanesboro.js` (plain HTML), `rockcreek.js` (PDF).
+- `scripts/barns/<id>.js` — barn-specific parser module. Exports `parse({ id, browser, html, $ })` returning `{ slaughter, feeder, feederWeights, repSales, ... }`. Currently: `central.js` (OCR + rep sales), `lanesboro.js` (plain HTML), `rockcreek.js` (PDF), `sleepyeye.js` (Google Sheets CSV).
 - `scripts/barns/_default.js` — fallback parser for barns without custom logic (returns `pending`).
 - `.github/workflows/scrape-barns.yml` — runs on `main`, triggers daily 4am CT + 7am CT backup (`0 10,12 * * *`) and via `workflow_dispatch`. Commits price files directly to `main`.
 - `.github/workflows/test-scrapers.yml` — runs on `UserUpdates` push when `scripts/`, config, or workflow files change. Dry-run validation of all three scrapers (no commit). Also available via `workflow_dispatch`.
@@ -85,6 +85,9 @@ Claude edits files directly in the local repo. Michael validates locally before 
 | `scraped` | Live Puppeteer pull from barn's report page |
 | `fetch_failed` | Puppeteer succeeded but zero prices parsed, or network error |
 | `pending` | No `reportUrl` configured for this barn |
+| `directory` | Directory-only entry — no parser, no scraping. Shows in barn directory but not price table |
+
+**Staleness alerts:** `scripts/check-staleness.js` runs at the end of each scraper workflow. If any active source's `lastSuccess` exceeds its threshold (barns: 7 days, grain/futures: 3 days), the workflow exits 1 and GitHub sends a failure notification. Skips `pending` and `directory` entries.
 
 **Discount schedule applied to beef baseline:**
 - Crossbred slaughter: −$9.50/cwt · feeder: −$3.80/cwt
