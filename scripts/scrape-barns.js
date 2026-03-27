@@ -363,10 +363,16 @@ function buildIndexRow(barnData, id, name, location) {
 
   // Pick best entry for each category independently (most recent with data)
   const slaughterEntry = scraped.find(e => e.slaughter && Object.values(e.slaughter).some(v => v != null));
-  const feederEntry    = scraped.find(e =>
+  // Feeder: prefer the entry with the most feeder weight brackets (the real "feeder sale"),
+  // not just the most recent entry that happens to have a few feeders
+  const feederCandidates = scraped.filter(e =>
     (e.feeder && Object.values(e.feeder).some(v => v != null && v !== false))
     || (e.feederWeights && e.feederWeights.length > 0)
   );
+  const feederEntry = feederCandidates.sort((a, b) =>
+    (b.feederWeights?.length || 0) - (a.feederWeights?.length || 0)
+    || b.date.localeCompare(a.date)
+  )[0] || null;
   const recent = slaughterEntry || feederEntry || scraped[0];
 
   // Collect the latest scraped entry per sale day (for barns with multiple sale days)

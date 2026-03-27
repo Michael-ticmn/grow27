@@ -24,7 +24,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 ### Data Pipeline
 | Component | Schedule | Status |
 |-----------|----------|--------|
-| Barn scraper (Central, Lanesboro, Rock Creek) | Daily 4am + 7am CT | Running |
+| Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running |
 | Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley) | Mon–Fri 4am + 7am CT | Running |
 | Auto-push data to main | After each scrape | Running |
 
@@ -34,7 +34,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Central Livestock (Zumbrota) | `scripts/barns/central.js` | Active — OCR + rep sales, Mon+Wed |
 | Lanesboro Sales Commission | `scripts/barns/lanesboro.js` | Active — HTML parser, Wed (slaughter + Top Producers) + Fri (feeder) |
 | Rock Creek (Pine City) | `scripts/barns/rockcreek.js` | Active — PDF parser, Mon+Wed, batch YTD |
-| Sleepy Eye | `scripts/barns/_default.js` | Pending — no parser |
+| Sleepy Eye | `scripts/barns/sleepyeye.js` | Active — Google Sheets CSV, Wed (slaughter) + Sat (feeder), batch tabs |
 | Pipestone | `scripts/barns/_default.js` | Pending — no parser |
 
 ### Grain Parsers
@@ -69,7 +69,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 ### Data Pipeline
 | Component | Schedule | Status |
 |-----------|----------|--------|
-| Barn scraper (Central, Lanesboro, Rock Creek) | Daily 4am + 7am CT | Running |
+| Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running |
 | Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley) | Mon–Fri 4am + 7am CT | Running |
 | Futures history scraper (LE, GF, ZC, ZS, DC, ZM) | Mon–Fri 5pm + 7pm CT | New |
 | Auto-push data to main | After each scrape | Running |

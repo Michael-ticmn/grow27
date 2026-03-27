@@ -4,6 +4,16 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.128 (2026-03-27)
+
+### Sleepy Eye Auction Market — Parser + Index Fixes
+- **Feeder entry selection** — `buildIndexRow` now picks the entry with the most feeder weight brackets (real "feeder sale day") instead of just the most recent entry with any feeder data. Fixes Sleepy Eye showing 7-head Wednesday feeders over 342-head Saturday feeders.
+- **Split detail repSales by category** — finish weight table uses slaughter entry's repSales, feeder weight table uses feeder entry's repSales. Previously used one `detailRepSales` matched to slaughter date, hiding Holstein feeder data from the Saturday sale.
+- **CBOT futures timestamps** — added "CBOT Futures Timestamps" section to How To guide explaining day session (8:30 AM – 1:20 PM CT) vs electronic session (7:00 PM – 7:45 AM CT). Tooltip on section divider. Updated About data sources note.
+- **Sleepy Eye status** — updated About page from Pending to Active with Wed (slaughter) + Sat (feeder) sale days.
+
+---
+
 ## v1.117–v1.125 (2026-03-26)
 
 ### Al-Corn Clean Fuel Grain Parser
