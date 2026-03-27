@@ -152,124 +152,6 @@
       "sheetGid": "2019930084"
     },
     {
-      "date": "2026-03-11",
-      "slaughter": {
-        "beef": {
-          "low": 168,
-          "high": 232
-        },
-        "crossbred": null,
-        "holstein": {
-          "low": 204,
-          "high": 205.5
-        }
-      },
-      "feeder": {
-        "beef": {
-          "low": 684.21,
-          "high": 1400
-        },
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "feederWeights": [
-        {
-          "range": "100–199#",
-          "low": 684.21,
-          "price": 1400,
-          "types": [
-            "beef"
-          ]
-        }
-      ],
-      "saleDay": "Wednesday",
-      "liteTestNote": null,
-      "repSales": {
-        "finishWeightAvgs": [
-          {
-            "range": "1000-1099 lbs",
-            "type": "beef",
-            "avgPrice": 231,
-            "head": 8
-          },
-          {
-            "range": "1100-1199 lbs",
-            "type": "beef",
-            "avgPrice": 230.25,
-            "head": 4
-          },
-          {
-            "range": "1200-1299 lbs",
-            "type": "beef",
-            "avgPrice": 168,
-            "head": 1
-          },
-          {
-            "range": "1300-1399 lbs",
-            "type": "beef",
-            "avgPrice": 214.67,
-            "head": 3
-          },
-          {
-            "range": "1400-1499 lbs",
-            "type": "beef",
-            "avgPrice": 230.42,
-            "head": 31
-          },
-          {
-            "range": "1400-1499 lbs",
-            "type": "holstein",
-            "avgPrice": 204.29,
-            "head": 7
-          },
-          {
-            "range": "1500-1599 lbs",
-            "type": "beef",
-            "avgPrice": 226,
-            "head": 3
-          },
-          {
-            "range": "1500-1599 lbs",
-            "type": "holstein",
-            "avgPrice": 204.5,
-            "head": 13
-          },
-          {
-            "range": "1600-1699 lbs",
-            "type": "beef",
-            "avgPrice": 217.5,
-            "head": 2
-          },
-          {
-            "range": "1600-1699 lbs",
-            "type": "holstein",
-            "avgPrice": 205.5,
-            "head": 9
-          }
-        ],
-        "feederWeightAvgs": [
-          {
-            "range": "100-199 lbs",
-            "type": "beef",
-            "avgPrice": 840.14,
-            "head": 6
-          }
-        ],
-        "bullsWeightAvgs": [],
-        "cowsWeightAvgs": [],
-        "headCount": {
-          "finished": 81,
-          "feeder": 6,
-          "bulls": 0,
-          "cows": 0
-        }
-      },
-      "hogs": null,
-      "source": "scraped",
-      "sheetGid": "1116371348"
-    },
-    {
       "date": "2026-03-21",
       "slaughter": {
         "beef": null,
@@ -472,6 +354,144 @@
       "hogs": null,
       "source": "scraped",
       "sheetGid": "1969146228"
+    },
+    {
+      "date": "2026-03-11",
+      "slaughter": {
+        "beef": {
+          "low": 168,
+          "high": 232
+        },
+        "crossbred": null,
+        "holstein": {
+          "low": 204,
+          "high": 205.5
+        }
+      },
+      "feeder": {
+        "beef": {
+          "low": 684.21,
+          "high": 1400
+        },
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [
+        {
+          "range": "100–199#",
+          "low": 684.21,
+          "price": 1400,
+          "types": [
+            "beef"
+          ]
+        }
+      ],
+      "saleDay": "Wednesday",
+      "liteTestNote": null,
+      "repSales": {
+        "finishWeightAvgs": [
+          {
+            "range": "1000-1099 lbs",
+            "type": "beef",
+            "avgPrice": 231,
+            "head": 8
+          },
+          {
+            "range": "1100-1199 lbs",
+            "type": "beef",
+            "avgPrice": 230.25,
+            "head": 4
+          },
+          {
+            "range": "1200-1299 lbs",
+            "type": "beef",
+            "avgPrice": 168,
+            "head": 1
+          },
+          {
+            "range": "1300-1399 lbs",
+            "type": "beef",
+            "avgPrice": 214.67,
+            "head": 3
+          },
+          {
+            "range": "1400-1499 lbs",
+            "type": "beef",
+            "avgPrice": 230.42,
+            "head": 31
+          },
+          {
+            "range": "1400-1499 lbs",
+            "type": "holstein",
+            "avgPrice": 204.29,
+            "head": 7
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "beef",
+            "avgPrice": 226,
+            "head": 3
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "holstein",
+            "avgPrice": 204.5,
+            "head": 13
+          },
+          {
+            "range": "1600-1699 lbs",
+            "type": "beef",
+            "avgPrice": 217.5,
+            "head": 2
+          },
+          {
+            "range": "1600-1699 lbs",
+            "type": "holstein",
+            "avgPrice": 205.5,
+            "head": 9
+          }
+        ],
+        "feederWeightAvgs": [
+          {
+            "range": "100-199 lbs",
+            "type": "beef",
+            "avgPrice": 840.14,
+            "head": 6
+          }
+        ],
+        "bullsWeightAvgs": [],
+        "cowsWeightAvgs": [],
+        "headCount": {
+          "finished": 81,
+          "feeder": 6,
+          "bulls": 0,
+          "cows": 0
+        }
+      },
+      "hogs": null,
+      "source": "scraped",
+      "sheetGid": "1116371348"
+    },
+    {
+      "date": "2026-03-03",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": null,
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
     }
   ]
 }

@@ -2373,6 +2373,24 @@
         {
           "range": "200-299 lbs",
           "type": "beef",
+          "avgPrice": 230.77,
+          "head": 1
+        },
+        {
+          "range": "300-399 lbs",
+          "type": "beef",
+          "avgPrice": 425,
+          "head": 1
+        },
+        {
+          "range": "500-599 lbs",
+          "type": "beef",
+          "avgPrice": 345,
+          "head": 5
+        },
+        {
+          "range": "200-299 lbs",
+          "type": "beef",
           "avgPrice": 673.11,
           "head": 11
         },
@@ -2814,13 +2832,41 @@
         "liteTestNote": null
       }
     ],
-    "trend": null,
+    "trend": "up",
     "source": "scraped"
   },
   {
     "id": "pipestone",
     "name": "Pipestone Livestock Auction",
     "location": "Pipestone MN",
+    "lastSuccess": null,
+    "slaughter": {
+      "beef": null,
+      "crossbred": null,
+      "holstein": null
+    },
+    "slaughterSaleDay": null,
+    "slaughterDate": null,
+    "feeder": {
+      "beef": null,
+      "crossbred": null,
+      "holstein": null,
+      "liteTest": false
+    },
+    "feederWeights": [],
+    "feederSaleDay": null,
+    "feederDate": null,
+    "repSales": null,
+    "saleDay": null,
+    "liteTestNote": null,
+    "saleDays": null,
+    "trend": null,
+    "source": "pending"
+  },
+  {
+    "id": "blueearth",
+    "name": "Blue Earth Stockyard LLC",
+    "location": "Blue Earth MN",
     "lastSuccess": null,
     "slaughter": {
       "beef": null,
