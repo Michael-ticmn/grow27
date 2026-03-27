@@ -34,3 +34,6 @@ jobs:
           git diff --staged --quiet || git commit -m "data: futures history $(date -u +%Y-%m-%dT%H:%MZ)"
           git pull --rebase origin main || true
           git push origin main
+
+      - name: Check for stale sources
+        run: node scripts/check-staleness.js futures
