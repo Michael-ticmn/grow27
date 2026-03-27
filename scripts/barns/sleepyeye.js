@@ -98,6 +98,59 @@ function parseCsvLine(line) {
   return fields;
 }
 
+// ── Build repSales from individual sale entries ─────────────────────────────
+// Groups entries into 100-lb weight buckets with weighted-average prices,
+// matching the shape used by Central/Rock Creek so the PWA can show
+// "barn reported" per weight class instead of estimates.
+
+function buildRepSales(beefEntries, holsteinEntries, feederEntries, id) {
+  function bucketAvgs(entries, byType) {
+    const buckets = {};
+    let totalHead = 0;
+    for (const e of entries) {
+      totalHead += e.head;
+      const bucket = Math.floor(e.avgWt / 100) * 100;
+      const range = `${bucket}-${bucket + 99}`;
+      const type = e.breed || (byType ? 'beef' : undefined);
+      const key = byType ? `${range}|${type}` : range;
+      if (!buckets[key]) buckets[key] = { range, type, sum: 0, count: 0 };
+      buckets[key].sum += e.priceCwt * e.head;
+      buckets[key].count += e.head;
+    }
+    const avgs = Object.values(buckets).map(b => ({
+      range: b.range + ' lbs',
+      ...(byType && b.type ? { type: b.type } : {}),
+      avgPrice: parseFloat((b.sum / b.count).toFixed(2)),
+      head: b.count,
+    })).sort((a, b) => parseInt(a.range) - parseInt(b.range));
+    return { avgs, totalHead };
+  }
+
+  const allFinished = [
+    ...beefEntries.map(e => ({ ...e, breed: 'beef' })),
+    ...holsteinEntries.map(e => ({ ...e, breed: 'holstein' })),
+  ];
+  const finish = bucketAvgs(allFinished, true);
+  const feeder = bucketAvgs(feederEntries, true);
+
+  console.log(`[${id}] repSales — finish: ${finish.avgs.length} buckets (${finish.totalHead} hd), feeder: ${feeder.avgs.length} buckets (${feeder.totalHead} hd)`);
+
+  if (finish.totalHead === 0 && feeder.totalHead === 0) return null;
+
+  return {
+    finishWeightAvgs: finish.avgs,
+    feederWeightAvgs: feeder.avgs,
+    bullsWeightAvgs: [],
+    cowsWeightAvgs: [],
+    headCount: {
+      finished: finish.totalHead,
+      feeder: feeder.totalHead,
+      bulls: 0,
+      cows: 0,
+    },
+  };
+}
+
 // ── Main parse function ─────────────────────────────────────────────────────
 
 async function parse({ id, browser }) {
@@ -250,6 +303,11 @@ async function parse({ id, browser }) {
     console.log(`[${id}] feederWeights: ${feederWeights.length} buckets`);
   }
 
+  // ── Build repSales weight-class averages from individual entries ─────────
+  // This gives the PWA actual barn-reported prices per weight class instead
+  // of estimates derived from the overall range.
+  const repSales = buildRepSales(slaughterBeef, slaughterHolstein, feederEntries, id);
+
   const hasSlaughter = slaughter.beef !== null || slaughter.holstein !== null;
   const hasFeeder = feeder.beef !== null;
 
@@ -279,7 +337,7 @@ async function parse({ id, browser }) {
     reportDate,
     saleDay,
     liteTestNote: null,
-    repSales: null,
+    repSales,
     hogs: null,
     source: 'scraped',
     error: null,
