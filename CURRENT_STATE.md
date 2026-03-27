@@ -1,13 +1,36 @@
 # Current State — grow27
 
-**Version:** 1.143
-**Branch:** UserUpdates
+**Version:** 1.148 (PWA) / desktop v0.2.0 (setup wizard)
+**Branch:** UserUpdates (PWA) / dev (PWA only — desktop moved to separate repo)
 **Live site:** https://michael-ticmn.github.io/grow27/
 **Last updated:** 2026-03-27T00:00Z
 
 ---
 
 ## Architecture
+
+### Desktop App — Separate Repo
+**Repo:** https://github.com/Michael-ticmn/grow27_desktop
+**Local:** `C:\Users\MRJ\source\repos\grow27_desktop`
+**Branch:** `dev_desktop`
+
+| Component | Location | Status |
+|-----------|----------|--------|
+| Tauri scaffold | `src/` | Done — compiles clean |
+| SQLCipher + schema | `src/db/` | Done — full v1 schema, 3 migrations |
+| Session snapshot (Layer 1 backup) | `src/db/snapshot.rs` | Done |
+| Crypto (Argon2id, AES-256-GCM) | `src/crypto/` | Done |
+| Setup Wizard (7 steps) | `www/` | Done — welcome screen, animated completion |
+| Windows Credential Manager key | `src/` | TODO — `.devkey` placeholder for now |
+| Herd module UI | `www/` | Next |
+
+**Stack:** Tauri 2 + SQLite/SQLCipher · Windows first · separate repo from PWA
+
+**Next session:** Build Herd module UI — pen list, animal list, add/edit animal forms.
+
+---
+
+### PWA
 
 Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 

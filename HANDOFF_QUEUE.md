@@ -6,6 +6,35 @@ Decisions and open items for the next Chat session to pick up.
 
 ## Pending Handoffs
 
+### [x] [FROM: Code] Desktop — first build + SQLCipher — COMPLETED 2026-03-27T00:00Z
+- Scaffold compiles clean. SQLCipher wired (bundled, Strawberry Perl required for OpenSSL on Windows).
+- Full v1 schema in 3 migrations. Session snapshot. Argon2id passwords. AES-256-GCM recovery file.
+- 7-step Setup Wizard with welcome screen and animated logo completion screen.
+
+---
+
+### [ ] [FROM: Code] Desktop — Herd module UI (dev branch)
+- **Date queued:** 2026-03-27T00:00Z
+- **Next steps:**
+  1. App shell layout — sidebar nav, module content area
+  2. Herd dashboard — pen summary cards (head count, days on feed)
+  3. Pen list + pen detail view
+  4. Animal list (filterable by pen, status)
+  5. Add/edit animal form (tag, sex, breed, entry weight, entry date)
+  6. Add transaction (purchase, pen move, sale)
+- **Branch:** `dev`
+- **Note:** Completion screen "Setup complete" placeholder → becomes module chooser (#27Herd / #27Fields) when Fields module is ready.
+
+---
+
+### [ ] [FROM: Code] Desktop — Windows Credential Manager key management
+- **Date queued:** 2026-03-27T00:00Z
+- **Context:** SQLCipher key currently stored in plaintext `.devkey` file. Must replace with `keyring` crate + Windows Credential Manager before v1 release.
+- **Steps:** Add `keyring = "2"` to Cargo.toml. Replace `get_or_create_dev_key()` in `lib.rs` with keyring read/write.
+- **Branch:** `dev`
+
+---
+
 ### [x] [FROM: Chat → Code] Rock Creek barn parser — COMPLETED 2026-03-24
 - **Date queued:** 2026-03-24
 - **Task:** Build `scripts/barns/rockcreek.js` and update `data/barns-config.json`

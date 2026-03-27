@@ -4,6 +4,39 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## desktop/v0.2.0 — Setup Wizard + SQLCipher (2026-03-27T00:00Z)
+
+### Desktop App — Full Setup Wizard (dev branch)
+- Fixed scaffold: `main.rs` referenced `app_lib` → corrected to `grow27_lib`; identifier `com.grow27.app` → `com.grow27.desktop`; `frontendDist` scoped to `./www` to exclude `desktop/target/`
+- Added SQLCipher: `rusqlite` with `bundled-sqlcipher-vendored-openssl`. Required Strawberry Perl for OpenSSL build on Windows. First compile ~10 min; subsequent builds ~20s cached.
+- Full v1 schema migrations (3 migrations): all type tables, operations, sites, pens, parties, animals, transaction_groups, transaction_animals, health_events, market_cache — all indexes + type seeds
+- Session snapshot (Layer 1 backup): copies `grow27.db` → `backups/grow27_YYYY-MM-DD_HH.db` before DB opens, keeps last 7
+- Dev key placeholder: generates random 32-byte hex key, stores in `.devkey` (TODO: replace with Windows Credential Manager)
+- **Setup Wizard — 7 steps:** operation name → first site → branding (accent + theme) → auth mode → admin user (Argon2id password hash) → backup destination → recovery file (AES-256-GCM + Argon2id KDF, 5-word farm passphrase)
+- Welcome screen before step 1 with brand copy and "Let's get started" button
+- Personalized completion screen: fetches admin name + operation name from DB, displays "Welcome, Michael. FarmName is ready to capture its first animal in #27Herd."
+- Animated logo on completion screen: SVG crop stalks grow upward, leaves branch off as stalks pass them, teal tips appear, grow27 wordmark fades in, then welcome text — ~4s total sequence
+- Step 6 (backup): native folder picker via `tauri-plugin-dialog`, pre-populated with detected OneDrive/Documents path
+- Step 5 labels clarified: "Your name" (display) / "Login name" (credential)
+- Dark-theme logo variant: `www/assets/logo-dark.svg` — stalk strokes brightened to `#f4f4f2` for dark bg
+- Text contrast: `--text` → `#f4f4f2`, `--muted` → `#c0c0bc`
+- `withGlobalTauri: true` in tauri.conf.json — enables `window.__TAURI__.core.invoke` in vanilla JS
+- Queued: Windows Credential Manager key management (keyring crate), Herd module UI
+
+---
+
+## desktop/v0.1.0 — Tauri Scaffold (2026-03-27T00:00Z)
+
+### Tauri Desktop App — Initial Scaffold (dev branch)
+- Installed Rust 1.94.1 + Cargo, tauri-cli v2.10.1
+- Ran `cargo tauri init` — scaffolded Tauri 2 project
+- Renamed `src-tauri/` → `desktop/` to match STRATEGY.md repo structure
+- Updated `desktop/tauri.conf.json`: identifier → `com.grow27.app`, window size → 1280×800
+- Updated `desktop/Cargo.toml`: package name → `grow27`, lib name → `grow27_lib`
+- Next: first debug build verification, then add SQLCipher + schema migrations
+
+---
+
 ## v1.143 (2026-03-27T00:00Z)
 
 ### Service Worker — Yahoo Finance Cache Bug Fix
