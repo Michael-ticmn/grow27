@@ -6,6 +6,23 @@
   "lastSuccess": "2026-03-25",
   "history": [
     {
+      "date": "2026-03-27",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "source": "fetch_failed",
+      "saleDay": null,
+      "error": "net::ERR_ABORTED at https://docs.google.com/spreadsheets/d/e/2PACX-1vR21gPJvWlLmM010wpiEW3Q1XSr_Sel4aguwc3oadClksTc8BEoqktTIQIms5MW2XeVpzNsNVOPQyeI/pub?output=csv"
+    },
+    {
       "date": "2026-03-25",
       "slaughter": {
         "beef": {
@@ -149,23 +166,6 @@
       },
       "hogs": null,
       "source": "scraped"
-    },
-    {
-      "date": "2026-03-27",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "source": "fetch_failed",
-      "saleDay": null,
-      "error": "net::ERR_ABORTED at https://docs.google.com/spreadsheets/d/e/2PACX-1vR21gPJvWlLmM010wpiEW3Q1XSr_Sel4aguwc3oadClksTc8BEoqktTIQIms5MW2XeVpzNsNVOPQyeI/pub?output=csv"
     }
   ]
 }
