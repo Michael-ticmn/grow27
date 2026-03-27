@@ -252,12 +252,22 @@ function parseCsvData(csvText, id, tab) {
     console.log(`[${id}] slaughter.holstein = ${JSON.stringify(slaughter.holstein)} (${slaughterHolstein.length} rows)`);
   }
 
-  // Build feeder ranges and weight buckets
-  if (feederEntries.length > 0) {
-    const prices = feederEntries.map(e => e.priceCwt);
-    feeder.beef = { low: parseFloat(Math.min(...prices).toFixed(2)), high: parseFloat(Math.max(...prices).toFixed(2)) };
-    console.log(`[${id}] feeder.beef = ${JSON.stringify(feeder.beef)} (${feederEntries.length} rows)`);
+  // Build feeder ranges and weight buckets — split by breed
+  const feederBeefEntries = feederEntries.filter(e => e.breed !== 'holstein');
+  const feederHolEntries  = feederEntries.filter(e => e.breed === 'holstein');
 
+  if (feederBeefEntries.length > 0) {
+    const prices = feederBeefEntries.map(e => e.priceCwt);
+    feeder.beef = { low: parseFloat(Math.min(...prices).toFixed(2)), high: parseFloat(Math.max(...prices).toFixed(2)) };
+    console.log(`[${id}] feeder.beef = ${JSON.stringify(feeder.beef)} (${feederBeefEntries.length} rows)`);
+  }
+  if (feederHolEntries.length > 0) {
+    const prices = feederHolEntries.map(e => e.priceCwt);
+    feeder.holstein = { low: parseFloat(Math.min(...prices).toFixed(2)), high: parseFloat(Math.max(...prices).toFixed(2)) };
+    console.log(`[${id}] feeder.holstein = ${JSON.stringify(feeder.holstein)} (${feederHolEntries.length} rows)`);
+  }
+
+  if (feederEntries.length > 0) {
     const buckets = {};
     for (const e of feederEntries) {
       const bucket = Math.floor(e.avgWt / 100) * 100;
@@ -281,7 +291,7 @@ function parseCsvData(csvText, id, tab) {
   const repSales = buildRepSales(slaughterBeef, slaughterHolstein, feederEntries, id);
 
   const hasSlaughter = slaughter.beef !== null || slaughter.holstein !== null;
-  const hasFeeder = feeder.beef !== null;
+  const hasFeeder = feeder.beef !== null || feeder.holstein !== null;
 
   let saleDay = null;
   if (reportDate) {
