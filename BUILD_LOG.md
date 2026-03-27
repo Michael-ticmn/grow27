@@ -4,7 +4,7 @@ Chronological record of what was built, when, and why.
 
 ---
 
-## v1.138–v1.140 (2026-03-27)
+## v1.138–v1.140 (2026-03-27T02:26Z)
 
 ### Scraper Workflow Migration to Main
 - **Simplified all 3 production workflows** (barns, grain, futures) — scrapers now run on `main` and commit data directly to `main`. Removed the cross-branch copy step that committed to UserUpdates first then copied to main.
@@ -24,7 +24,7 @@ Chronological record of what was built, when, and why.
 
 ---
 
-## v1.128 (2026-03-27)
+## v1.128 (2026-03-27T00:00Z)
 
 ### Sleepy Eye Auction Market — Parser + Index Fixes
 - **Feeder entry selection** — `buildIndexRow` now picks the entry with the most feeder weight brackets (real "feeder sale day") instead of just the most recent entry with any feeder data. Fixes Sleepy Eye showing 7-head Wednesday feeders over 342-head Saturday feeders.
