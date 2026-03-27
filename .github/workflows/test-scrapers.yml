@@ -22,7 +22,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install cheerio puppeteer tesseract.js sharp pdf-parse@1.1.1
+        run: npm ci
 
       - name: Run barn scraper (dry run)
         run: node scripts/scrape-barns.js
@@ -42,7 +42,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install puppeteer cheerio
+        run: npm ci
 
       - name: Run grain scraper (dry run)
         run: node scripts/scrape-grain.js
