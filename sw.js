@@ -1,4 +1,4 @@
-const CACHE = 'grow27-v1.142';
+const CACHE = 'grow27-v1.144';
 
 // Core files to precache for offline use
 const PRECACHE = [
@@ -55,7 +55,11 @@ self.addEventListener('fetch', e => {
     url.hostname.includes('stooq.com') ||
     url.hostname.includes('open-meteo.com') ||
     url.hostname.includes('overpass-api.de') ||
-    url.hostname.includes('nominatim.openstreetmap.org');
+    url.hostname.includes('nominatim.openstreetmap.org') ||
+    url.hostname.includes('finance.yahoo.com') ||
+    url.hostname.includes('allorigins.win') ||
+    url.hostname.includes('corsproxy.io') ||
+    url.hostname.includes('codetabs.com');
 
   if (isApi) {
     e.respondWith(fetch(e.request).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' }})));
@@ -105,6 +109,8 @@ self.addEventListener('fetch', e => {
     })
   );
 });
+
+
 
 
 

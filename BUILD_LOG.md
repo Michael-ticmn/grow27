@@ -4,6 +4,13 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.143 (2026-03-27T00:00Z)
+
+### Service Worker — Yahoo Finance Cache Bug Fix
+- **`sw.js`** — added `finance.yahoo.com`, `allorigins.win`, `corsproxy.io`, and `codetabs.com` to the `isApi` network-only list. Previously these fell into the "cache first" handler, causing mobile PWA to serve a 2-day-old Yahoo Finance response. Symptom: CBOT corn card showed wrong color (red instead of yellow) and stale timestamp (Mar 25 instead of Mar 27), even though the scraped price value was correct.
+
+---
+
 ## v1.138–v1.140 (2026-03-27T02:26Z)
 
 ### Scraper Workflow Migration to Main
