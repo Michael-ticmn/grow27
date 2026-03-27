@@ -2,90 +2,9 @@
   "id": "sleepyeye",
   "name": "Sleepy Eye Auction Market",
   "location": "Sleepy Eye MN",
-  "lastUpdated": "2026-03-26",
+  "lastUpdated": "2026-03-27",
   "lastSuccess": "2026-03-25",
   "history": [
-    {
-      "date": "2026-03-26",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "source": "pending"
-    },
-    {
-      "date": "2026-03-26",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "feederWeights": [],
-      "saleDay": null,
-      "liteTestNote": null,
-      "repSales": null,
-      "hogs": null,
-      "source": "fetch_failed",
-      "error": "no prices found in report HTML"
-    },
-    {
-      "date": "2026-03-25",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "source": "pending"
-    },
-    {
-      "date": "2026-03-24",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "source": "pending"
-    },
-    {
-      "date": "2026-03-23",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "source": "pending"
-    },
     {
       "date": "2026-03-25",
       "slaughter": {
@@ -136,7 +55,98 @@
       ],
       "saleDay": "Wednesday",
       "liteTestNote": null,
-      "repSales": null,
+      "repSales": {
+        "finishWeightAvgs": [
+          {
+            "range": "1000-1099 lbs",
+            "type": "beef",
+            "avgPrice": 225,
+            "head": 4
+          },
+          {
+            "range": "1100-1199 lbs",
+            "type": "beef",
+            "avgPrice": 232.5,
+            "head": 1
+          },
+          {
+            "range": "1200-1299 lbs",
+            "type": "beef",
+            "avgPrice": 224.5,
+            "head": 4
+          },
+          {
+            "range": "1200-1299 lbs",
+            "type": "holstein",
+            "avgPrice": 168,
+            "head": 1
+          },
+          {
+            "range": "1300-1399 lbs",
+            "type": "beef",
+            "avgPrice": 231,
+            "head": 7
+          },
+          {
+            "range": "1400-1499 lbs",
+            "type": "beef",
+            "avgPrice": 232.75,
+            "head": 6
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "beef",
+            "avgPrice": 235.5,
+            "head": 6
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "holstein",
+            "avgPrice": 208.25,
+            "head": 23
+          },
+          {
+            "range": "1600-1699 lbs",
+            "type": "holstein",
+            "avgPrice": 208.78,
+            "head": 15
+          },
+          {
+            "range": "1800-1899 lbs",
+            "type": "holstein",
+            "avgPrice": 209.75,
+            "head": 5
+          }
+        ],
+        "feederWeightAvgs": [
+          {
+            "range": "200-299 lbs",
+            "type": "beef",
+            "avgPrice": 230.77,
+            "head": 1
+          },
+          {
+            "range": "300-399 lbs",
+            "type": "beef",
+            "avgPrice": 425,
+            "head": 1
+          },
+          {
+            "range": "500-599 lbs",
+            "type": "beef",
+            "avgPrice": 345,
+            "head": 5
+          }
+        ],
+        "bullsWeightAvgs": [],
+        "cowsWeightAvgs": [],
+        "headCount": {
+          "finished": 72,
+          "feeder": 7,
+          "bulls": 0,
+          "cows": 0
+        }
+      },
       "hogs": null,
       "source": "scraped"
     }
