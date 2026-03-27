@@ -19,6 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm install cheerio puppeteer tesseract.js sharp pdf-parse@1.1.1
@@ -38,6 +39,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm install puppeteer cheerio
@@ -57,6 +59,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Run futures scraper (dry run)
         run: node scripts/scrape-futures-history.js
