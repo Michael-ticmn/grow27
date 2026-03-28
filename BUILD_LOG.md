@@ -4,6 +4,35 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.150 (2026-03-27T22:00Z)
+
+### #27Herd Teaser — Herd Tab Overhaul
+- **Replaced stub card** with full interactive teaser from `herd-teaser.html` — pen view preview, incoming card, recent buys/sales feeds, early access signup
+- **Header** — switched from teaser's small monospace styles to site's `.stub-mark` / `.stub-sub` classes to match Fields stub size/weight
+- **"Coming soon"** — replaced bordered pill with plain text matching Fields style (12px, `var(--txt3)`)
+- **Pen View cards** — centered canvas (`justify-content:center`) and title (`text-align:center`)
+- **Incoming** — converted from wide banner to amber pen-block card, placed first in pen canvas row (0% progress bar = unassigned)
+- **Recent Buys + Recent Sales** — side-by-side flex columns (`feed-row`), max-width 480px each, centered. Sales use green dot/accent to distinguish from amber buys. Stacked centered layout for feed items
+- **Early access signup** — constrained to 400px max-width, centered
+- **Mobile responsive** — added `@media(max-width:500px)` breakpoint: tighter padding, smaller pen card min-width, signup row stacks vertically
+
+---
+
+## v1.143–v1.148 (2026-03-27T17:00Z)
+
+### Service Worker — Mobile PWA Price Card Fix (v1.143)
+- **`sw.js`** — added `finance.yahoo.com`, `allorigins.win`, `corsproxy.io`, `codetabs.com` to `isApi` network-only list. Yahoo Finance and CORS proxies were falling into the "cache first" handler, serving stale market data on mobile PWA. Symptom: corn card showed wrong color + 2-day-old timestamp while price value was correct (scraped CBOT had overridden it).
+
+### CI — push-main.ps1 Merge Fix (v1.145)
+- **`push-main.ps1`** — added `git reset --hard origin/main` before `git merge UserUpdates`. Previously, when the scraper had pushed new commits to `origin/main` between UserUpdates pushes, local main was behind and data files in the working tree blocked the merge step.
+
+### CI — npm Caching for Scraper Workflows (v1.146–v1.148)
+- **`package.json` + `package-lock.json`** — added to repo root with all scraper deps (cheerio, puppeteer, tesseract.js, sharp, pdf-parse). Required for `cache: 'npm'` in `setup-node@v4`.
+- **All scraper workflows** (`scrape-barns.yml`, `scrape-grain.yml`, `test-scrapers.yml`) — switched from `npm install <packages>` to `npm ci`. Prevents `package-lock.json` modification during runs (which was blocking `git pull --rebase`). Also added `cache: 'npm'` to all `setup-node` steps — first cache miss run completed, cache now warm for subsequent runs.
+- **Note:** npm install takes ~13s even on cache miss; actual scrape time (~5 min) is dominated by OCR + sequential Puppeteer launches. Decided to let it run for a week to establish a baseline before optimizing further.
+
+---
+
 ## v1.143 (2026-03-27T00:00Z)
 
 ### Service Worker — Yahoo Finance Cache Bug Fix

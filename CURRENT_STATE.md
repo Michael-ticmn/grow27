@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.143
+**Version:** 1.149
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-03-27T00:00Z
+**Last updated:** 2026-03-27T22:00Z
 
 ---
 
@@ -83,7 +83,7 @@ MARKETS
 ├── Grain: prices, buyers, margin calc, calendar, news
 ├── Cattle: prices, charts, margin calc, news, barns, lockers
 └── Dairy: prices, charts, margin calc, plants, news
-HERD — placeholder
+HERD — teaser (pen view, buys/sales feeds, early access signup)
 FIELDS — placeholder
 FINANCE — placeholder
 ABOUT — data sources, app info
