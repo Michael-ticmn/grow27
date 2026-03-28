@@ -237,8 +237,9 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - **Decision needed:** Does Pipestone publish online reports? Worth building a parser?
 
 ### 3. Herd / Fields / Finance modules
-- **Context:** All three are placeholder stubs (2-line JS files). The tab structure exists in `index.html` but no content.
-- **Decision needed:** What should these modules contain? Any priority among them?
+- **Context:** Herd tab now has interactive teaser (pen view preview, recent buys/sales, early access signup). Fields and Finance remain placeholder stubs.
+- **Herd teaser status:** Static demo data only — not wired to any data pipeline. Email signup opens mailto link.
+- **Decision needed:** What should Fields and Finance modules contain? Any priority among them? When should Herd move from teaser to real data?
 
 ### 4. Jennie-O parser — COMPLETED 2026-03-24
 - **Context:** Old source (aghostportal.com) blocked by robots.txt. New source found: farmbucks.com.

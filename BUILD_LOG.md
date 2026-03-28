@@ -4,6 +4,20 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.150 (2026-03-27T22:00Z)
+
+### #27Herd Teaser — Herd Tab Overhaul
+- **Replaced stub card** with full interactive teaser from `herd-teaser.html` — pen view preview, incoming card, recent buys/sales feeds, early access signup
+- **Header** — switched from teaser's small monospace styles to site's `.stub-mark` / `.stub-sub` classes to match Fields stub size/weight
+- **"Coming soon"** — replaced bordered pill with plain text matching Fields style (12px, `var(--txt3)`)
+- **Pen View cards** — centered canvas (`justify-content:center`) and title (`text-align:center`)
+- **Incoming** — converted from wide banner to amber pen-block card, placed first in pen canvas row (0% progress bar = unassigned)
+- **Recent Buys + Recent Sales** — side-by-side flex columns (`feed-row`), max-width 480px each, centered. Sales use green dot/accent to distinguish from amber buys. Stacked centered layout for feed items
+- **Early access signup** — constrained to 400px max-width, centered
+- **Mobile responsive** — added `@media(max-width:500px)` breakpoint: tighter padding, smaller pen card min-width, signup row stacks vertically
+
+---
+
 ## v1.143–v1.148 (2026-03-27T17:00Z)
 
 ### Service Worker — Mobile PWA Price Card Fix (v1.143)

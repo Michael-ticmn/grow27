@@ -34,7 +34,7 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.149%0A%0AFeedback%3A%0A">Feedback</a>
+    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.150%0A%0AFeedback%3A%0A">Feedback</a>
     <div class="clock-bar">
       <span><span class="status-dot"></span><span id="status-txt">Loading...</span></span>
       <div style="font-size:12px;color:var(--txt3);" id="last-updated-txt">—</div>
@@ -782,12 +782,249 @@
      MODULE: HERD (stub)
 ══════════════════════════════════════════════════ -->
 <div class="module" id="mod-herd">
-  <div class="stub-screen">
-    <div class="stub-mark" style="color:var(--herd);">#27HERD</div>
-    <div class="stub-sub">Animal inventory · weights · health records · feeding logs</div>
-    <div style="font-size:14px;color:var(--txt3);letter-spacing:2px;font-style:italic;">watching the gate so you don't have to</div>
-    <div style="font-size:12px;color:var(--txt3);margin-top:8px;">Coming soon</div>
+<section class="module-section" id="herd-section">
+  <style>
+    .herd-wrap{background:#111214;color:#e8e6e0;font-family:'Courier New',monospace;padding:32px 20px;border-radius:12px}
+    .herd-header{text-align:center;margin-bottom:32px}
+    .herd-badge{font-size:11px;letter-spacing:.12em;color:#d4a027;margin-bottom:10px}
+    .herd-tagline{font-size:18px;font-weight:400;color:#e8e6e0;margin-bottom:6px;font-family:-apple-system,'Segoe UI',sans-serif;font-style:italic}
+    .herd-sub{font-size:12px;color:#5F5E5A;font-family:-apple-system,'Segoe UI',sans-serif;margin-bottom:10px}
+    .coming-pill{display:inline-block;font-size:10px;letter-spacing:.1em;color:#444441;border:1px solid #2a2c30;border-radius:20px;padding:3px 12px;font-family:-apple-system,'Segoe UI',sans-serif}
+    .preview-label{font-size:10px;letter-spacing:.1em;color:#5F5E5A;margin-bottom:10px;font-family:-apple-system,'Segoe UI',sans-serif;text-align:center}
+    .pen-canvas{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:28px;justify-content:center}
+    .pen-block{background:#1a1c1f;border:1px solid #2a2c30;border-radius:8px;padding:14px;flex:1;min-width:140px;max-width:220px;position:relative;overflow:hidden}
+    .pen-block::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+    .pen-green::before{background:#1D9E75}
+    .pen-amber::before{background:#d4a027}
+    .pen-red::before{background:#A32D2D}
+    .pen-name{font-size:10px;letter-spacing:.08em;color:#888780;margin-bottom:10px;font-family:-apple-system,'Segoe UI',sans-serif}
+    .pen-stat{font-size:11px;color:#5F5E5A;margin-bottom:2px;font-family:-apple-system,'Segoe UI',sans-serif}
+    .pen-val{font-size:16px;color:#e8e6e0;font-weight:500;margin-bottom:8px}
+    .pen-finish{font-size:11px;margin-bottom:10px;font-family:-apple-system,'Segoe UI',sans-serif}
+    .pen-finish.green{color:#1D9E75}
+    .pen-finish.amber{color:#d4a027}
+    .pen-finish.red{color:#E24B4A}
+    .progress-track{height:4px;background:#2a2c30;border-radius:2px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:2px;transition:width 1.2s ease}
+    .fill-green{background:#1D9E75}
+    .fill-amber{background:#d4a027}
+    .fill-red{background:#A32D2D}
+    .incoming-block{background:#1a1c1f;border:1px solid #2a2c30;border-radius:8px;padding:14px;display:flex;align-items:center;gap:16px;margin-bottom:28px}
+    .incoming-label{font-size:10px;letter-spacing:.08em;color:#5F5E5A;font-family:-apple-system,'Segoe UI',sans-serif}
+    .incoming-count{font-size:22px;color:#d4a027;font-weight:500}
+    .incoming-desc{font-size:11px;color:#5F5E5A;font-family:-apple-system,'Segoe UI',sans-serif}
+    .herd-section-label{font-size:10px;letter-spacing:.1em;color:#5F5E5A;margin-bottom:10px;font-family:-apple-system,'Segoe UI',sans-serif;text-align:center}
+    .feed-row{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;margin-bottom:28px}
+    .feed-col{flex:1;min-width:260px;max-width:480px}
+    .feed-wrap{border:1px solid #2a2c30;border-radius:8px;overflow:hidden}
+    .feed-item{padding:12px 16px;border-bottom:1px solid #1e2023;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+    .feed-item:last-child{border-bottom:none}
+    .feed-dot{width:6px;height:6px;border-radius:50%;background:#d4a027;flex-shrink:0}
+    .feed-main{flex:1}
+    .feed-source{font-size:12px;color:#e8e6e0;font-family:-apple-system,'Segoe UI',sans-serif}
+    .feed-detail{font-size:11px;color:#5F5E5A;font-family:-apple-system,'Segoe UI',sans-serif;margin-top:1px}
+    .feed-right{text-align:right;flex-shrink:0}
+    .feed-hd{font-size:13px;color:#d4a027}
+    .feed-date{font-size:10px;color:#444441;font-family:-apple-system,'Segoe UI',sans-serif;margin-top:1px}
+    .herd-signup-wrap{background:#1a1c1f;border:1px solid #2a2c30;border-radius:8px;padding:20px;text-align:center;max-width:400px;margin-left:auto;margin-right:auto}
+    .herd-signup-title{font-size:14px;color:#e8e6e0;margin-bottom:6px;font-family:-apple-system,'Segoe UI',sans-serif;font-weight:500}
+    .herd-signup-sub{font-size:12px;color:#5F5E5A;margin-bottom:4px;font-family:-apple-system,'Segoe UI',sans-serif}
+    .herd-signup-sub2{font-size:11px;color:#444441;margin-bottom:16px;font-family:-apple-system,'Segoe UI',sans-serif;font-style:italic}
+    .herd-signup-row{display:flex;gap:8px}
+    .herd-signup-input{flex:1;background:#111214;border:1px solid #2a2c30;border-radius:6px;padding:9px 12px;font-size:13px;color:#e8e6e0;font-family:-apple-system,'Segoe UI',sans-serif;outline:none}
+    .herd-signup-input::placeholder{color:#444441}
+    .herd-signup-input:focus{border-color:#d4a027}
+    .herd-signup-btn{background:#d4a027;color:#111214;border:none;border-radius:6px;padding:9px 16px;font-size:12px;font-weight:500;cursor:pointer;font-family:-apple-system,'Segoe UI',sans-serif;white-space:nowrap;letter-spacing:.04em}
+    .herd-signup-btn:hover{background:#EF9F27}
+    .herd-signup-confirm{font-size:12px;color:#1D9E75;margin-top:10px;font-family:-apple-system,'Segoe UI',sans-serif;display:none}
+    .herd-signup-note{font-size:11px;color:#444441;margin-top:6px;font-family:-apple-system,'Segoe UI',sans-serif;font-style:italic;display:none}
+    .herd-divider{height:1px;background:#1e2023;margin:24px 0}
+    @media(max-width:500px){
+      .herd-wrap{padding:20px 12px}
+      .pen-block{min-width:120px}
+      .feed-col{min-width:0}
+      .herd-signup-row{flex-direction:column}
+    }
+  </style>
+
+  <div class="herd-wrap">
+    <div class="herd-header" style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+      <div class="stub-mark" style="color:var(--herd);">#27HERD</div>
+      <div class="stub-sub">Animal records · weights · pen management · finish tracking</div>
+      <div style="font-size:14px;color:var(--txt3);letter-spacing:2px;font-style:italic;">watching the gate so you don't have to</div>
+      <div style="font-size:12px;color:var(--txt3);margin-top:8px;">Coming soon</div>
+    </div>
+
+    <div class="preview-label">PEN VIEW — PREVIEW</div>
+    <div class="pen-canvas">
+      <div class="pen-block pen-amber">
+        <div class="pen-name">INCOMING</div>
+        <div class="pen-stat">Head</div>
+        <div class="pen-val">14</div>
+        <div class="pen-stat">Source</div>
+        <div class="pen-val">Sleepy Eye</div>
+        <div class="pen-finish amber">Bought Mar 26 · not yet assigned</div>
+        <div class="progress-track"><div class="progress-fill fill-amber" style="width:0%"></div></div>
+      </div>
+      <div class="pen-block pen-green">
+        <div class="pen-name">NORTH PEN</div>
+        <div class="pen-stat">Head</div>
+        <div class="pen-val">38</div>
+        <div class="pen-stat">Avg weight</div>
+        <div class="pen-val">894 lbs</div>
+        <div class="pen-finish green">Est. finish Jun 12</div>
+        <div class="progress-track"><div class="progress-fill fill-green" id="hp1" style="width:0%"></div></div>
+      </div>
+      <div class="pen-block pen-amber">
+        <div class="pen-name">SOUTH PEN</div>
+        <div class="pen-stat">Head</div>
+        <div class="pen-val">24</div>
+        <div class="pen-stat">Avg weight</div>
+        <div class="pen-val">1,082 lbs</div>
+        <div class="pen-finish amber">Est. finish Apr 28</div>
+        <div class="progress-track"><div class="progress-fill fill-amber" id="hp2" style="width:0%"></div></div>
+      </div>
+      <div class="pen-block pen-red">
+        <div class="pen-name">FINISHING LOT</div>
+        <div class="pen-stat">Head</div>
+        <div class="pen-val">12</div>
+        <div class="pen-stat">Avg weight</div>
+        <div class="pen-val">1,198 lbs</div>
+        <div class="pen-finish red">Est. finish Apr 4 — 7 days</div>
+        <div class="progress-track"><div class="progress-fill fill-red" id="hp3" style="width:0%"></div></div>
+      </div>
+      <div class="pen-block pen-green">
+        <div class="pen-name">BACK LOT</div>
+        <div class="pen-stat">Head</div>
+        <div class="pen-val">17</div>
+        <div class="pen-stat">Avg weight</div>
+        <div class="pen-val">741 lbs</div>
+        <div class="pen-finish green">Est. finish Aug 3</div>
+        <div class="progress-track"><div class="progress-fill fill-green" id="hp4" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="herd-divider"></div>
+
+    <div class="feed-row">
+      <div class="feed-col">
+        <div class="herd-section-label">RECENT BUYS</div>
+        <div class="feed-wrap">
+          <div class="feed-item">
+            <div class="feed-dot"></div>
+            <div class="feed-main">
+              <div class="feed-source">Sleepy Eye Auction Market</div>
+              <div class="feed-detail">Angus steers · 14 hd · $1,842/hd · avg 698 lbs</div>
+            </div>
+            <div class="feed-right">
+              <div class="feed-hd">14 hd</div>
+              <div class="feed-date">Mar 26</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-dot"></div>
+            <div class="feed-main">
+              <div class="feed-source">Lanesboro Sales Commission</div>
+              <div class="feed-detail">Mixed · 12 hd · $1,614/hd · avg 641 lbs</div>
+            </div>
+            <div class="feed-right">
+              <div class="feed-hd">12 hd</div>
+              <div class="feed-date">Mar 14</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-dot"></div>
+            <div class="feed-main">
+              <div class="feed-source">Private — Johnson Farm</div>
+              <div class="feed-detail">Angus steers · 17 hd · $1,780/hd · avg 722 lbs</div>
+            </div>
+            <div class="feed-right">
+              <div class="feed-hd">17 hd</div>
+              <div class="feed-date">Feb 28</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="feed-col">
+        <div class="herd-section-label">RECENT SALES</div>
+        <div class="feed-wrap">
+          <div class="feed-item">
+            <div class="feed-dot" style="background:#1D9E75"></div>
+            <div class="feed-main">
+              <div class="feed-source">Central Livestock — Monday</div>
+              <div class="feed-detail">Angus steers · 12 hd · $2,186/hd · avg 1,210 lbs</div>
+            </div>
+            <div class="feed-right">
+              <div class="feed-hd" style="color:#1D9E75">12 hd</div>
+              <div class="feed-date">Mar 24</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-dot" style="background:#1D9E75"></div>
+            <div class="feed-main">
+              <div class="feed-source">Lanesboro Sales Commission</div>
+              <div class="feed-detail">Mixed · 8 hd · $2,042/hd · avg 1,184 lbs</div>
+            </div>
+            <div class="feed-right">
+              <div class="feed-hd" style="color:#1D9E75">8 hd</div>
+              <div class="feed-date">Mar 7</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-dot" style="background:#1D9E75"></div>
+            <div class="feed-main">
+              <div class="feed-source">Central Livestock — Monday</div>
+              <div class="feed-detail">Angus steers · 6 hd · $1,958/hd · avg 1,148 lbs</div>
+            </div>
+            <div class="feed-right">
+              <div class="feed-hd" style="color:#1D9E75">6 hd</div>
+              <div class="feed-date">Feb 24</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="herd-divider"></div>
+
+    <div class="herd-signup-wrap">
+      <div class="herd-signup-title">Get early access to #27Herd</div>
+      <div class="herd-signup-sub">Free during early access. Built to own, not rent.</div>
+      <div class="herd-signup-sub2">No cloud. No data agreements. No subscription.</div>
+      <div class="herd-signup-row">
+        <input class="herd-signup-input" type="email" placeholder="your@email.com" id="herd-email-in">
+        <button class="herd-signup-btn" onclick="herdSignup()">Notify me</button>
+      </div>
+      <div class="herd-signup-confirm" id="herd-confirm">You're on the list. We'll be in touch.</div>
+      <div class="herd-signup-note" id="herd-note">Your email goes to one person. Not a list. Not a CRM.</div>
+    </div>
   </div>
+
+  <script>
+    (function(){
+      setTimeout(function(){
+        var ids=['hp1','hp2','hp3','hp4'];
+        var widths=['62%','84%','97%','38%'];
+        ids.forEach(function(id,i){
+          var el=document.getElementById(id);
+          if(el) el.style.width=widths[i];
+        });
+      },200);
+    })();
+
+    function herdSignup(){
+      var v=document.getElementById('herd-email-in').value.trim();
+      if(!v||!v.includes('@'))return;
+      var ts=new Date().toISOString();
+      document.getElementById('herd-email-in').value='';
+      document.getElementById('herd-confirm').style.display='block';
+      document.getElementById('herd-note').style.display='block';
+      var body='Type: Early Access\nEmail: '+v+'\nTimestamp: '+ts+'\nSource: #27Herd teaser';
+      var mailto='mailto:Michael@ticmn.com?subject=grow27%20%2327Herd%20Early%20Access&body='+encodeURIComponent(body);
+      window.location.href=mailto;
+    }
+  </script>
+</section>
 </div>
 
 <!-- ══════════════════════════════════════════════════
@@ -962,7 +1199,7 @@
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:24px;font-size:12px;color:var(--txt3);letter-spacing:1px;text-align:center;">
-      grow27 · southern Minnesota · <span class="app-version">v1.149</span> · © 2026
+      grow27 · southern Minnesota · <span class="app-version">v1.150</span> · © 2026
     </div>
 
   </div>
@@ -972,7 +1209,7 @@
 <footer class="g27-footer">
   <div class="g27-footer-wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="24" style="display:inline-block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg></div>
   <div class="g27-footer-tagline">#27 — worth more than its weight</div>
-  <div class="g27-footer-copy"><span class="app-version">v1.149</span> · © 2026 grow27 · All rights reserved</div>
+  <div class="g27-footer-copy"><span class="app-version">v1.150</span> · © 2026 grow27 · All rights reserved</div>
 </footer>
 
 <!-- ── BARN TREND MODAL ── -->
@@ -1023,14 +1260,15 @@
 </nav>
 
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script defer src="js/markets.js?v=1.149"></script>
-<script defer src="js/data-loader.js?v=1.149"></script>
-<script defer src="js/app.js?v=1.149"></script>
+<script defer src="js/markets.js?v=1.150"></script>
+<script defer src="js/data-loader.js?v=1.150"></script>
+<script defer src="js/app.js?v=1.150"></script>
 
 <!-- ── MOBILE FEEDBACK FAB ── -->
-<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.149%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
+<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.150%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
 </body>
 </html>
+
 
 
 
