@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.154
+**Version:** 1.158
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-03-30T15:00Z
+**Last updated:** 2026-03-30T16:00Z
 
 ---
 
@@ -94,7 +94,7 @@ ABOUT — data sources, app info
 - `data/grain-config.json` — 9 sources (all active)
 - `data/prices/index.json` — latest barn snapshot
 - `data/prices/grain/index.json` — latest grain snapshot
-- History files: no cap (was 14, removed v1.82) — monitor site speed
+- History files: no cap — 5 MB file size warning in scraper logs
 
 ### Refresh Intervals (frontend)
 - Futures price cards: Yahoo Finance client-side, cached 10 min (prefetched at startup)
