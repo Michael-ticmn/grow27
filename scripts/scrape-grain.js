@@ -28,7 +28,7 @@ const CONFIG_PATH = path.join(ROOT, 'data', 'grain-config.json');
 const PRICES_DIR  = path.join(ROOT, 'data', 'prices', 'grain');
 const INDEX_PATH  = path.join(PRICES_DIR, 'index.json');
 
-const MAX_AGE_DAYS = 30;  // keep 30 days of scrape dates
+// No history limit — keep all scrape dates (monitor file size as data grows)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -37,10 +37,7 @@ function today() {
 }
 
 function trimHistory(history) {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - MAX_AGE_DAYS);
-  const cutStr = cutoff.toISOString().slice(0, 10);
-  return history.filter(e => e.date >= cutStr);
+  return history;
 }
 
 // ── Grain parser loader ──────────────────────────────────────────────────────
@@ -189,6 +186,27 @@ async function run() {
 
   fs.writeFileSync(INDEX_PATH, JSON.stringify(indexOut, null, 2) + '\n');
   console.log('\n=== grain index.json updated ===');
+
+  // ── File size warning ───────────────────────────────────────────────────
+  checkFileSizes(PRICES_DIR, 5);
+}
+
+// ── File size monitor ────────────────────────────────────────────────────────
+
+function checkFileSizes(dir, thresholdMB) {
+  const threshold = thresholdMB * 1024 * 1024;
+  let warned = false;
+  for (const file of fs.readdirSync(dir)) {
+    if (!file.endsWith('.json')) continue;
+    const fp = path.join(dir, file);
+    const stat = fs.statSync(fp);
+    const sizeMB = (stat.size / (1024 * 1024)).toFixed(2);
+    if (stat.size > threshold) {
+      console.warn(`⚠ SIZE WARNING: ${file} is ${sizeMB} MB (threshold: ${thresholdMB} MB)`);
+      warned = true;
+    }
+  }
+  if (!warned) console.log(`File sizes OK (all under ${thresholdMB} MB)`);
 }
 
 // ── Build index row from history ─────────────────────────────────────────────
