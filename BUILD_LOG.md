@@ -4,6 +4,18 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.151–v1.154 (2026-03-30T15:00Z)
+
+### POET Grain Parser — Farmbucks Rewrite + Markets Wiring
+- **`scripts/grain/poet.js`** — complete rewrite from blocked Gradable platform to farmbucks.com/grain-prices/poet. Static HTML table parser (same platform as Jennie-O). Handles `rowspan` on location cells to capture all delivery months. Corn only.
+- **`data/grain-config.json`** — updated POET entry: new Farmbucks URL, removed `disabled`/`disabledReason`, expanded from 2 to 3 MN locations (Bingham Lake, Lake Crystal, Preston). Albert Lea not on Farmbucks.
+- **`js/markets.js`** — added `poet`, `poet_lc`, `poet_pr` to `GRAIN_SCRAPE_MAP`. Added curated entries for POET Lake Crystal (Region A) and POET Preston (Region B). All 3 locations now show actual scraped cash prices instead of "est."
+- **`scripts/scrape-grain.js`** — removed 30-day history cap (`MAX_AGE_DAYS`), `trimHistory()` now passthrough. Added `checkFileSizes()` warning at 5 MB threshold.
+- **`scripts/scrape-barns.js`** — added matching `checkFileSizes()` 5 MB warning.
+- **`CLAUDE.md`** — updated history descriptions: both barn and grain data kept with no limit.
+
+---
+
 ## v1.150 (2026-03-27T22:00Z)
 
 ### #27Herd Teaser — Herd Tab Overhaul
