@@ -2,9 +2,30 @@
   "id": "central",
   "name": "Central Livestock Association",
   "location": "Zumbrota MN",
-  "lastUpdated": "2026-03-29",
+  "lastUpdated": "2026-03-30",
   "lastSuccess": "2026-03-25",
   "history": [
+    {
+      "date": "2026-03-30",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": "Monday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "fetch_failed",
+      "error": "net::ERR_ABORTED at https://www.centrallivestock.com/uploads/1/5/3/3/153341308/screenshot-2026-03-23-173500_orig.png"
+    },
     {
       "date": "2026-03-29",
       "slaughter": {
@@ -25,6 +46,27 @@
       "hogs": null,
       "source": "fetch_failed",
       "error": "net::ERR_ABORTED at https://www.centrallivestock.com/uploads/1/5/3/3/153341308/screenshot-2026-03-23-173500_orig.png"
+    },
+    {
+      "date": "2026-03-29",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": "Wednesday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "fetch_failed",
+      "error": "net::ERR_ABORTED at https://www.centrallivestock.com/uploads/1/5/3/3/153341308/screenshot-2026-03-25-165648_orig.png"
     },
     {
       "date": "2026-03-28",
@@ -649,7 +691,7 @@
       "source": "scraped"
     },
     {
-      "date": "2026-03-29",
+      "date": "2026-03-30",
       "slaughter": {
         "beef": null,
         "crossbred": null,
