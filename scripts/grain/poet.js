@@ -82,18 +82,27 @@ async function parse({ id, config, browser }) {
 
       for (const tr of trs) {
         const cells = tr.querySelectorAll('td');
-        if (cells.length < 3) continue;
+        if (cells.length < 2) continue;
 
-        const locText  = (cells[0]?.textContent || '').trim();
-        const delivery = (cells[1]?.textContent || '').trim();
-        const cashRaw  = (cells[2]?.textContent || '').trim();
+        let locText, delivery, cashRaw;
+
+        if (cells.length >= 3) {
+          // Full row: Location | Delivery | Cash Price
+          locText  = (cells[0]?.textContent || '').trim();
+          delivery = (cells[1]?.textContent || '').trim();
+          cashRaw  = (cells[2]?.textContent || '').trim();
+        } else {
+          // Continuation row (rowspan on location): Delivery | Cash Price
+          locText  = '';
+          delivery = (cells[0]?.textContent || '').trim();
+          cashRaw  = (cells[1]?.textContent || '').trim();
+        }
 
         // Skip header-like rows
         if (/^location$/i.test(locText)) continue;
 
         // If location cell has text, check if it's a Minnesota location we want
         if (locText) {
-          // Match "Bingham Lake, Minnesota" against config name "Bingham Lake"
           const matched = configNames.some(cn => locText.toLowerCase().includes(cn));
           currentLocation = matched ? locText : null;
         }
