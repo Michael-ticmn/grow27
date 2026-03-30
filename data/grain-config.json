@@ -131,13 +131,12 @@
   {
     "id": "poet",
     "name": "POET Biorefining",
-    "url": "https://poet.gradable.com/market/Bingham-Lake--MN",
-    "disabled": true,
-    "disabledReason": "Gradable platform returns 403 to headless browsers from datacenter IPs (Cloudflare/WAF)",
+    "url": "https://farmbucks.com/grain-prices/poet",
     "locations": [
       { "slug": "bingham-lake", "name": "Bingham Lake" },
-      { "slug": "albert-lea", "name": "Albert Lea" }
+      { "slug": "lake-crystal", "name": "Lake Crystal" },
+      { "slug": "preston", "name": "Preston" }
     ],
-    "commodities": ["corn", "beans"]
+    "commodities": ["corn"]
   }
 ]
