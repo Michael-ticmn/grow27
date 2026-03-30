@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.163
+**Version:** 1.164
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-03-31T04:00Z
+**Last updated:** 2026-03-31T06:00Z
 
 ---
 
@@ -15,7 +15,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Module | File | Status |
 |--------|------|--------|
 | Navigation & utilities | `js/app.js` (176 lines) | Active |
-| Markets (grain/cattle/dairy) | `js/markets.js` (~3,800 lines) | Active — live CBOT+basis cash prices, logo-first buyer table, sort bar |
+| Markets (grain/cattle/dairy) | `js/markets.js` (~4,200 lines) | Active — live CBOT+basis cash prices, grain charts, zip+radius filtering, market status indicator |
 | Barn data loader | `js/data-loader.js` (82 lines) | Active |
 | Herd | `js/herd.js` | Placeholder |
 | Fields | `js/fields.js` | Placeholder |
@@ -27,6 +27,8 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running on main |
 | Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley, POET) | Mon–Fri 4am + 7am CT | Running on main |
 | Staleness check | After each scrape | Fails workflow if source stale (7d barns, 3d grain/futures) |
+| robots.txt check | Daily midnight CT | Checks all sources + watchlist, writes robots-log.json |
+| Watchdog | 3x daily | Triggers missed scraper runs via workflow_dispatch |
 | Test scrapers (dry run) | Push to UserUpdates (path-filtered) | Validates parsers without committing |
 
 ### Barn Parsers

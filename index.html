@@ -34,7 +34,7 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.163%0A%0AFeedback%3A%0A">Feedback</a>
+    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.164%0A%0AFeedback%3A%0A">Feedback</a>
     <div class="clock-bar">
       <span><span class="status-dot"></span><span id="status-txt">Loading...</span></span>
       <div style="font-size:12px;color:var(--txt3);" id="last-updated-txt">—</div>
@@ -81,6 +81,7 @@
     <div class="tabs">
       <div class="tab active" onclick="switchTab('grain','prices',this)">Prices</div>
       <div class="tab" onclick="switchTab('grain','buyers',this)">Local Buyers</div>
+      <div class="tab" onclick="switchTab('grain','charts',this)">Charts</div>
       <div class="tab" onclick="switchTab('grain','margin',this)">Margin Calc</div>
       <div class="tab" onclick="switchTab('grain','calendar',this)">Market Events</div>
       <div class="tab" onclick="switchTab('grain','news',this)">Market News</div>
@@ -90,21 +91,35 @@
       <!-- GRAIN PRICES -->
       <div class="section active" id="grain-prices">
         <div class="elevator-bar">
-          <div class="elevator-label">Region</div>
-          <div class="region-toggle">
-            <button class="region-btn active" data-region="auto" onclick="setRegion('auto')">Auto</button>
-            <button class="region-btn" data-region="A" onclick="setRegion('A')">Area 1</button>
-            <button class="region-btn" data-region="B" onclick="setRegion('B')">Area 2</button>
-            <button class="region-btn" data-region="both" onclick="setRegion('both')">Both</button>
+          <div class="elevator-label">Location</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="text" id="zip-input" placeholder="Zip code" maxlength="5" style="font-family:inherit;font-size:12px;width:70px;padding:6px 10px;border:1px solid var(--border);border-radius:3px;background:var(--bg2);color:var(--txt1);letter-spacing:1px;" onkeydown="if(event.key==='Enter')applyZip()">
+            <button onclick="applyZip()" style="font-family:inherit;font-size:11px;padding:6px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt3);cursor:pointer;">Go</button>
+            <button onclick="useGeoLocation()" title="Use current location" style="font-family:inherit;font-size:14px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--corn);cursor:pointer;">&#8982;</button>
           </div>
-          <div class="elevator-label" style="margin-left:8px;">Buyer</div>
-          <select class="elevator-select" id="elev-select" onchange="onElevChange()">
-            <option value="">Select local buyer…</option>
+          <div class="elevator-label" style="margin-left:10px;">Radius</div>
+          <select id="radius-select" onchange="setRadius(+this.value)" style="font-family:inherit;font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:3px;background:var(--bg2);color:var(--txt1);">
+            <option value="25">25 mi</option>
+            <option value="50" selected>50 mi</option>
+            <option value="75">75 mi</option>
+            <option value="100">100 mi</option>
+            <option value="150">150 mi</option>
+            <option value="9999">All</option>
           </select>
-          <div class="elev-basis" id="elev-basis-display" style="display:none;"></div>
-          <div id="discovery-status" style="font-size:13px;color:var(--txt3);margin-left:auto;font-style:italic;"></div>
+          <div style="position:relative;margin-left:10px;" id="buyer-dropdown-wrap">
+            <button id="buyer-dropdown-btn" onclick="toggleBuyerDropdown()" style="font-family:inherit;font-size:12px;padding:6px 14px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt2);cursor:pointer;letter-spacing:0.5px;">
+              Buyers <span id="buyer-checked-count" style="color:var(--corn);">0</span> ▾
+            </button>
+            <div id="buyer-dropdown" style="display:none;position:absolute;left:0;top:100%;margin-top:4px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:8px 0;z-index:50;min-width:250px;max-height:360px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+              <div style="display:flex;gap:8px;padding:4px 12px 8px;border-bottom:1px solid var(--border);margin-bottom:4px;">
+                <button onclick="buyerSelectAll()" style="font-family:inherit;font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--corn);cursor:pointer;">Select All</button>
+                <button onclick="buyerClearAll()" style="font-family:inherit;font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt3);cursor:pointer;">Clear All</button>
+              </div>
+              <div id="buyer-location-list" style="font-size:12px;"></div>
+            </div>
+          </div>
+          <div id="location-status" style="font-size:12px;color:var(--txt3);margin-left:auto;letter-spacing:0.5px;"></div>
         </div>
-        <div style="font-size:13px;color:var(--txt3);margin:-12px 0 16px;padding-left:4px;" id="active-region-label"></div>
 
         <div class="insight-strip" id="grain-insight">Loading best local prices…</div>
 
@@ -201,6 +216,69 @@
       </div>
 
       <!-- GRAIN CALENDAR -->
+      <!-- GRAIN CHARTS -->
+      <div class="section" id="grain-charts">
+        <!-- Crop selector -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+          <div style="font-size:12px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;">Crop</div>
+          <div style="display:inline-flex;border-radius:4px;overflow:hidden;border:1px solid var(--border);">
+            <button class="grain-crop-btn active" data-crop="corn" onclick="setGrainChartCrop('corn',this)"
+              style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;background:var(--corn);color:#0f0f0f;font-weight:700;">Corn</button>
+            <button class="grain-crop-btn" data-crop="soy" onclick="setGrainChartCrop('soy',this)"
+              style="font-family:inherit;font-size:12px;letter-spacing:1px;padding:7px 16px;border:none;cursor:pointer;text-transform:uppercase;background:transparent;color:var(--txt3);font-weight:400;">Soybeans</button>
+          </div>
+        </div>
+
+        <!-- Loading spinner -->
+        <div id="grain-chart-loading" style="text-align:center;padding:40px 0;color:var(--txt3);font-size:13px;letter-spacing:1px;">
+          <div style="display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--corn);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:8px;"></div>
+          <div>Loading chart data…</div>
+        </div>
+
+        <!-- Date range buttons -->
+        <div class="hist-controls" id="grain-chart-range">
+          <button class="hist-btn" onclick="setGrainRange(7,this)">7D</button>
+          <button class="hist-btn" onclick="setGrainRange(14,this)">14D</button>
+          <button class="hist-btn" onclick="setGrainRange(30,this)">30D</button>
+          <button class="hist-btn active" onclick="setGrainRange(90,this)">90D</button>
+          <button class="hist-btn" onclick="setGrainRange(180,this)">6M</button>
+          <button class="hist-btn" onclick="setGrainRange(365,this)">1Y</button>
+          <button class="hist-btn" onclick="setGrainRange(730,this)">2Y</button>
+          <button class="hist-btn" onclick="setGrainRange(1300,this)">5Y</button>
+        </div>
+
+        <!-- CBOT Futures chart -->
+        <div class="panel full" style="margin-bottom:16px;">
+          <div class="panel-title" id="grain-chart-futures-title">CBOT Corn Futures — Historical ($/bu)</div>
+          <div style="position:relative;width:100%;height:220px;">
+            <canvas id="grain-hist-futures"></canvas>
+          </div>
+        </div>
+
+        <!-- Buyer basis chart with location dropdown -->
+        <div class="panel full">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <div class="panel-title" id="grain-chart-basis-title" style="margin-bottom:0;">Local Buyer Basis — Corn ($/bu)</div>
+            <div style="position:relative;margin-left:auto;" id="grain-basis-dropdown-wrap">
+              <button id="grain-basis-dropdown-btn" onclick="toggleGrainBasisDropdown()" style="font-family:inherit;font-size:12px;padding:6px 14px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt2);cursor:pointer;letter-spacing:0.5px;">
+                Locations <span id="grain-basis-count" style="color:var(--corn);">0</span> ▾
+              </button>
+              <div id="grain-basis-dropdown" style="display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:8px 0;z-index:50;min-width:220px;max-height:320px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+                <div style="display:flex;gap:8px;padding:4px 12px 8px;border-bottom:1px solid var(--border);margin-bottom:4px;">
+                  <button onclick="grainBasisSelectAll()" style="font-family:inherit;font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--corn);cursor:pointer;">Select All</button>
+                  <button onclick="grainBasisClearAll()" style="font-family:inherit;font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt3);cursor:pointer;">Clear All</button>
+                </div>
+                <div id="grain-basis-location-list" style="font-size:12px;"></div>
+              </div>
+            </div>
+          </div>
+          <div style="position:relative;width:100%;height:280px;">
+            <canvas id="grain-hist-basis"></canvas>
+          </div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:8px;letter-spacing:0.5px;">Basis history from daily scrapes — data accumulates over time.</div>
+        </div>
+      </div>
+
       <div class="section" id="grain-calendar">
         <div class="two-col">
           <div class="panel"><div class="panel-title">Upcoming USDA Reports</div>
@@ -1200,7 +1278,7 @@
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:24px;font-size:12px;color:var(--txt3);letter-spacing:1px;text-align:center;">
-      grow27 · southern Minnesota · <span class="app-version">v1.163</span> · © 2026
+      grow27 · southern Minnesota · <span class="app-version">v1.164</span> · © 2026
     </div>
 
   </div>
@@ -1210,7 +1288,7 @@
 <footer class="g27-footer">
   <div class="g27-footer-wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="24" style="display:inline-block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg></div>
   <div class="g27-footer-tagline">#27 — worth more than its weight</div>
-  <div class="g27-footer-copy"><span class="app-version">v1.163</span> · © 2026 grow27 · All rights reserved</div>
+  <div class="g27-footer-copy"><span class="app-version">v1.164</span> · © 2026 grow27 · All rights reserved</div>
 </footer>
 
 <!-- ── BARN TREND MODAL ── -->
@@ -1261,14 +1339,15 @@
 </nav>
 
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script defer src="js/markets.js?v=1.163"></script>
-<script defer src="js/data-loader.js?v=1.163"></script>
-<script defer src="js/app.js?v=1.163"></script>
+<script defer src="js/markets.js?v=1.164"></script>
+<script defer src="js/data-loader.js?v=1.164"></script>
+<script defer src="js/app.js?v=1.164"></script>
 
 <!-- ── MOBILE FEEDBACK FAB ── -->
-<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.163%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
+<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.164%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
 </body>
 </html>
+
 
 
 

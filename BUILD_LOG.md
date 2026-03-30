@@ -4,6 +4,47 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.164 (2026-03-31T06:00Z)
+
+### Grain Charts, Location Filtering, Market Status, robots.txt Compliance
+
+**Grain Charts tab** — new Charts tab under Grain with:
+- CBOT futures historical chart (corn/soybeans toggle, 7D–5Y range)
+- Local buyer basis chart with per-location lines and end-of-line labels
+- Location checkbox dropdown (sorted by distance) with Select All / Clear All
+- Syncs with buyer selections on Prices tab
+
+**Location & Radius filtering** — replaced Area 1/2 region selector with:
+- Zip code input + GPS button for precise location
+- Radius dropdown (25/50/75/100/150 mi / All)
+- Buyer checkbox dropdown with distance-sorted list
+- Cash table filters to checked buyers within radius
+
+**Market status indicator** — replaced misleading "Live data" label with:
+- `Markets open` (green pulsing dot) — CBOT day session 8:30a–1:20p CT
+- `Markets online` (gold pulsing dot) — Globex electronic session
+- `Markets closed` (gray static dot) — daily break + weekends
+- Shows actual Yahoo data timestamp ("last check 12:19 PM"), not wall clock
+
+**No fallback basis** — all buyer `cornBasis`/`soyBasis` set to `null`. Prices only display when scraper provides real data. Removed fallback restore logic.
+
+**Website URLs** — added `url` property to all 12 Region A elevators + CV Hope (Region B). Jennie-O updated to AgHost portal URL.
+
+**robots.txt compliance** — new `scripts/robots-check.js` utility:
+- Midnight workflow (`check-robots.yml`) fetches robots.txt for all sources daily
+- Scrapers read `robots-log.json` (no network call) — skip if blocked
+- Watchlist tracks sources that block us (DTN, CME, AgHost) for future unblock detection
+- Al-Corn logo background fixed to white
+
+**Watchdog workflow** — new `watchdog.yml` monitors all scheduled workflows:
+- Triggers `workflow_dispatch` if a scraper missed its daily run
+- Covers grain, barns, futures, and robots-check workflows
+- Prevents silent data gaps from GitHub Actions cron skips
+
+**Coordinates for all scraped locations** — added lat/lon for ~45 unmapped grain locations (CFS, NVC, AgP, CHS, Jennie-O) so all locations show distance in charts.
+
+---
+
 ## v1.163 (2026-03-31T04:00Z)
 
 ### Live Cash Prices — Basis + CBOT Calculation

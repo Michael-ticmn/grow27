@@ -193,6 +193,13 @@ async function run() {
 
     console.log(`\n════ ${id} (${name}) ════`);
 
+    // Check last known robots.txt result (no network call — set by midnight job)
+    const { isAllowed } = require('./robots-check');
+    if (!isAllowed(id)) {
+      console.log(`[${id}] SKIPPED — blocked by robots.txt`);
+      continue;
+    }
+
     const grainData = loadGrainFile(id, name);
     const parser = loadGrainParser(id);
 
