@@ -4,6 +4,17 @@ Decisions and open items for the next Chat session to pick up.
 
 ---
 
+## Completed This Session (v1.164)
+
+- [x] Grain Charts tab — CBOT futures + buyer basis per location
+- [x] Zip code + radius location filtering (replaced region selector)
+- [x] Market status indicator (open/online/closed with CBOT timestamps)
+- [x] No fallback basis — scraper-only data, no made-up prices
+- [x] Website URLs on all elevators
+- [x] Watchdog workflow for missed scraper runs
+- [x] robots.txt compliance system (midnight check + watchlist)
+- [x] Coordinates for all scraped grain locations
+
 ## Pending Handoffs
 
 ### [x] [FROM: Chat → Code] Rock Creek barn parser — COMPLETED 2026-03-24

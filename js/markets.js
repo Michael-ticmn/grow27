@@ -327,6 +327,44 @@ function getNearbyContract(prefix, contractMonths, exchange) {
 // Fallback values — used only if Yahoo fetch fails AND no scraped CBOT available
 const fb_grain={cn:{price:4.3475,open:4.3100,high:4.3775,low:4.2875,change:0.0375,pct:0.87},cn2:{price:4.5225,open:4.4900,high:4.5500,low:4.4750,change:0.0325,pct:0.72},sb:{price:9.7225,open:9.6800,high:9.8100,low:9.6200,change:0.0425,pct:0.44},sb2:{price:10.045,open:10.010,high:10.120,low:9.970,change:0.0350,pct:0.35}};
 
+// ── MARKET STATUS (grain screen only) ────────────────────────────────────────
+// CBOT electronic grain: Sun 7pm – Fri 1:20pm CT, with daily break 1:20pm–7pm CT
+// Main day session: Mon–Fri 8:30am – 1:20pm CT
+// Returns 'open' (day session), 'online' (Globex/electronic), or 'closed'
+function cbotMarketState(){
+  const now=new Date();
+  const ct=new Date(now.toLocaleString('en-US',{timeZone:'America/Chicago'}));
+  const day=ct.getDay(),t=ct.getHours()*60+ct.getMinutes();
+  if(day===6) return 'closed'; // Saturday: fully closed
+  if(day===0) return t>=19*60?'online':'closed'; // Sunday: Globex opens 7pm CT
+  // Mon–Fri
+  const dayOpen=8*60+30, dayClose=13*60+20, globexOpen=19*60;
+  if(day===5 && t>=dayClose) return 'closed'; // Friday after 1:20pm: closed for weekend
+  if(t>=dayOpen && t<dayClose) return 'open';  // Day session
+  if(t<dayClose || t>=globexOpen) return 'online'; // Globex before day open or after 7pm
+  return 'closed'; // 1:20pm–7pm daily break
+}
+function updateMarketStatus(isLive,dataTime){
+  const el=document.getElementById('status-txt');
+  const dot=document.querySelector('.status-dot');
+  if(!el)return;
+  const state=cbotMarketState();
+  const checkTs=dataTime?dataTime.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'—';
+  if(!isLive){
+    el.textContent='Markets closed · no data';
+    if(dot){dot.style.background='var(--txt3)';dot.style.animation='none';}
+  } else if(state==='open'){
+    el.textContent='Markets open · last check '+checkTs;
+    if(dot){dot.style.background='var(--up)';dot.style.animation='pulse 2.5s infinite';}
+  } else if(state==='online'){
+    el.textContent='Markets online · last check '+checkTs;
+    if(dot){dot.style.background='var(--corn)';dot.style.animation='pulse 2.5s infinite';}
+  } else {
+    el.textContent='Markets closed · last check '+checkTs;
+    if(dot){dot.style.background='var(--txt3)';dot.style.animation='none';}
+  }
+}
+
 // Parse CBOT grain notation: "458'4" → 4.585, "1153'4" → 11.535
 function parseCbotNotation(str) {
   if (!str) return null;
@@ -362,16 +400,18 @@ async function loadGrainPrices(){
   const sb2sym = grainYahooSym('ZS', parseCm(cm.soyNewCrop).name, parseCm(cm.soyNewCrop).year);
   const[cn,cn2,sb,sb2]=await Promise.all([fetchYahoo('ZC=F',100),fetchYahoo(cn2sym,100),fetchYahoo('ZS=F',100),fetchYahoo(sb2sym,100)]);
   GRAIN_DATA={cn:cn||fb.cn,cn2:cn2||fb.cn2,sb:sb||fb.sb,sb2:sb2||fb.sb2};
-  const isLive=[cn,cn2,sb,sb2].some(Boolean);document.getElementById('status-txt').textContent=isLive?'Live data':'Recent values';
+  const isLive=[cn,cn2,sb,sb2].some(Boolean);
   // Use exchange timestamp from Yahoo (not page-load time)
   cbotNow=cn?.marketTime||new Date();
   const cbotTs='as of '+cbotNow.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' '+cbotNow.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   ['cn','cn2','sb','sb2'].forEach(id=>{const el=document.getElementById('cbot-ts-'+id);if(el)el.textContent=cbotTs;});
+  updateMarketStatus(isLive,cbotNow);
   function setCard(id,d){const el=document.getElementById('p-'+id);el.textContent='$'+d.price.toFixed(4);el.style.color=d.change>0.003?'var(--up)':d.change<-0.003?'var(--down)':'var(--corn)';document.getElementById('h-'+id).textContent=d.high.toFixed(4);document.getElementById('l-'+id).textContent=d.low.toFixed(4);document.getElementById('v-'+id).textContent=d.open.toFixed(4);setBadge('b-'+id,d.change,d.pct);}
   setCard('cn',GRAIN_DATA.cn);setCard('cn2',GRAIN_DATA.cn2);setCard('sb',GRAIN_DATA.sb);setCard('sb2',GRAIN_DATA.sb2);
   // Update card names with actual contract months
   const nameMap={cn:cm.cornNearby+' Corn',cn2:cm.cornNewCrop+' Corn',sb:cm.soyNearby+' Beans',sb2:cm.soyNewCrop+' Beans'};
   for(const[id,label]of Object.entries(nameMap)){const el=document.querySelector('#p-'+id)?.closest('.card')?.querySelector('.card-name');if(el)el.textContent=label;}
+  buildBuyerDropdown();
   buildCashTable();
   initCashSortBar();
   updateCornCardCattle();
@@ -1231,11 +1271,11 @@ function calcGrain(){const yld=+document.getElementById('c-yield').value,seed=+d
 function calcSoy(){if(!document.getElementById('s-yield'))return;const yld=+document.getElementById('s-yield').value,seed=+document.getElementById('s-seed').value,fert=+document.getElementById('s-fert').value,chem=+document.getElementById('s-chem').value,land=+document.getElementById('s-land').value,mach=+document.getElementById('s-mach').value,sale=+document.getElementById('s-sale').value,acres=+document.getElementById('s-acres').value||400;document.getElementById('sv-sale').textContent='$'+sale.toFixed(2);const total=seed+fert+chem+land+mach,be=total/yld,rev=yld*sale,margin=rev-total;document.getElementById('sr-seed').textContent=fmt$(seed);document.getElementById('sr-fert').textContent=fmt$(fert);document.getElementById('sr-chem').textContent=fmt$(chem);document.getElementById('sr-land').textContent=fmt$(land);document.getElementById('sr-mach').textContent=fmt$(mach);document.getElementById('sr-total').textContent=fmt$(total);document.getElementById('sr-be').textContent='$'+be.toFixed(2)+'/bu';document.getElementById('sr-rev').textContent=fmt$(rev);document.getElementById('sr-margin').textContent=fmt$(margin);document.getElementById('sr-margin-row').className='result-row total '+(margin>=0?'profit':'loss');const vEl=document.getElementById('s-verdict');if(sale>be+1.50){vEl.className='verdict strong-sell';vEl.innerHTML='<strong>Strong sell signal.</strong> You are $'+(sale-be).toFixed(2)+'/bu above break-even.';}else if(sale>be+0.25){vEl.className='verdict hold';vEl.innerHTML='<strong>Above break-even.</strong> Margin of $'+(sale-be).toFixed(2)+'/bu.';}else if(sale>=be){vEl.className='verdict neutral';vEl.innerHTML='<strong>At/near break-even.</strong> Only $'+(sale-be).toFixed(2)+'/bu margin.';}else{vEl.className='verdict neutral';vEl.innerHTML='<strong>Below break-even.</strong> Loss of $'+(be-sale).toFixed(2)+'/bu.';}document.getElementById('sf-rev').textContent=fmtK(rev*acres);document.getElementById('sf-cost').textContent=fmtK(total*acres);const fm=margin*acres;document.getElementById('sf-margin').textContent=fmtK(fm);document.getElementById('sf-margin').style.color=fm>=0?'var(--up)':'var(--down)';document.getElementById('sf-be').textContent='$'+be.toFixed(2)+'/bu';}
 
 // ── LOCAL BUYERS (GRAIN) ─────────────────────────────────────────────────────
-const REGION_A={id:'regionA',label:'Area 1',sublabel:'Mountain Lake · Fairmont · Trimont',centerLat:43.88,centerLon:-94.76,elevators:{newvision:{name:'New Vision Coop',loc:'Mountain Lake MN',lat:44.0297,lon:-94.9346,cornBasis:-0.20,soyBasis:-0.28,curated:true,region:'A',phone:'(507) 427-2419',phoneLabel:'Grain'},cfs:{name:'CFS — St. James',loc:'St. James MN',lat:43.9822,lon:-94.6271,cornBasis:-0.18,soyBasis:-0.25,curated:true,region:'A',phone:'(507) 375-3350',phoneLabel:'Grain'},cv_jackson:{name:'Crystal Valley — Jackson',loc:'Jackson MN',lat:43.6208,lon:-94.9888,cornBasis:-0.16,soyBasis:-0.24,curated:true,region:'A',phone:'(507) 639-2031',phoneLabel:'Grain'},cv_lasalle:{name:'Crystal Valley — La Salle',loc:'La Salle MN',lat:44.0728,lon:-94.5672,cornBasis:-0.16,soyBasis:-0.24,curated:true,region:'A',phone:'(507) 639-2031',phoneLabel:'Grain'},cv_lakecrystal:{name:'Crystal Valley — Lake Crystal',loc:'Lake Crystal MN',lat:44.1058,lon:-94.2186,cornBasis:-0.16,soyBasis:-0.24,curated:true,region:'A',phone:'(507) 639-2031',phoneLabel:'Grain'},cv_madelia:{name:'Crystal Valley — Madelia',loc:'Madelia MN',lat:44.0508,lon:-94.4183,cornBasis:-0.16,soyBasis:-0.24,curated:true,region:'A',phone:'(507) 639-2031',phoneLabel:'Grain'},trimont:{name:'Crystal Valley — Trimont',loc:'Trimont MN',lat:43.7622,lon:-94.7110,cornBasis:-0.16,soyBasis:-0.24,curated:true,region:'A',phone:'(507) 639-2031',phoneLabel:'Grain'},cv_vernonctr:{name:'Crystal Valley — Vernon Center',loc:'Vernon Center MN',lat:43.9722,lon:-94.1697,cornBasis:-0.16,soyBasis:-0.24,curated:true,region:'A',phone:'(507) 639-2031',phoneLabel:'Grain'},chs:{name:'CHS Fairmont',loc:'Fairmont MN',lat:43.6522,lon:-94.4614,cornBasis:-0.19,soyBasis:-0.26,curated:true,region:'A',phone:'(800) 652-9727',phoneLabel:'Grain'},poet:{name:'POET Biorefining',loc:'Bingham Lake MN',lat:43.8944,lon:-95.0414,cornBasis:-0.14,soyBasis:null,curated:true,region:'A',phone:'(507) 831-0067',phoneLabel:'Commodity'},poet_lc:{name:'POET Biorefining — Lake Crystal',loc:'Lake Crystal MN',lat:44.1058,lon:-94.2186,cornBasis:-0.14,soyBasis:null,curated:true,region:'A',note:'Ethanol plant — corn only',phone:'(507) 726-6161',phoneLabel:'Commodity'}}};
-const REGION_B={id:'regionB',label:'Area 2',sublabel:'Northfield · Kenyon · Le Center',centerLat:44.29,centerLon:-93.27,elevators:{cfs_nfield:{name:'CFS — Northfield Grain',loc:'Northfield MN',lat:44.4560,lon:-93.1627,cornBasis:-0.17,soyBasis:-0.24,curated:true,region:'B',note:'1600 Hwy 3 S · daily cash bids online',url:'https://www.centralfarmservice.com',phone:'(507) 263-2050',phoneLabel:'Grain'},cfs_kenyon:{name:'CFS — Kenyon Grain',loc:'Kenyon MN',lat:44.2716,lon:-93.0011,cornBasis:-0.18,soyBasis:-0.25,curated:true,region:'B',note:'806 2nd St · futures contracting',url:'https://www.centralfarmservice.com',phone:'(507) 263-2050',phoneLabel:'Grain'},mnvg_webster:{name:'MN Valley Grain — Webster',loc:'Webster MN',lat:44.4000,lon:-93.3700,cornBasis:-0.21,soyBasis:-0.28,curated:true,region:'B',note:'Corn & soybeans · DP contracts',url:null,phone:'(507) 357-6841',phoneLabel:'Office'},mnvg_montgomery:{name:'MN Valley Grain — Montgomery',loc:'Montgomery MN',lat:44.4383,lon:-93.5822,cornBasis:-0.20,soyBasis:-0.27,curated:true,region:'B',note:'Delayed Pricing contracts for both crops',url:null,phone:'(507) 357-6841',phoneLabel:'Office'},mnvg_lecenter:{name:'MN Valley Grain — Le Center',loc:'Le Center MN',lat:44.3922,lon:-93.7302,cornBasis:-0.21,soyBasis:-0.28,curated:true,region:'B',note:'Corn & soybeans — buy, sell, store',url:null,phone:'(507) 357-6841',phoneLabel:'Office'},cv_hope:{name:'Crystal Valley — Hope',loc:'Hope MN',lat:44.0500,lon:-93.3400,cornBasis:-0.16,soyBasis:-0.24,curated:true,region:'B',phone:'(507) 639-2031',phoneLabel:'Grain'},farmers_elev:{name:'Farmers Elevator — Hope',loc:'Hope MN',lat:44.0500,lon:-93.3400,cornBasis:-0.18,soyBasis:-0.25,curated:true,region:'B',note:'New Crop Delayed Pricing · open storage',url:'https://www.hopegrain.com',phone:'(507) 451-9020',phoneLabel:'Main'},agpartners_gd:{name:'Ag Partners — Goodhue',loc:'Goodhue MN',lat:44.3972,lon:-92.6261,cornBasis:-0.16,soyBasis:-0.23,curated:true,region:'B',note:'Market-specific cash bids · service charge schedules',url:'https://agpartners.net',phone:'(651) 923-4496',phoneLabel:'Main'},agpartners_bc:{name:'Ag Partners — Bellechester',loc:'Bellechester MN',lat:44.3750,lon:-92.4836,cornBasis:-0.17,soyBasis:-0.24,curated:true,region:'B',note:'Drying & storage schedules online',url:'https://agpartners.net',phone:'(651) 923-4453',phoneLabel:'Grain'},
-    jennyo:{name:'Jennie-O Turkey Store',loc:'Faribault MN',lat:44.2955,lon:-93.2688,cornBasis:-0.12,soyBasis:null,curated:true,region:'B',note:'Major turkey processor — corn buyer only · call for daily bids',url:'https://www.jennieo.com',phone:'(507) 334-5555',phoneLabel:'Grain'},
-    alcorn:{name:'Al-Corn Clean Fuel',loc:'Claremont MN',lat:44.0369,lon:-92.9880,cornBasis:-0.10,soyBasis:null,curated:true,region:'B',note:'Ethanol plant — corn only · 44M bu/yr grind · call for daily bids',url:'https://www.al-corn.com',phone:'(507) 681-7100',phoneLabel:'Grain'},
-    poet_pr:{name:'POET Biorefining — Preston',loc:'Preston MN',lat:43.6703,lon:-92.0831,cornBasis:-0.14,soyBasis:null,curated:true,region:'B',note:'Ethanol plant — corn only',phone:'(507) 765-2497',phoneLabel:'Commodity'}}};
+const REGION_A={id:'regionA',label:'Area 1',sublabel:'Mountain Lake · Fairmont · Trimont',centerLat:43.88,centerLon:-94.76,elevators:{newvision:{name:'New Vision Coop',loc:'Mountain Lake MN',lat:44.0297,lon:-94.9346,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://www.newvisioncoop.com',phone:'(507) 427-2419',phoneLabel:'Grain'},cfs:{name:'CFS — St. James',loc:'St. James MN',lat:43.9822,lon:-94.6271,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://www.cfscoop.com',phone:'(507) 375-3350',phoneLabel:'Grain'},cv_jackson:{name:'Crystal Valley — Jackson',loc:'Jackson MN',lat:43.6208,lon:-94.9888,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://www.crystalvalley.coop',phone:'(507) 639-2031',phoneLabel:'Grain'},cv_lasalle:{name:'Crystal Valley — La Salle',loc:'La Salle MN',lat:44.0728,lon:-94.5672,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://www.crystalvalley.coop',phone:'(507) 639-2031',phoneLabel:'Grain'},cv_lakecrystal:{name:'Crystal Valley — Lake Crystal',loc:'Lake Crystal MN',lat:44.1058,lon:-94.2186,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://www.crystalvalley.coop',phone:'(507) 639-2031',phoneLabel:'Grain'},cv_madelia:{name:'Crystal Valley — Madelia',loc:'Madelia MN',lat:44.0508,lon:-94.4183,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://www.crystalvalley.coop',phone:'(507) 639-2031',phoneLabel:'Grain'},trimont:{name:'Crystal Valley — Trimont',loc:'Trimont MN',lat:43.7622,lon:-94.7110,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://www.crystalvalley.coop',phone:'(507) 639-2031',phoneLabel:'Grain'},cv_vernonctr:{name:'Crystal Valley — Vernon Center',loc:'Vernon Center MN',lat:43.9722,lon:-94.1697,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://www.crystalvalley.coop',phone:'(507) 639-2031',phoneLabel:'Grain'},chs:{name:'CHS Fairmont',loc:'Fairmont MN',lat:43.6522,lon:-94.4614,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://www.chsinc.com',phone:'(800) 652-9727',phoneLabel:'Grain'},poet:{name:'POET Biorefining',loc:'Bingham Lake MN',lat:43.8944,lon:-95.0414,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://poet.com/binghamlake',phone:'(507) 831-0067',phoneLabel:'Commodity'},poet_lc:{name:'POET Biorefining — Lake Crystal',loc:'Lake Crystal MN',lat:44.1058,lon:-94.2186,cornBasis:null,soyBasis:null,curated:true,region:'A',url:'https://poet.com/lakecrystal',note:'Ethanol plant — corn only',phone:'(507) 726-6161',phoneLabel:'Commodity'}}};
+const REGION_B={id:'regionB',label:'Area 2',sublabel:'Northfield · Kenyon · Le Center',centerLat:44.29,centerLon:-93.27,elevators:{cfs_nfield:{name:'CFS — Northfield Grain',loc:'Northfield MN',lat:44.4560,lon:-93.1627,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'1600 Hwy 3 S · daily cash bids online',url:'https://www.centralfarmservice.com',phone:'(507) 263-2050',phoneLabel:'Grain'},cfs_kenyon:{name:'CFS — Kenyon Grain',loc:'Kenyon MN',lat:44.2716,lon:-93.0011,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'806 2nd St · futures contracting',url:'https://www.centralfarmservice.com',phone:'(507) 263-2050',phoneLabel:'Grain'},mnvg_webster:{name:'MN Valley Grain — Webster',loc:'Webster MN',lat:44.4000,lon:-93.3700,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'Corn & soybeans · DP contracts',url:null,phone:'(507) 357-6841',phoneLabel:'Office'},mnvg_montgomery:{name:'MN Valley Grain — Montgomery',loc:'Montgomery MN',lat:44.4383,lon:-93.5822,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'Delayed Pricing contracts for both crops',url:null,phone:'(507) 357-6841',phoneLabel:'Office'},mnvg_lecenter:{name:'MN Valley Grain — Le Center',loc:'Le Center MN',lat:44.3922,lon:-93.7302,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'Corn & soybeans — buy, sell, store',url:null,phone:'(507) 357-6841',phoneLabel:'Office'},cv_hope:{name:'Crystal Valley — Hope',loc:'Hope MN',lat:44.0500,lon:-93.3400,cornBasis:null,soyBasis:null,curated:true,region:'B',url:'https://www.crystalvalley.coop',phone:'(507) 639-2031',phoneLabel:'Grain'},farmers_elev:{name:'Farmers Elevator — Hope',loc:'Hope MN',lat:44.0500,lon:-93.3400,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'New Crop Delayed Pricing · open storage',url:'https://www.hopegrain.com',phone:'(507) 451-9020',phoneLabel:'Main'},agpartners_gd:{name:'Ag Partners — Goodhue',loc:'Goodhue MN',lat:44.3972,lon:-92.6261,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'Market-specific cash bids · service charge schedules',url:'https://agpartners.net',phone:'(651) 923-4496',phoneLabel:'Main'},agpartners_bc:{name:'Ag Partners — Bellechester',loc:'Bellechester MN',lat:44.3750,lon:-92.4836,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'Drying & storage schedules online',url:'https://agpartners.net',phone:'(651) 923-4453',phoneLabel:'Grain'},
+    jennyo:{name:'Jennie-O Turkey Store',loc:'Faribault MN',lat:44.2955,lon:-93.2688,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'Major turkey processor — corn buyer only · call for daily bids',url:'https://jennieo.aghostportal.com/index.cfm?show=11&mid=3&theLocation=4&layout=1046',phone:'(507) 334-5555',phoneLabel:'Grain'},
+    alcorn:{name:'Al-Corn Clean Fuel',loc:'Claremont MN',lat:44.0369,lon:-92.9880,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'Ethanol plant — corn only · 44M bu/yr grind · call for daily bids',url:'https://www.al-corn.com',phone:'(507) 681-7100',phoneLabel:'Grain'},
+    poet_pr:{name:'POET Biorefining — Preston',loc:'Preston MN',lat:43.6703,lon:-92.0831,cornBasis:null,soyBasis:null,curated:true,region:'B',note:'Ethanol plant — corn only',phone:'(507) 765-2497',phoneLabel:'Commodity'}}};
 let activeRegion='auto';
 let CURATED=Object.assign({},REGION_A.elevators,REGION_B.elevators);
 let ELEVATORS=Object.assign({},CURATED);
@@ -1262,7 +1302,7 @@ const BUYER_LOGOS={
   mnvg_montgomery: {logo:'public/logos/buyers/minnesota-valley-grain.png',logoBg:null},
   mnvg_lecenter:   {logo:'public/logos/buyers/minnesota-valley-grain.png',logoBg:null},
   jennyo:          {logo:'public/logos/buyers/jennie-o.png',logoBg:'#0a6528'},
-  alcorn:          {logo:'public/logos/buyers/al-corn.png',logoBg:'#111'}
+  alcorn:          {logo:'public/logos/buyers/al-corn.png',logoBg:'#fff'}
 };
 Object.entries(BUYER_LOGOS).forEach(([k,v])=>{if(CURATED[k])Object.assign(CURATED[k],v);});
 
@@ -1305,8 +1345,7 @@ const GRAIN_SOURCE_URLS={
 };
 let GRAIN_SCRAPED = {}; // populated by loadGrainScrapedData()
 let GRAIN_SCRAPE_DATES = {}; // { sourceId: "2026-03-22" }
-// Clear fallback basis for elevators that have a scrape map — real basis will be overlaid by loadGrainScrapedData()
-for(const k of Object.keys(GRAIN_SCRAPE_MAP)){const e=REGION_A.elevators[k]||REGION_B.elevators[k];if(e){e._fallbackCornBasis=e.cornBasis;e._fallbackSoyBasis=e.soyBasis;e.cornBasis=null;e.soyBasis=null;}}
+// All basis values start null — only populated by scraper overlay in loadGrainScrapedData()
 
 async function loadGrainScrapedData() {
   try {
@@ -1404,33 +1443,597 @@ async function loadGrainScrapedData() {
     updateGrainInsight();
   } catch (e) {
     console.warn('[grain] could not load scraped data:', e.message);
-    // Restore fallback basis if scrape fetch failed
-    for(const k of Object.keys(GRAIN_SCRAPE_MAP)){const el=REGION_A.elevators[k]||REGION_B.elevators[k];if(el&&!el.scraped){if(el._fallbackCornBasis!=null)el.cornBasis=el._fallbackCornBasis;if(el._fallbackSoyBasis!=null)el.soyBasis=el._fallbackSoyBasis;}}
     buildCashTable();
   }
 }
 
+let buyerRadius=50; // default radius in miles
+const ALL_ELEVATORS={...REGION_A.elevators,...REGION_B.elevators};
+
 function getCuratedForRegion(k){if(k==='A')return REGION_A.elevators;if(k==='B')return REGION_B.elevators;return{...REGION_A.elevators,...REGION_B.elevators};}
 function autoDetectRegion(){if(!userLat||!userLon)return'both';const dA=distMiles(userLat,userLon,REGION_A.centerLat,REGION_A.centerLon),dB=distMiles(userLat,userLon,REGION_B.centerLat,REGION_B.centerLon);if(Math.abs(dA-dB)<25)return'both';return dA<dB?'A':'B';}
-function setRegion(k){activeRegion=k;const discovered=Object.fromEntries(Object.entries(ELEVATORS).filter(([,e])=>e.discovered));CURATED=getCuratedForRegion(k==='auto'?autoDetectRegion():k);ELEVATORS=Object.assign({},CURATED,discovered);document.querySelectorAll('.region-btn').forEach(b=>b.classList.toggle('active',b.dataset.region===k));rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();updateRegionBadge();updateGrainInsight();}
-function updateRegionBadge(){const el=document.getElementById('active-region-label');if(!el)return;const eff=activeRegion==='auto'?(userLat?autoDetectRegion():'both'):activeRegion;if(eff==='A')el.textContent=REGION_A.label+' — '+REGION_A.sublabel;else if(eff==='B')el.textContent=REGION_B.label+' — '+REGION_B.sublabel;else el.textContent='All regions — '+REGION_A.label+' + '+REGION_B.label;}
+
+function filterElevatorsByRadius(){
+  const discovered=Object.fromEntries(Object.entries(ELEVATORS).filter(([,e])=>e.discovered));
+  const all={...ALL_ELEVATORS,...discovered};
+  if(!userLat||!userLon||buyerRadius>=9999){ELEVATORS=all;}
+  else{
+    const filtered={};
+    for(const[k,e]of Object.entries(all)){
+      if(distMiles(userLat,userLon,e.lat,e.lon)<=buyerRadius)filtered[k]=e;
+    }
+    ELEVATORS=filtered;
+  }
+  rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();updateGrainInsight();updateLocationStatus();
+}
+
+function setRadius(r){
+  buyerRadius=r;
+  filterElevatorsByRadius();
+}
+
+function updateLocationStatus(){
+  const el=document.getElementById('location-status');
+  if(!el)return;
+  const count=Object.keys(ELEVATORS).length;
+  if(!userLat){el.textContent='No location set';return;}
+  el.textContent=count+' buyer'+(count!==1?'s':'')+' within '+(buyerRadius>=9999?'all areas':buyerRadius+' mi');
+}
+
+async function applyZip(){
+  const input=document.getElementById('zip-input');
+  const zip=(input?.value||'').trim();
+  if(!/^\d{5}$/.test(zip))return;
+  try{
+    const r=await fetch('https://api.zippopotam.us/us/'+zip);
+    if(!r.ok)throw new Error('bad zip');
+    const d=await r.json();
+    const place=d.places[0];
+    userLat=parseFloat(place.latitude);
+    userLon=parseFloat(place.longitude);
+    const locEl=document.getElementById('location-status');
+    if(locEl)locEl.textContent=place['place name']+', '+place['state abbreviation'];
+    filterElevatorsByRadius();
+    loadWeather(userLat,userLon);
+    // Reset basis chart defaults for new location
+    _grainBasisChecked=new Set();_grainBasisData=null;
+  }catch(e){
+    const locEl=document.getElementById('location-status');
+    if(locEl)locEl.textContent='Invalid zip code';
+  }
+}
+
+function useGeoLocation(){
+  const locEl=document.getElementById('location-status');
+  if(locEl)locEl.textContent='Locating…';
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      userLat=pos.coords.latitude;userLon=pos.coords.longitude;
+      document.getElementById('zip-input').value='';
+      filterElevatorsByRadius();
+      loadWeather(userLat,userLon);
+      discoverElevators(userLat,userLon);
+      _grainBasisChecked=new Set();_grainBasisData=null;
+    },()=>{
+      if(locEl)locEl.textContent='Location denied';
+    });
+  }
+}
+
+function setRegion(k){activeRegion=k;filterElevatorsByRadius();}
+function updateRegionBadge(){}
 function sortedElevatorKeys(){const keys=Object.keys(ELEVATORS);if(!userLat)return keys;return keys.slice().sort((a,b)=>distMiles(userLat,userLon,ELEVATORS[a].lat,ELEVATORS[a].lon)-distMiles(userLat,userLon,ELEVATORS[b].lat,ELEVATORS[b].lon));}
-function onElevChange(){const key=document.getElementById('elev-select').value;const disp=document.getElementById('elev-basis-display');const distEl=document.getElementById('elev-dist-display');if(!key){disp.style.display='none';distEl.textContent='';updateGrainInsight();return;}const e=ELEVATORS[key];let html='<strong>'+e.name+'</strong> — Corn basis: ';const cb=e.cornBasis;if(cb!==null){html+='<span style="color:'+(cb>=0?'var(--up)':'var(--down)')+'">'+(cb>=0?'+':'')+cb.toFixed(2)+'</span>';}else{html+='<span style="color:var(--txt3)">N/A</span>';}if(e.soyBasis!==null){const sb=e.soyBasis;html+='  &nbsp;·&nbsp;  Soy basis: <span style="color:'+(sb>=0?'var(--up)':'var(--down)')+'">'+(sb>=0?'+':'')+sb.toFixed(2)+'</span>';}else{html+='  &nbsp;·&nbsp;  <span style="color:var(--txt3)">Soy: N/A</span>';}disp.innerHTML=html;disp.style.display='';if(userLat&&userLon){const d=Math.round(distMiles(userLat,userLon,e.lat,e.lon));distEl.textContent='~'+d+' mi away';}highlightTableRow(key);updateGrainInsight();}
+function onElevChange(){}
 function highlightTableRow(key){document.querySelectorAll('#cash-table-body tr').forEach(tr=>tr.classList.toggle('selected',tr.dataset.key===key));}
-function selectFromTable(key){document.getElementById('elev-select').value=key;onElevChange();}
-function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');if(!sel)return;const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;}
+function selectFromTable(key){highlightTableRow(key);}
+let _buyerChecked=null; // null = not yet initialized (show all), Set once user interacts
+
+function rebuildElevatorSelect(){
+  buildBuyerDropdown();
+  updateLocationStatus();
+}
+
+function buildBuyerDropdown(){
+  const container=document.getElementById('buyer-location-list');
+  if(!container)return;
+  const keys=sortedElevatorKeys();
+
+  // Always check all buyers within radius on rebuild
+  _buyerChecked=new Set(keys);
+
+  const shortSource={cfs:'CFS',cv_jackson:'CV',cv_lasalle:'CV',cv_lakecrystal:'CV',cv_madelia:'CV',trimont:'CV',cv_vernonctr:'CV',cv_hope:'CV',poet:'POET',poet_lc:'POET',poet_pr:'POET',chs:'CHS',newvision:'NVC',cfs_nfield:'CFS',cfs_kenyon:'CFS',mnvg_webster:'MVG',mnvg_montgomery:'MVG',mnvg_lecenter:'MVG',agpartners_gd:'AgP',agpartners_bc:'AgP',jennyo:'JO',alcorn:'AlCorn',farmers_elev:'FEH'};
+
+  container.innerHTML=keys.map(key=>{
+    const e=ELEVATORS[key];
+    const checked=_buyerChecked.has(key)?'checked':'';
+    const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon))+' mi':'';
+    const tag=shortSource[key]||(e.discovered?'OSM':'');
+    const label=e.loc+(tag?' · '+tag:'');
+    return '<label style="display:flex;align-items:center;gap:6px;padding:4px 12px;cursor:pointer;white-space:nowrap;">'
+      +'<input type="checkbox" data-buyer="'+key+'" '+checked+' onchange="toggleBuyer(this)">'
+      +'<span style="color:var(--txt2);overflow:hidden;text-overflow:ellipsis;">'+label+'</span>'
+      +(dist?'<span style="color:var(--txt3);font-size:10px;margin-left:auto;padding-left:8px;">'+dist+'</span>':'')
+      +'</label>';
+  }).join('');
+  updateBuyerCount();
+}
+
+function updateBuyerCount(){
+  const el=document.getElementById('buyer-checked-count');
+  if(el)el.textContent=_buyerChecked?_buyerChecked.size:0;
+}
+
+function toggleBuyerDropdown(){
+  const dd=document.getElementById('buyer-dropdown');
+  if(!dd)return;
+  const show=dd.style.display==='none';
+  dd.style.display=show?'':'none';
+  if(show){
+    const close=function(e){
+      const wrap=document.getElementById('buyer-dropdown-wrap');
+      if(wrap&&!wrap.contains(e.target)){dd.style.display='none';document.removeEventListener('click',close);}
+    };
+    setTimeout(()=>document.addEventListener('click',close),0);
+  }
+}
+
+function toggleBuyer(el){
+  const key=el.dataset.buyer;
+  if(el.checked)_buyerChecked.add(key);
+  else _buyerChecked.delete(key);
+  updateBuyerCount();
+  buildCashTable();
+  updateGrainInsight();
+  syncBasisChartFromBuyers();
+}
+
+function buyerSelectAll(){
+  const keys=Object.keys(ELEVATORS);
+  _buyerChecked=new Set(keys);
+  document.querySelectorAll('#buyer-location-list input[type=checkbox]').forEach(cb=>cb.checked=true);
+  updateBuyerCount();buildCashTable();updateGrainInsight();syncBasisChartFromBuyers();
+}
+
+function buyerClearAll(){
+  _buyerChecked=new Set();
+  document.querySelectorAll('#buyer-location-list input[type=checkbox]').forEach(cb=>cb.checked=false);
+  updateBuyerCount();buildCashTable();updateGrainInsight();syncBasisChartFromBuyers();
+}
+
+// Sync basis chart location checkboxes to match buyer selections
+function syncBasisChartFromBuyers(){
+  if(!_grainBasisData)return;
+  _grainBasisChecked=new Set();
+  // Map checked buyer elevator keys → basis chart location keys
+  for(const elevKey of(_buyerChecked||[])){
+    const map=GRAIN_SCRAPE_MAP[elevKey];
+    if(!map)continue;
+    const basisKey=map.source+'__'+map.location;
+    _grainBasisChecked.add(basisKey);
+  }
+  // Update basis dropdown checkboxes if they exist
+  document.querySelectorAll('#grain-basis-location-list input[type=checkbox]').forEach(cb=>{
+    cb.checked=_grainBasisChecked.has(cb.dataset.loc);
+  });
+  updateGrainBasisCount();
+}
 let cashTableSort='distance';
 function elevCashPrice(e,crop){const fut=crop==='corn'?GRAIN_DATA.cn.price:GRAIN_DATA.sb.price;const basis=crop==='corn'?e.cornBasis:e.soyBasis;if(basis===null)return null;return fut+basis;}
-function cashTableSortedKeys(){const keys=Object.keys(ELEVATORS);if(cashTableSort==='corn'){return keys.slice().sort((a,b)=>{const pa=elevCashPrice(ELEVATORS[a],'corn'),pb=elevCashPrice(ELEVATORS[b],'corn');if(pa==null&&pb==null)return 0;if(pa==null)return 1;if(pb==null)return-1;return pb-pa;});}if(cashTableSort==='soy'){return keys.slice().sort((a,b)=>{const pa=elevCashPrice(ELEVATORS[a],'soy'),pb=elevCashPrice(ELEVATORS[b],'soy');if(pa==null&&pb==null)return 0;if(pa==null)return 1;if(pb==null)return-1;return pb-pa;});}return sortedElevatorKeys();}
+function cashTableSortedKeys(){const keys=Object.keys(ELEVATORS).filter(k=>!_buyerChecked||_buyerChecked.has(k));if(cashTableSort==='corn'){return keys.slice().sort((a,b)=>{const pa=elevCashPrice(ELEVATORS[a],'corn'),pb=elevCashPrice(ELEVATORS[b],'corn');if(pa==null&&pb==null)return 0;if(pa==null)return 1;if(pb==null)return-1;return pb-pa;});}if(cashTableSort==='soy'){return keys.slice().sort((a,b)=>{const pa=elevCashPrice(ELEVATORS[a],'soy'),pb=elevCashPrice(ELEVATORS[b],'soy');if(pa==null&&pb==null)return 0;if(pa==null)return 1;if(pb==null)return-1;return pb-pa;});}return sortedElevatorKeys();}
 function initCashSortBar(){document.querySelectorAll('.cash-sort-btn').forEach(btn=>{btn.addEventListener('click',function(){document.querySelectorAll('.cash-sort-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');cashTableSort=this.dataset.sort;buildCashTable();});});}
 function buyerLogoHtml(e){const w=e.name.replace(/[—–\-]+/g,' ').split(/\s+/).filter(Boolean);const init=w.map(c=>c[0]).join('').substring(0,3).toUpperCase();if(e.logo)return'<div class="buyer-logo-tile" style="background:'+(e.logoBg||'#fff')+'"><img src="'+e.logo+'" alt="" onerror="logoErr(this)"><span class="buyer-logo-fallback" style="display:none">'+init+'</span></div>';return'<div class="buyer-logo-tile buyer-logo-tile--fallback"><span class="buyer-logo-fallback">'+init+'</span></div>';}
 function logoErr(el){el.style.display='none';el.nextElementSibling.style.display='';}
-function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=cashTableSortedKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const lh=buyerLogoHtml(e);const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=e.cornBasis!==null?(cornFut+e.cornBasis).toFixed(4):null;const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(4):null;const cbStr=e.cornBasis!==null?((e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)):'';const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'';const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:13px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'';function fmtScrapeBadge(d,calc){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';const ts=tm?mo+' '+tm:mo;const stale=(Date.now()-dt.getTime())>24*60*60*1000;if(calc){const color=stale?'var(--down)':'var(--corn)';const tip='Basis calculated from scraped cash price \u2014 price updates live with CBOT';return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';" title="'+tip+'">basis calc. '+ts+'</span>';}const color=stale?'var(--down)':'var(--up)';const tip='Basis scraped from source \u2014 price updates live with CBOT';return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';" title="'+tip+'">basis '+ts+'</span>';}function fmtEstBadge(){const dt=cbotNow||new Date();const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});const tip='Basis estimated from historical average \u2014 price updates live with CBOT';return'<span class="scrape-ts est" title="'+tip+'">basis est. '+mo+' '+tm+'</span>';}const cornBasisLine=cornCash!=null?'<span class="basis-sublabel">basis '+cbStr+'</span>':'';const soyBasisLine=soyCash!=null&&e.soyBasis!==null?'<span class="basis-sublabel">basis '+sbStr+'</span>':'';const cornTimeBadge=cornCash!=null?(e.cornScrapedBasis?fmtScrapeBadge(e.cornActualDate,e.cornBasisCalculated):fmtEstBadge()):'';const soyTimeBadge=soyCash!=null?(e.soyScrapedBasis?fmtScrapeBadge(e.soyActualDate,e.soyBasisCalculated):fmtEstBadge()):'';const cornContract='';const soyContract='';const scrapeMap=GRAIN_SCRAPE_MAP[key];const sourceUrl=scrapeMap?GRAIN_SOURCE_URLS[scrapeMap.source]:null;const buyerUrl=e.url||null;let linksHtml='';if(buyerUrl)linksHtml+='<a href="'+buyerUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Site ↗</a>';if(sourceUrl&&sourceUrl!==buyerUrl)linksHtml+='<a href="'+sourceUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Bids ↗</a>';if(!linksHtml&&e.phone)linksHtml='<a href="tel:'+e.phone.replace(/[^+\d]/g,'')+'" class="buyer-link" onclick="event.stopPropagation()">Call ↗</a>';if(e.disabled){const linkUrl=e.url||'#';const linkLabel=e.phone?'Call for bids · '+e.phone:'Look up bids ↗';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td colspan="2" style="text-align:center;"><a href="${linkUrl}" target="_blank" rel="noopener" style="color:var(--corn);font-size:12px;letter-spacing:1px;text-decoration:none;" onclick="event.stopPropagation()">${linkLabel}</a></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;}return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td class="cash-price-cell"><div class="price-cell">${cornCash!=null?'<span class="cash-price">$'+cornCash+'</span>'+cornBasisLine+cornContract+cornTimeBadge:'<span style="color:var(--txt3)">—</span>'}</div></td><td class="cash-price-cell soy"><div class="price-cell">${soyCash!=null?'<span class="cash-price">$'+soyCash+'</span>'+soyBasisLine+soyContract+soyTimeBadge:'<span style="color:var(--txt3)">—</span>'}</div></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
+function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=cashTableSortedKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const lh=buyerLogoHtml(e);const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=e.cornBasis!==null?(cornFut+e.cornBasis).toFixed(4):null;const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(4):null;const cbStr=e.cornBasis!==null?((e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)):'';const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'';const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:13px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'';function fmtScrapeBadge(d,calc){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';const ts=tm?mo+' '+tm:mo;const stale=(Date.now()-dt.getTime())>24*60*60*1000;if(calc){const color=stale?'var(--down)':'var(--corn)';const tip='Basis calculated from scraped cash price \u2014 price updates live with CBOT';return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';" title="'+tip+'">basis calc. '+ts+'</span>';}const color=stale?'var(--down)':'var(--up)';const tip='Basis scraped from source \u2014 price updates live with CBOT';return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';" title="'+tip+'">basis '+ts+'</span>';}function fmtEstBadge(){const dt=cbotNow||new Date();const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});const tip='Basis estimated from historical average \u2014 price updates live with CBOT';return'<span class="scrape-ts est" title="'+tip+'">basis est. '+mo+' '+tm+'</span>';}const cornBasisLine=cornCash!=null?'<span class="basis-sublabel">basis '+cbStr+'</span>':'';const soyBasisLine=soyCash!=null&&e.soyBasis!==null?'<span class="basis-sublabel">basis '+sbStr+'</span>':'';const cornTimeBadge=cornCash!=null?(e.cornScrapedBasis?fmtScrapeBadge(e.cornActualDate,e.cornBasisCalculated):fmtEstBadge()):'';const soyTimeBadge=soyCash!=null?(e.soyScrapedBasis?fmtScrapeBadge(e.soyActualDate,e.soyBasisCalculated):fmtEstBadge()):'';const cornContract='';const soyContract='';const scrapeMap=GRAIN_SCRAPE_MAP[key];const sourceUrl=scrapeMap?GRAIN_SOURCE_URLS[scrapeMap.source]:null;const buyerUrl=e.url||null;let linksHtml='';if(buyerUrl)linksHtml+='<a href="'+buyerUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Site ↗</a>';if(sourceUrl&&sourceUrl!==buyerUrl)linksHtml+='<a href="'+sourceUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Bids ↗</a>';if(!linksHtml&&e.phone)linksHtml='<a href="tel:'+e.phone.replace(/[^+\d]/g,'')+'" class="buyer-link" onclick="event.stopPropagation()">Call ↗</a>';if(e.disabled){const linkUrl=e.url||'#';const linkLabel=e.phone?'Call for bids · '+e.phone:'Look up bids ↗';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td colspan="2" style="text-align:center;"><a href="${linkUrl}" target="_blank" rel="noopener" style="color:var(--corn);font-size:12px;letter-spacing:1px;text-decoration:none;" onclick="event.stopPropagation()">${linkLabel}</a></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;}return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td class="cash-price-cell"><div class="price-cell">${cornCash!=null?'<span class="cash-price">$'+cornCash+'</span>'+cornBasisLine+cornContract+cornTimeBadge:'<span style="color:var(--txt3)">—</span>'}</div></td><td class="cash-price-cell soy"><div class="price-cell">${soyCash!=null?'<span class="cash-price">$'+soyCash+'</span>'+soyBasisLine+soyContract+soyTimeBadge:'<span style="color:var(--txt3)">—</span>'}</div></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;});tbody.innerHTML=rows.join('');}
+// ── GRAIN CHARTS ─────────────────────────────────────────────────────────────
+let grainChartRange=90;
+let grainChartCrop='corn'; // 'corn' | 'soy'
+let _grainChartsRendered=false;
+
+function setGrainRange(r,btn){
+  grainChartRange=r;
+  document.querySelectorAll('#grain-chart-range .hist-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrainCharts();
+}
+
+function setGrainChartCrop(crop,btn){
+  grainChartCrop=crop;
+  document.querySelectorAll('.grain-crop-btn').forEach(b=>{
+    const active=b.dataset.crop===crop;
+    b.classList.toggle('active',active);
+    b.style.background=active?'var(--corn)':'transparent';
+    b.style.color=active?'#0f0f0f':'var(--txt3)';
+    b.style.fontWeight=active?'700':'400';
+  });
+  // Rebuild sidebar for new crop (different locations may have data)
+  _grainBasisData=null;
+  _grainBasisChecked=new Set();
+  renderGrainCharts();
+}
+
+async function renderGrainCharts(){
+  const loadingEl=document.getElementById('grain-chart-loading');
+  if(loadingEl)loadingEl.style.display=_grainChartsRendered?'none':'';
+
+  const hist=await loadFuturesHistory();
+  const sym=grainChartCrop==='corn'?'ZC':'ZS';
+  const full=histFromStatic(sym,hist?.daily);
+
+  if(loadingEl)loadingEl.style.display='none';
+  _grainChartsRendered=true;
+
+  // Update titles
+  const cropLabel=grainChartCrop==='corn'?'Corn':'Soybeans';
+  const futTitle=document.getElementById('grain-chart-futures-title');
+  if(futTitle)futTitle.textContent='CBOT '+cropLabel+' Futures — Historical ($/bu)';
+  const basisTitle=document.getElementById('grain-chart-basis-title');
+  if(basisTitle)basisTitle.textContent='Local Buyer Basis — '+cropLabel+' ($/bu)';
+
+  // Futures chart
+  if(full){
+    const sliced=sliceGrainDays(full,grainChartRange);
+    const closes=sliced.closes.map(v=>v!=null?v/100:null); // cents → $/bu
+    const color=grainChartCrop==='corn'?'#c9a227':'#3ea8aa';
+    const fillColor=grainChartCrop==='corn'?'rgba(201,162,39,0.07)':'rgba(62,168,170,0.07)';
+    makeLine('grain-hist-futures',sliced.labels,[{
+      label:cropLabel,data:closes,borderColor:color,borderWidth:2,fill:true,backgroundColor:fillColor
+    }],{fullDates:sliced.fullDates});
+  }
+
+  // Basis chart from scraped grain history
+  renderGrainBasisChart();
+}
+
+function sliceGrainDays(hist,days){
+  if(!hist)return null;
+  const n=Math.min(days,hist.closes.length);
+  var labels;
+  if(days>90&&hist.fullDates){
+    var raw=hist.fullDates.slice(-n);
+    labels=raw.map(function(fd){
+      var parts=fd.split(' ');
+      return parts[0]+' \''+parts[2].slice(2);
+    });
+  } else {
+    labels=hist.labels.slice(-n);
+  }
+  return {labels:labels,closes:hist.closes.slice(-n),fullDates:(hist.fullDates||[]).slice(-n)};
+}
+
+// Grain basis chart — per-location with sidebar checkboxes
+let _grainBasisData=null; // cached: { locations: [{ key, label, lat, lon, source, locSlug, color }], histData: {}, allDates: Set }
+let _grainBasisChecked=new Set(); // checked location keys
+const GRAIN_BASIS_COLORS=['#c9a227','#3ea8aa','#c46a40','#7c6bbf','#e05050','#3cb96a','#5e9fd4','#e89040','#aa5577','#6bcf8e','#d4607a','#4db8a4','#b8862d','#6a8fd4','#cc7744','#88bb55','#c25599','#55aabb','#dd9955','#7799cc'];
+
+// Coordinates for scraped locations not mapped to curated elevators
+const GRAIN_LOC_COORDS={
+  'randolph':{lat:44.5277,lon:-93.0022},'clarks-grove':{lat:43.7633,lon:-93.3299},
+  'delavan':{lat:43.7580,lon:-94.0019},'dolliver':{lat:43.4797,lon:-94.6147},
+  'st-james-feedmill':{lat:43.9827,lon:-94.6269},'freeborn':{lat:43.7652,lon:-93.5663},
+  'lewisville':{lat:43.9241,lon:-94.4380},'truman':{lat:43.8277,lon:-94.4372},
+  'welcome':{lat:43.6666,lon:-94.6194},'hayfield':{lat:43.8902,lon:-92.8460},
+  'kasson':{lat:44.0300,lon:-92.7505},
+  'adm-mankato':{lat:44.1636,lon:-93.9994},'adrian':{lat:43.6322,lon:-95.9328},
+  'agp-sheldon':{lat:43.1811,lon:-95.8567},'beaver-creek':{lat:43.6175,lon:-96.3622},
+  'brewster':{lat:43.6983,lon:-95.4681},'chs-fairmont':{lat:43.6522,lon:-94.4611},
+  'chs-mankato':{lat:44.1636,lon:-93.9994},'dundee':{lat:43.8394,lon:-95.4667},
+  'ellsworth':{lat:43.5172,lon:-96.0172},'heron-lake':{lat:43.7941,lon:-95.3194},
+  'hills-terminal':{lat:43.5283,lon:-96.3578},'jeffers':{lat:44.0594,lon:-95.1928},
+  'magnolia':{lat:43.6444,lon:-96.0772},'mankato':{lat:44.1636,lon:-93.9994},
+  'miloma':{lat:44.0469,lon:-95.4353},'mnsp-brewster':{lat:43.6983,lon:-95.4681},
+  'poet-ashton':{lat:43.3225,lon:-95.7903},'reading':{lat:43.7194,lon:-95.7553},
+  'wilmont':{lat:43.7661,lon:-95.8314},'windom':{lat:43.8663,lon:-95.1169},
+  'worthington':{lat:43.6200,lon:-95.5964},
+  'red-wing-grain-llc':{lat:44.5633,lon:-92.5338},'cannon-falls':{lat:44.5069,lon:-92.9055},
+  'pine-island':{lat:44.2016,lon:-92.6460},'lake-city':{lat:44.4497,lon:-92.2683},
+  'wanamingo':{lat:44.3047,lon:-92.7905},'lewiston':{lat:43.9844,lon:-91.8694},
+  'stewartville':{lat:43.8555,lon:-92.4888},'elgin':{lat:44.1302,lon:-92.2516},
+  'eyota':{lat:43.9886,lon:-92.2286},'viola':{lat:44.0622,lon:-92.2658},
+  'traverse':{lat:44.0711,lon:-92.7358},
+  'atwater-feed-mill':{lat:45.1386,lon:-94.7781},'barron-mill':{lat:45.4011,lon:-91.8494},
+  'dawson-feed-mill':{lat:44.9325,lon:-96.0544},'perham-feed-mill':{lat:46.5944,lon:-95.5725}
+};
+
+async function loadGrainBasisData(){
+  if(_grainBasisData)return _grainBasisData;
+  const sources=['cfs','crystalvalley','poet','chs','newvision','mvg','agp','jennieo','alcorn'];
+  const histData={};
+  const allDates=new Set();
+  const locations=[];
+
+  // Load index.json (today's snapshot) to supplement history
+  let indexData={};
+  try{
+    const ir=await fetchTimeout('data/prices/grain/index.json',5000);
+    if(ir.ok){
+      const idx=await ir.json();
+      for(const src of idx){
+        if(src.locations&&src.date)indexData[src.id]={date:src.date,scrapedAt:src.scrapedAt,locations:src.locations};
+      }
+    }
+  }catch(e){}
+
+  for(const src of sources){
+    try{
+      const r=await fetchTimeout('data/prices/grain/'+src+'.json',5000);
+      if(!r.ok)continue;
+      const d=await r.json();
+      const hist=d.history&&d.history.length?d.history:[];
+
+      // Merge index snapshot if it has a newer date than the latest history entry
+      const idxEntry=indexData[src];
+      if(idxEntry&&idxEntry.locations&&Object.keys(idxEntry.locations).length){
+        const latestHistDate=hist.length?hist[hist.length-1].date:null;
+        if(!latestHistDate||idxEntry.date>latestHistDate){
+          hist.push({date:idxEntry.date,scrapedAt:idxEntry.scrapedAt,locations:idxEntry.locations});
+        }
+      }
+
+      if(!hist.length)continue;
+      histData[src]=hist;
+      hist.forEach(h=>allDates.add(h.date));
+      // Discover all locations from this source
+      const seenLocs=new Set();
+      for(const h of hist){
+        if(!h.locations)continue;
+        for(const[slug,locData]of Object.entries(h.locations)){
+          if(seenLocs.has(slug))continue;
+          seenLocs.add(slug);
+          // Find matching elevator to get lat/lon
+          const elevKey=Object.keys(GRAIN_SCRAPE_MAP).find(k=>GRAIN_SCRAPE_MAP[k].source===src&&GRAIN_SCRAPE_MAP[k].location===slug);
+          const elev=elevKey?(REGION_A.elevators[elevKey]||REGION_B.elevators[elevKey]||ELEVATORS[elevKey]):null;
+          const fallbackCoord=GRAIN_LOC_COORDS[slug];
+          const shortSource={cfs:'CFS',crystalvalley:'CV',poet:'POET',chs:'CHS',newvision:'NVC',mvg:'MVG',agp:'AgP',jennieo:'JO',alcorn:'AlCorn'};
+          const locName=locData.name||slug;
+          const tag=shortSource[src]||src;
+          locations.push({
+            key:src+'__'+slug,
+            label:locName+' · '+tag,
+            shortLabel:locName,
+            source:src,
+            sourceTag:tag,
+            locSlug:slug,
+            lat:elev?.lat||fallbackCoord?.lat||null,
+            lon:elev?.lon||fallbackCoord?.lon||null,
+            elevKey:elevKey||null,
+            buyerName:elev?.name||d.name||src
+          });
+        }
+      }
+    }catch(e){continue;}
+  }
+
+  // Filter out locations with no basis data for either crop
+  const usefulLocs=locations.filter(loc=>{
+    const srcHist=histData[loc.source];
+    if(!srcHist)return false;
+    for(const h of srcHist){
+      if(!h.locations)continue;
+      const ld=h.locations[loc.locSlug];
+      if(!ld)continue;
+      const cornBids=ld.corn||[];
+      const beanBids=ld.beans||[];
+      if(cornBids.some(b=>b.basis!=null&&b.basis>-3&&b.basis<3))return true;
+      if(beanBids.some(b=>b.basis!=null&&b.basis>-3&&b.basis<3))return true;
+    }
+    return false;
+  });
+
+  // Assign colors
+  usefulLocs.forEach((loc,i)=>loc.color=GRAIN_BASIS_COLORS[i%GRAIN_BASIS_COLORS.length]);
+  _grainBasisData={locations:usefulLocs,histData,allDates};
+  return _grainBasisData;
+}
+
+let _grainBasisSortedLocs=null; // cached sorted location list
+
+function buildGrainBasisSidebar(){
+  const container=document.getElementById('grain-basis-location-list');
+  if(!container||!_grainBasisData)return;
+  const locs=_grainBasisData.locations.slice();
+
+  // Sort by distance if user location available, else alphabetical
+  if(userLat&&userLon){
+    locs.sort((a,b)=>{
+      const dA=a.lat?distMiles(userLat,userLon,a.lat,a.lon):9999;
+      const dB=b.lat?distMiles(userLat,userLon,b.lat,b.lon):9999;
+      return dA-dB;
+    });
+  } else {
+    locs.sort((a,b)=>a.label.localeCompare(b.label));
+  }
+  _grainBasisSortedLocs=locs;
+
+  // Default checked: locations in active region
+  if(!_grainBasisChecked.size){
+    const regionElevs=getCuratedForRegion(activeRegion==='auto'?(userLat?autoDetectRegion():'both'):activeRegion);
+    for(const loc of locs){
+      if(loc.elevKey&&regionElevs[loc.elevKey])_grainBasisChecked.add(loc.key);
+    }
+    if(!_grainBasisChecked.size)locs.slice(0,6).forEach(l=>_grainBasisChecked.add(l.key));
+  }
+
+  container.innerHTML=locs.map(loc=>{
+    const checked=_grainBasisChecked.has(loc.key)?'checked':'';
+    const dist=(userLat&&loc.lat)?Math.round(distMiles(userLat,userLon,loc.lat,loc.lon))+' mi':'';
+    return '<label style="display:flex;align-items:center;gap:6px;padding:4px 12px;cursor:pointer;white-space:nowrap;">'
+      +'<input type="checkbox" data-loc="'+loc.key+'" '+checked+' onchange="toggleGrainBasisLoc(this)" style="accent-color:'+loc.color+';">'
+      +'<span style="width:8px;height:8px;border-radius:50%;background:'+loc.color+';flex-shrink:0;"></span>'
+      +'<span style="color:var(--txt2);overflow:hidden;text-overflow:ellipsis;">'+loc.label+'</span>'
+      +(dist?'<span style="color:var(--txt3);font-size:10px;margin-left:auto;padding-left:8px;">'+dist+'</span>':'')
+      +'</label>';
+  }).join('');
+  updateGrainBasisCount();
+}
+
+function updateGrainBasisCount(){
+  const el=document.getElementById('grain-basis-count');
+  if(el)el.textContent=_grainBasisChecked.size;
+}
+
+function toggleGrainBasisDropdown(){
+  const dd=document.getElementById('grain-basis-dropdown');
+  if(!dd)return;
+  const show=dd.style.display==='none';
+  dd.style.display=show?'':'none';
+  if(show){
+    const close=function(e){
+      const wrap=document.getElementById('grain-basis-dropdown-wrap');
+      if(wrap&&!wrap.contains(e.target)){dd.style.display='none';document.removeEventListener('click',close);}
+    };
+    setTimeout(()=>document.addEventListener('click',close),0);
+  }
+}
+
+function toggleGrainBasisLoc(el){
+  const key=el.dataset.loc;
+  if(el.checked)_grainBasisChecked.add(key);
+  else _grainBasisChecked.delete(key);
+  updateGrainBasisCount();
+  drawGrainBasisChart();
+}
+
+function grainBasisSelectAll(){
+  if(!_grainBasisSortedLocs)return;
+  _grainBasisSortedLocs.forEach(l=>_grainBasisChecked.add(l.key));
+  document.querySelectorAll('#grain-basis-location-list input[type=checkbox]').forEach(cb=>cb.checked=true);
+  updateGrainBasisCount();
+  drawGrainBasisChart();
+}
+
+function grainBasisClearAll(){
+  _grainBasisChecked.clear();
+  document.querySelectorAll('#grain-basis-location-list input[type=checkbox]').forEach(cb=>cb.checked=false);
+  updateGrainBasisCount();
+  drawGrainBasisChart();
+}
+
+async function renderGrainBasisChart(){
+  await loadGrainBasisData();
+  buildGrainBasisSidebar();
+  drawGrainBasisChart();
+}
+
+function drawGrainBasisChart(){
+  if(!_grainBasisData)return;
+  const crop=grainChartCrop;
+  const basisField=crop==='corn'?'corn':'beans';
+  const{locations,histData,allDates}=_grainBasisData;
+
+  const sortedDates=[...allDates].sort();
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-grainChartRange);
+  const filteredDates=sortedDates.filter(d=>new Date(d+'T12:00:00')>=cutoff);
+  if(!filteredDates.length)return;
+
+  const labels=filteredDates.map(d=>{
+    const dt=new Date(d+'T12:00:00');
+    if(grainChartRange>90)return dt.toLocaleDateString('en-US',{month:'short'})+" '"+String(dt.getFullYear()).slice(2);
+    return(dt.getMonth()+1)+'/'+dt.getDate();
+  });
+  const fullDates=filteredDates.map(d=>{
+    const dt=new Date(d+'T12:00:00');
+    const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return MO[dt.getMonth()]+' '+dt.getDate()+', '+dt.getFullYear();
+  });
+
+  const datasets=[];
+  for(const loc of locations){
+    if(!_grainBasisChecked.has(loc.key))continue;
+    const srcHist=histData[loc.source];
+    if(!srcHist)continue;
+    const data=filteredDates.map(date=>{
+      const entry=srcHist.find(h=>h.date===date);
+      if(!entry||!entry.locations)return null;
+      const locData=entry.locations[loc.locSlug];
+      if(!locData)return null;
+      const bids=locData[basisField];
+      if(!bids||!bids.length)return null;
+      const b=bids[0].basis;
+      if(b==null||b<-3||b>3)return null;
+      return b;
+    });
+    if(data.some(v=>v!==null)){
+      datasets.push({label:loc.label,data,borderColor:loc.color,borderWidth:2,fill:false,spanGaps:true});
+    }
+  }
+
+  if(datasets.length){
+    // Custom chart with end-of-line labels instead of makeLine
+    if(charts['grain-hist-basis'])charts['grain-hist-basis'].destroy();
+    const ctx=document.getElementById('grain-hist-basis');
+    if(!ctx)return;
+    charts['grain-hist-basis']=new Chart(ctx,{
+      type:'line',
+      data:{labels,datasets},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        layout:{padding:{right:80}},
+        plugins:{
+          legend:{display:false},
+          tooltip:{mode:'index',intersect:false,callbacks:{
+            title:function(items){if(fullDates&&items.length&&fullDates[items[0].dataIndex])return fullDates[items[0].dataIndex];return items[0].label;}
+          }}
+        },
+        scales:{
+          x:{ticks:{color:'#5e6369',font:{size:11},maxTicksLimit:10,maxRotation:0},grid:{color:'#252a31'}},
+          y:{ticks:{color:'#5e6369',font:{size:11}},grid:{color:'#252a31'}}
+        },
+        elements:{point:{radius:0,hitRadius:12},line:{tension:0.35}}
+      },
+      plugins:[{
+        id:'endLabels',
+        afterDraw(chart){
+          const{ctx:c}=chart;
+          const lineH=13;
+          // Collect all label positions
+          const items=[];
+          chart.data.datasets.forEach((ds,i)=>{
+            const meta=chart.getDatasetMeta(i);
+            if(meta.hidden)return;
+            let lastPt=null;
+            for(let j=meta.data.length-1;j>=0;j--){
+              if(ds.data[j]!=null){lastPt=meta.data[j];break;}
+            }
+            if(!lastPt)return;
+            items.push({label:ds.label,color:ds.borderColor,x:lastPt.x,y:lastPt.y});
+          });
+          // Sort by Y position and nudge overlapping labels apart
+          items.sort((a,b)=>a.y-b.y);
+          for(let i=1;i<items.length;i++){
+            const gap=items[i].y-items[i-1].y;
+            if(gap<lineH){
+              const nudge=(lineH-gap)/2;
+              items[i-1].y-=nudge;
+              items[i].y+=nudge;
+              // Cascade: re-check previous pairs after nudging
+              for(let j=i-1;j>0;j--){
+                const g2=items[j].y-items[j-1].y;
+                if(g2<lineH){items[j-1].y-=(lineH-g2)/2;items[j].y+=(lineH-g2)/2;}
+              }
+            }
+          }
+          // Draw labels
+          c.save();
+          c.font='bold 11px system-ui,sans-serif';
+          c.textBaseline='middle';
+          items.forEach(it=>{
+            c.fillStyle=it.color;
+            c.fillText(it.label,it.x+6,it.y);
+          });
+          c.restore();
+        }
+      }]
+    });
+  } else {
+    if(charts['grain-hist-basis'])charts['grain-hist-basis'].destroy();
+  }
+}
+
 function updateGrainInsight(){
   const el=document.getElementById('grain-insight');
   if(!el)return;
-  const selKey=document.getElementById('elev-select')?.value;
-  const selElev=selKey?ELEVATORS[selKey]:null;
+  const selKey=null;
+  const selElev=null;
   // Use grain scrape timestamp when actual data exists, otherwise CBOT fetch time
   const grainScrapeTs = selElev?.cornActualDate || Object.values(GRAIN_SCRAPE_DATES).filter(Boolean).sort().pop() || null;
   const ts = grainScrapeTs ? new Date(grainScrapeTs) : (cbotNow||new Date());
@@ -1575,7 +2178,7 @@ function rebuildElevatorDirectory() {
       ${noteHtml}
       ${discoveredNote}
       <div class="auction-links" style="margin-top:10px;">
-        <button onclick="document.getElementById('elev-select').value='${key}';onElevChange();switchSubtab('grain');switchTab('grain','prices',document.querySelector('#sub-grain .tab'));" class="auction-link" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:12px;color:var(--corn);padding:0;letter-spacing:1px;">Set as My Buyer ★</button>
+        <button onclick="switchSubtab('grain');switchTab('grain','prices',document.querySelector('#sub-grain .tab'));highlightTableRow('${key}');" class="auction-link" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:12px;color:var(--corn);padding:0;letter-spacing:1px;">View Prices ★</button>
         ${websiteLink}
         <a href="${mapsUrl}" target="_blank" rel="noopener" class="auction-link">Directions ↗</a>
       </div>
@@ -1589,9 +2192,9 @@ function rebuildElevatorDirectory() {
 const SEARCH_RADIUS_M=80000;
 const OVERPASS_QUERY=(lat,lon)=>`[out:json][timeout:20];(node["man_made"="silo"](around:${SEARCH_RADIUS_M},${lat},${lon});node["name"~"elevator|grain|coop|co-op|chs|cenex|feed|ethanol|agri|landmark|heartland|adf|poet|farmer",i]["name"!~"^$"](around:${SEARCH_RADIUS_M},${lat},${lon});way["man_made"="silo"]["name"~".",i](around:${SEARCH_RADIUS_M},${lat},${lon}););out center tags;`;
 function slugify(str){return str.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');}
-function isTooClose(lat,lon){return Object.values(CURATED).some(c=>distMiles(lat,lon,c.lat,c.lon)<1.3);}
+function isTooClose(lat,lon){return Object.values(ALL_ELEVATORS).some(c=>distMiles(lat,lon,c.lat,c.lon)<1.3);}
 function estimateBasis(lat,lon,isCorn){const s=Math.abs(Math.sin(lat*1000+lon*997));const base=isCorn?-0.20:-0.27;return parseFloat((base+(s*0.10-0.05)).toFixed(2));}
-async function discoverElevators(lat,lon){const statusEl=document.getElementById('discovery-status');if(statusEl)statusEl.textContent='Searching for nearby buyers…';try{const body='data='+encodeURIComponent(OVERPASS_QUERY(lat,lon));const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});if(!r.ok)throw new Error('overpass '+r.status);const d=await r.json();let added=0;(d.elements||[]).forEach(el=>{const name=(el.tags&&(el.tags.name||el.tags['operator']||el.tags['brand']))||'';if(!name||name.length<3)return;const elat=el.lat||(el.center&&el.center.lat);const elon=el.lon||(el.center&&el.center.lon);if(!elat||!elon)return;if(isTooClose(elat,elon))return;const key='osm_'+slugify(name)+'_'+el.id;if(ELEVATORS[key])return;const n=name.toLowerCase();if(!n.includes('elevator')&&!n.includes('grain')&&!n.includes('coop')&&!n.includes('co-op')&&!n.includes('chs')&&!n.includes('cenex')&&!n.includes('feed')&&!n.includes('ethanol')&&!n.includes('agri')&&!n.includes('poet')&&!n.includes('farmer'))return;const city=(el.tags['addr:city']||el.tags['addr:town']||'');const state=(el.tags['addr:state']||'MN');const loc=city?(city+' '+state).trim():(state);ELEVATORS[key]={name,loc,lat:elat,lon:elon,cornBasis:estimateBasis(elat,elon,true),soyBasis:estimateBasis(elat,elon,false),curated:false,discovered:true};added++;});if(statusEl){statusEl.textContent=added>0?added+' additional buyer'+(added>1?'s':'')+' found nearby':'No additional buyers found in range';setTimeout(()=>{if(statusEl)statusEl.textContent='';},4000);}}catch(e){if(statusEl)statusEl.textContent='Buyer search unavailable';setTimeout(()=>{if(statusEl)statusEl.textContent='';},3000);}rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();}
+async function discoverElevators(lat,lon){const statusEl=document.getElementById('discovery-status');if(statusEl)statusEl.textContent='Searching for nearby buyers…';try{const body='data='+encodeURIComponent(OVERPASS_QUERY(lat,lon));const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});if(!r.ok)throw new Error('overpass '+r.status);const d=await r.json();let added=0;(d.elements||[]).forEach(el=>{const name=(el.tags&&(el.tags.name||el.tags['operator']||el.tags['brand']))||'';if(!name||name.length<3)return;const elat=el.lat||(el.center&&el.center.lat);const elon=el.lon||(el.center&&el.center.lon);if(!elat||!elon)return;if(isTooClose(elat,elon))return;const key='osm_'+slugify(name)+'_'+el.id;if(ELEVATORS[key])return;const n=name.toLowerCase();if(!n.includes('elevator')&&!n.includes('grain')&&!n.includes('coop')&&!n.includes('co-op')&&!n.includes('chs')&&!n.includes('cenex')&&!n.includes('feed')&&!n.includes('ethanol')&&!n.includes('agri')&&!n.includes('poet')&&!n.includes('farmer'))return;const city=(el.tags['addr:city']||el.tags['addr:town']||'');const state=(el.tags['addr:state']||'MN');const loc=city?(city+' '+state).trim():(state);const entry={name,loc,lat:elat,lon:elon,cornBasis:null,soyBasis:null,curated:false,discovered:true};ELEVATORS[key]=entry;ALL_ELEVATORS[key]=entry;added++;});if(statusEl){statusEl.textContent=added>0?added+' additional buyer'+(added>1?'s':'')+' found nearby':'No additional buyers found in range';setTimeout(()=>{if(statusEl)statusEl.textContent='';},4000);}}catch(e){if(statusEl)statusEl.textContent='Buyer search unavailable';setTimeout(()=>{if(statusEl)statusEl.textContent='';},3000);}rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();}
 
 // ── CATTLE TYPE + AUCTION BARN PRICES ────────────────────────────────────────
 // Cattle type dropdown — affects barn price display

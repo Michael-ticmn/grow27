@@ -44,6 +44,7 @@ function switchTab(sub,id,el){
   tabs.forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   if(sub==='cattle'&&id==='charts'&&CATTLE_DATA.lc)renderHistCharts();
+  if(sub==='grain'&&id==='charts')renderGrainCharts();
   if(sub==='cattle'&&id==='margin'){calc();renderSeasonal();}
 }
 
@@ -114,8 +115,8 @@ async function loadWeather(ulat,ulon){
 }
 
 function initLocation(){
-  if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{userLat=pos.coords.latitude;userLon=pos.coords.longitude;if(activeRegion==='auto')setRegion('auto');loadWeather(userLat,userLon);discoverElevators(userLat,userLon);rebuildDairyPlantSelect();rebuildBarnSelect();},()=>{userLat=44.03;userLon=-94.76;if(activeRegion==='auto')setRegion('auto');loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();});}
-  else{userLat=44.03;userLon=-94.76;if(activeRegion==='auto')setRegion('auto');loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();}
+  if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{userLat=pos.coords.latitude;userLon=pos.coords.longitude;filterElevatorsByRadius();loadWeather(userLat,userLon);discoverElevators(userLat,userLon);rebuildDairyPlantSelect();rebuildBarnSelect();},()=>{userLat=44.03;userLon=-94.76;filterElevatorsByRadius();loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();});}
+  else{userLat=44.03;userLon=-94.76;filterElevatorsByRadius();loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();}
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────

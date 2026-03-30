@@ -1,0 +1,72 @@
+name: Scraper Watchdog
+on:
+  schedule:
+    # 8:30 AM CT (14:30 UTC) Mon-Fri — checks grain + barns morning runs
+    - cron: '30 14 * * 1-5'
+    # 1:00 PM CT (19:00 UTC) daily — checks barns backup (barns run 7 days)
+    - cron: '0 19 * * *'
+    # 9:00 PM CT (03:00 UTC next day) Mon-Fri — checks futures after-market run
+    - cron: '0 3 * * 2-6'
+  workflow_dispatch:
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check and trigger missing scraper runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const now = new Date();
+            const todayStr = now.toISOString().slice(0, 10);
+            const dayOfWeek = now.getUTCDay(); // 0=Sun, 6=Sat
+
+            const utcHour = now.getUTCHours();
+            // Workflows to check: { file, name, daysToRun, afterUTC }
+            // afterUTC: only check this workflow if current UTC hour >= this value
+            // (prevents triggering futures before its scheduled evening run)
+            const workflows = [
+              { file: 'check-robots.yml', name: 'Robots', days: [0,1,2,3,4,5,6], afterUTC: 7 },
+              { file: 'scrape-grain.yml', name: 'Grain', days: [1,2,3,4,5], afterUTC: 0 },
+              { file: 'scrape-barns.yml', name: 'Barns', days: [0,1,2,3,4,5,6], afterUTC: 0 },
+              { file: 'scrape-futures.yml', name: 'Futures', days: [1,2,3,4,5], afterUTC: 2 },
+            ];
+
+            for (const wf of workflows) {
+              // Skip if today isn't a run day for this workflow
+              if (!wf.days.includes(dayOfWeek)) {
+                console.log(`${wf.name}: not scheduled today (day ${dayOfWeek}), skipping`);
+                continue;
+              }
+              // Skip if it's too early to check this workflow
+              if (utcHour < wf.afterUTC) {
+                console.log(`${wf.name}: too early to check (UTC ${utcHour} < ${wf.afterUTC}), skipping`);
+                continue;
+              }
+
+              // List recent runs for this workflow
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner, repo,
+                workflow_id: wf.file,
+                per_page: 5,
+                created: `>=${todayStr}`,
+              });
+
+              const todayRuns = data.workflow_runs.filter(r =>
+                r.created_at.startsWith(todayStr)
+              );
+
+              if (todayRuns.length > 0) {
+                console.log(`${wf.name}: already ran today (${todayRuns.length} runs), OK`);
+              } else {
+                console.log(`${wf.name}: NO runs today — triggering workflow_dispatch`);
+                await github.rest.actions.createWorkflowDispatch({
+                  owner, repo,
+                  workflow_id: wf.file,
+                  ref: 'main',
+                });
+                console.log(`${wf.name}: dispatch sent`);
+              }
+            }

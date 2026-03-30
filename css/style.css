@@ -172,6 +172,9 @@
   .hist-btn{font-size:12px;padding:6px 14px;border:1px solid var(--border2);border-radius:3px;background:transparent;color:var(--txt3);cursor:pointer;transition:all .12s;font-family:inherit;}
   .hist-btn.active{border-color:var(--corn);color:var(--corn);background:var(--corn-dim);}
   .hist-btn:hover:not(.active){color:var(--txt2);background:var(--bg3);}
+  #grain-basis-dropdown::-webkit-scrollbar,#buyer-dropdown::-webkit-scrollbar{width:4px;}
+  #grain-basis-dropdown::-webkit-scrollbar-thumb,#buyer-dropdown::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  #grain-basis-dropdown label:hover,#buyer-dropdown label:hover{background:var(--bg3);}
   .brief-grid{display:grid;gap:10px;}
   .brief-wip{display:flex;align-items:flex-start;gap:12px;background:#1a1500;border:1px solid #7a5f00;border-left:4px solid #f0b400;border-radius:4px;padding:14px 16px;margin-bottom:14px;}
   .brief-wip-icon{font-size:20px;line-height:1;flex-shrink:0;margin-top:1px;}

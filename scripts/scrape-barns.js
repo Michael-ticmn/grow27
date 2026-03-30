@@ -228,6 +228,13 @@ async function run() {
       || (config.reportUrl ? [{ day: null, url: config.reportUrl }] : []);
 
     if (config.hasTypeBreakdown && reports.length > 0) {
+      // Check last known robots.txt result (no network call — set by midnight job)
+      const { isAllowed } = require('./robots-check');
+      if (!isAllowed(id)) {
+        console.log(`[${id}] SKIPPED — blocked by robots.txt`);
+        continue;
+      }
+
       for (const report of reports) {
         const tag = report.day || 'report';
         console.log(`\n── [${id}] ${tag}: ${report.url} ──`);
