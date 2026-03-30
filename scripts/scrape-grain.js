@@ -46,11 +46,11 @@ async function fetchCbot() {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
       const meta = j.chart.result[0].meta;
-      // regularMarketPrice is in cents for grain futures on Yahoo
+      // Yahoo returns cents/bushel for ZC and ZS (e.g. 458.25 for corn)
       const price = meta.regularMarketPrice;
       if (price != null) {
-        // Yahoo returns $/bushel for ZC and ZS (e.g. 4.58 for corn)
-        cbot[key] = parseFloat(price.toFixed(4));
+        // Convert cents → dollars to match our cash prices (e.g. 458.25 → 4.5825)
+        cbot[key] = parseFloat((price / 100).toFixed(4));
       }
     } catch (e) {
       console.warn(`[cbot] ${key} (${symbol}) fetch failed: ${e.message}`);
