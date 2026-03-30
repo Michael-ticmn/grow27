@@ -64,7 +64,7 @@ Claude edits files directly in the local repo. Michael validates locally before 
 
 ## Data pipeline
 - `data/barns-config.json` — barn registry. Add a barn here only; no code changes needed.
-- `data/prices/<id>.json` — per-barn history, max 14 entries / 14 days
+- `data/prices/<id>.json` — per-barn history, no limit (all scrape dates kept)
 - `data/prices/index.json` — latest snapshot, one entry per barn (what the PWA reads)
 - `scripts/scrape-barns.js` — **orchestrator**. Loops barns, fetches pages via Puppeteer, delegates parsing to barn-specific modules, writes output. Exports shared helpers (`normalizePrice`, `extractLinePrice`, regex constants) for barn parsers.
 - `scripts/barns/<id>.js` — barn-specific parser module. Exports `parse({ id, browser, html, $ })` returning `{ slaughter, feeder, feederWeights, repSales, ... }`. Currently: `central.js` (OCR + rep sales), `lanesboro.js` (plain HTML), `rockcreek.js` (PDF), `sleepyeye.js` (Google Sheets CSV).
@@ -97,7 +97,7 @@ Claude edits files directly in the local repo. Michael validates locally before 
 
 ## Grain data pipeline
 - `data/grain-config.json` — grain source registry. Each entry has `id`, `name`, `url`, `locations[]`, `commodities[]`.
-- `data/prices/grain/<id>.json` — per-source history, max 14 entries / 14 days
+- `data/prices/grain/<id>.json` — per-source history, no limit (all scrape dates kept)
 - `data/prices/grain/index.json` — latest snapshot, one entry per source (what the PWA will read)
 - `scripts/scrape-grain.js` — **orchestrator**. Loops grain sources, launches Puppeteer, delegates parsing to source-specific modules, writes output.
 - `scripts/grain/<id>.js` — source-specific parser module. Exports `parse({ id, config, browser })` returning `{ locations: { [slug]: { name, corn: [...], beans: [...] } }, source, error }`.

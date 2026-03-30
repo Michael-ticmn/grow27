@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.149
+**Version:** 1.154
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-03-27T22:00Z
+**Last updated:** 2026-03-30T15:00Z
 
 ---
 
@@ -25,7 +25,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Component | Schedule | Status |
 |-----------|----------|--------|
 | Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running on main |
-| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley) | Mon–Fri 4am + 7am CT | Running on main |
+| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley, POET) | Mon–Fri 4am + 7am CT | Running on main |
 | Staleness check | After each scrape | Fails workflow if source stale (7d barns, 3d grain/futures) |
 | Test scrapers (dry run) | Push to UserUpdates (path-filtered) | Validates parsers without committing |
 
@@ -49,7 +49,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Jennie-O | `scripts/grain/jennieo.js` | 4 | Active — cash-only via farmbucks.com |
 | New Vision | `scripts/grain/newvision.js` | 22 | Active — AgriCharts JSON API, corn+beans, basis+basisMonth stored |
 | Al-Corn | `scripts/grain/alcorn.js` | 1 | Active — CIH widget, corn only, Claremont MN |
-| POET | `scripts/grain/poet.js` | 2 | Disabled — Gradable WAF blocks headless browsers |
+| POET | `scripts/grain/poet.js` | 3 | Active — cash-only via farmbucks.com, MN locations (Bingham Lake, Lake Crystal, Preston) |
 
 ### Overlap / Gap Notes (New Vision)
 | New Vision Location | Overlap | Status |
@@ -72,7 +72,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Component | Schedule | Status |
 |-----------|----------|--------|
 | Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running on main |
-| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley) | Mon–Fri 4am + 7am CT | Running on main |
+| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley, POET) | Mon–Fri 4am + 7am CT | Running on main |
 | Futures history scraper (LE, GF, ZC, ZS, DC, ZM) | Mon–Fri 5pm + 7pm CT | Running on main |
 | Staleness check (`scripts/check-staleness.js`) | After each scrape | Alerts on stale sources |
 | Test scrapers (`test-scrapers.yml`) | Push to UserUpdates | Dry-run validation |
@@ -91,7 +91,7 @@ ABOUT — data sources, app info
 
 ### Key Data Files
 - `data/barns-config.json` — 6 barns registered (5 active/pending, 1 directory-only)
-- `data/grain-config.json` — 9 sources (8 active, POET disabled)
+- `data/grain-config.json` — 9 sources (all active)
 - `data/prices/index.json` — latest barn snapshot
 - `data/prices/grain/index.json` — latest grain snapshot
 - History files: no cap (was 14, removed v1.82) — monitor site speed

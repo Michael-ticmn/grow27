@@ -326,6 +326,27 @@ async function run() {
 
   fs.writeFileSync(INDEX_PATH, JSON.stringify(indexOut, null, 2) + '\n');
   console.log('\n=== index.json updated ===');
+
+  // ── File size warning ───────────────────────────────────────────────────
+  checkFileSizes(PRICES_DIR, 5);
+}
+
+// ── File size monitor ────────────────────────────────────────────────────────
+
+function checkFileSizes(dir, thresholdMB) {
+  const threshold = thresholdMB * 1024 * 1024;
+  let warned = false;
+  for (const file of fs.readdirSync(dir)) {
+    if (!file.endsWith('.json')) continue;
+    const fp = path.join(dir, file);
+    const stat = fs.statSync(fp);
+    const sizeMB = (stat.size / (1024 * 1024)).toFixed(2);
+    if (stat.size > threshold) {
+      console.warn(`⚠ SIZE WARNING: ${file} is ${sizeMB} MB (threshold: ${thresholdMB} MB)`);
+      warned = true;
+    }
+  }
+  if (!warned) console.log(`File sizes OK (all under ${thresholdMB} MB)`);
 }
 
 // Merge rep sales from two entries — picks the best data for each sub-field.

@@ -28,7 +28,65 @@ const CONFIG_PATH = path.join(ROOT, 'data', 'grain-config.json');
 const PRICES_DIR  = path.join(ROOT, 'data', 'prices', 'grain');
 const INDEX_PATH  = path.join(PRICES_DIR, 'index.json');
 
-const MAX_AGE_DAYS = 30;  // keep 30 days of scrape dates
+// No history limit — keep all scrape dates (monitor file size as data grows)
+
+// ── CBOT futures fetch (Yahoo Finance, Node 18+ built-in fetch) ─────────────
+
+async function fetchCbot() {
+  const tickers = { corn: 'ZC=F', beans: 'ZS=F' };
+  const cbot = { corn: null, beans: null, fetchedAt: null };
+
+  for (const [key, symbol] of Object.entries(tickers)) {
+    try {
+      const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=1d`;
+      const r = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (grow27-bot)' },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const j = await r.json();
+      const meta = j.chart.result[0].meta;
+      // Yahoo returns cents/bushel for ZC and ZS (e.g. 458.25 for corn)
+      const price = meta.regularMarketPrice;
+      if (price != null) {
+        // Convert cents → dollars to match our cash prices (e.g. 458.25 → 4.5825)
+        cbot[key] = parseFloat((price / 100).toFixed(4));
+      }
+    } catch (e) {
+      console.warn(`[cbot] ${key} (${symbol}) fetch failed: ${e.message}`);
+    }
+  }
+
+  cbot.fetchedAt = new Date().toISOString();
+  console.log(`[cbot] corn: ${cbot.corn != null ? '$' + cbot.corn : 'FAILED'}, beans: ${cbot.beans != null ? '$' + cbot.beans : 'FAILED'}`);
+  return cbot;
+}
+
+// ── Basis calculation for cash-only sources ─────────────────────────────────
+
+function fillCalculatedBasis(locations, cbot) {
+  const ts = cbot.fetchedAt;
+  let filled = 0;
+
+  for (const [slug, locData] of Object.entries(locations)) {
+    for (const commodity of ['corn', 'beans']) {
+      const cbotPrice = cbot[commodity];
+      if (cbotPrice == null) continue;
+      const bids = locData[commodity];
+      if (!Array.isArray(bids)) continue;
+
+      for (const bid of bids) {
+        if (bid.cash != null && bid.basis == null) {
+          bid.basis = parseFloat((bid.cash - cbotPrice).toFixed(4));
+          bid.basisNote = 'calculated ' + ts;
+          filled++;
+        }
+      }
+    }
+  }
+
+  return filled;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -37,10 +95,7 @@ function today() {
 }
 
 function trimHistory(history) {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - MAX_AGE_DAYS);
-  const cutStr = cutoff.toISOString().slice(0, 10);
-  return history.filter(e => e.date >= cutStr);
+  return history;
 }
 
 // ── Grain parser loader ──────────────────────────────────────────────────────
@@ -123,6 +178,9 @@ async function run() {
   const grainConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
   console.log(`Loaded config · ${grainConfig.length} sources\n`);
 
+  // Fetch CBOT nearby futures for basis calculation on cash-only sources
+  const cbot = await fetchCbot();
+
   const indexOut = [];
 
   for (const config of grainConfig) {
@@ -148,10 +206,17 @@ async function run() {
 
       const result = await parser.parse({ id, config, browser });
 
+      // Fill calculated basis for sources that only provide cash prices
+      const locs = result.locations ?? {};
+      const basisFilled = fillCalculatedBasis(locs, cbot);
+      if (basisFilled > 0) {
+        console.log(`[${id}] filled calculated basis on ${basisFilled} bids (CBOT corn: ${cbot.corn}, beans: ${cbot.beans})`);
+      }
+
       const entry = {
         date:      todayStr,
         scrapedAt: new Date().toISOString(),
-        locations: result.locations ?? {},
+        locations: locs,
         source:    result.source ?? 'scraped',
       };
       if (result.error) entry.error = result.error;
@@ -189,6 +254,27 @@ async function run() {
 
   fs.writeFileSync(INDEX_PATH, JSON.stringify(indexOut, null, 2) + '\n');
   console.log('\n=== grain index.json updated ===');
+
+  // ── File size warning ───────────────────────────────────────────────────
+  checkFileSizes(PRICES_DIR, 5);
+}
+
+// ── File size monitor ────────────────────────────────────────────────────────
+
+function checkFileSizes(dir, thresholdMB) {
+  const threshold = thresholdMB * 1024 * 1024;
+  let warned = false;
+  for (const file of fs.readdirSync(dir)) {
+    if (!file.endsWith('.json')) continue;
+    const fp = path.join(dir, file);
+    const stat = fs.statSync(fp);
+    const sizeMB = (stat.size / (1024 * 1024)).toFixed(2);
+    if (stat.size > threshold) {
+      console.warn(`⚠ SIZE WARNING: ${file} is ${sizeMB} MB (threshold: ${thresholdMB} MB)`);
+      warned = true;
+    }
+  }
+  if (!warned) console.log(`File sizes OK (all under ${thresholdMB} MB)`);
 }
 
 // ── Build index row from history ─────────────────────────────────────────────

@@ -212,6 +212,12 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - **Prerequisites:** Dedicated CBOT scraper (above), `basisMonth` already stored in New Vision data
 - **Approach:** Scraper stores basis per elevator per delivery month. Frontend reads `cbot.json` for live futures. `cash = futures[basisMonth] + basis`. All other scrapers would need to store `basisMonth` too.
 
+### [ ] [FROM: Code] Price history by location — QUEUED 2026-03-30
+- **Date queued:** 2026-03-30
+- **Task:** Add history-by-location views to the PWA so users can see price trends over time per elevator/barn
+- **Context:** History limits removed from both scrapers (grain was 30 days, now unlimited; barns already unlimited). Data accumulating in `data/prices/grain/<id>.json` and `data/prices/<id>.json` history arrays. File sizes monitored at 5 MB threshold.
+- **Decision needed:** UI design — chart per location? table view? Which locations/sources first?
+
 ### [ ] [FROM: Code] Grain Charts tab — mirror cattle chart architecture — QUEUED 2026-03-25
 - **Date queued:** 2026-03-25
 - **Task:** Add a Charts tab to the Grain module, mirroring the cattle charts architecture
@@ -283,5 +289,7 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - ✅ [Code] Cattle charts overhaul: real 5yr historical data, server-side scraper, Futures/Auction toggle, seasonal pattern, insights, sale calendar, expanded range buttons — 2026-03-25 (v1.116)
 - ✅ [Code] Al-Corn grain parser built — CIH widget, corn only, Claremont MN, GRAIN_SCRAPE_MAP wired — 2026-03-26 (v1.117–v1.121)
 - ✅ [Code] POET Biorefining parser built then shelved — Gradable WAF blocks headless browsers, disabled in config — 2026-03-26 (v1.123–v1.124)
+- ✅ [Code] POET parser rewritten for farmbucks.com, 3 MN locations active, wired to markets table — 2026-03-30 (v1.151–v1.154)
+- ✅ [Code] History limits removed from grain scraper, 5MB file size warnings added to both scrapers — 2026-03-30 (v1.153)
 - ✅ [Code] Est. badge + hidden basis for non-scraped buyers, About page + How To updates — 2026-03-26 (v1.125)
 - ✅ [Code] About page brand-voice rewrite, page loader overhaul (360px logo, 7s grow, rotating taglines, 95% opacity) — 2026-03-26 (v1.126)
