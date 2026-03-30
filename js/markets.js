@@ -1305,6 +1305,8 @@ const GRAIN_SOURCE_URLS={
 };
 let GRAIN_SCRAPED = {}; // populated by loadGrainScrapedData()
 let GRAIN_SCRAPE_DATES = {}; // { sourceId: "2026-03-22" }
+// Clear fallback basis for elevators that have a scrape map — real basis will be overlaid by loadGrainScrapedData()
+for(const k of Object.keys(GRAIN_SCRAPE_MAP)){const e=REGION_A.elevators[k]||REGION_B.elevators[k];if(e){e._fallbackCornBasis=e.cornBasis;e._fallbackSoyBasis=e.soyBasis;e.cornBasis=null;e.soyBasis=null;}}
 
 async function loadGrainScrapedData() {
   try {
@@ -1347,7 +1349,7 @@ async function loadGrainScrapedData() {
         // don't backfill with default data. Leave blank instead.
         elev.scraped = true;
         if (cornNearby && (cornNearby.basis != null || cornNearby.cash != null)) {
-          if (cornNearby.basis != null) { elev.cornBasis = cornNearby.basis; elev.cornScrapedBasis = true; }
+          if (cornNearby.basis != null) { elev.cornBasis = cornNearby.basis; elev.cornScrapedBasis = true; elev.cornBasisCalculated = !!(cornNearby.basisNote && cornNearby.basisNote.startsWith('calculated')); }
           elev.cornCash = cornNearby.cash;
           elev.cornCbot = cornNearby.cbot;
           elev.cornFuturesMonth = cornNearby.futuresMonth;
@@ -1355,9 +1357,12 @@ async function loadGrainScrapedData() {
           elev.cornActual = true;
           elev.cornActualDate = scrapeDate;
           elev.cornForward = isForwardBid(cornNearby);
+        } else if (locData.corn && locData.corn.length === 0) {
+          // Scraper confirmed no corn bids — clear fallback basis
+          elev.cornBasis = null;
         }
         if (beanNearby && (beanNearby.basis != null || beanNearby.cash != null)) {
-          if (beanNearby.basis != null) { elev.soyBasis = beanNearby.basis; elev.soyScrapedBasis = true; }
+          if (beanNearby.basis != null) { elev.soyBasis = beanNearby.basis; elev.soyScrapedBasis = true; elev.soyBasisCalculated = !!(beanNearby.basisNote && beanNearby.basisNote.startsWith('calculated')); }
           elev.soyCash = beanNearby.cash;
           elev.soyCbot = beanNearby.cbot;
           elev.soyFuturesMonth = beanNearby.futuresMonth;
@@ -1365,6 +1370,9 @@ async function loadGrainScrapedData() {
           elev.soyActual = true;
           elev.soyForward = isForwardBid(beanNearby);
           elev.soyActualDate = scrapeDate;
+        } else if (locData.beans && locData.beans.length === 0) {
+          // Scraper confirmed no bean bids — clear fallback basis
+          elev.soyBasis = null;
         }
       }
       updated++;
@@ -1396,6 +1404,9 @@ async function loadGrainScrapedData() {
     updateGrainInsight();
   } catch (e) {
     console.warn('[grain] could not load scraped data:', e.message);
+    // Restore fallback basis if scrape fetch failed
+    for(const k of Object.keys(GRAIN_SCRAPE_MAP)){const el=REGION_A.elevators[k]||REGION_B.elevators[k];if(el&&!el.scraped){if(el._fallbackCornBasis!=null)el.cornBasis=el._fallbackCornBasis;if(el._fallbackSoyBasis!=null)el.soyBasis=el._fallbackSoyBasis;}}
+    buildCashTable();
   }
 }
 
@@ -1404,17 +1415,17 @@ function autoDetectRegion(){if(!userLat||!userLon)return'both';const dA=distMile
 function setRegion(k){activeRegion=k;const discovered=Object.fromEntries(Object.entries(ELEVATORS).filter(([,e])=>e.discovered));CURATED=getCuratedForRegion(k==='auto'?autoDetectRegion():k);ELEVATORS=Object.assign({},CURATED,discovered);document.querySelectorAll('.region-btn').forEach(b=>b.classList.toggle('active',b.dataset.region===k));rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();updateRegionBadge();updateGrainInsight();}
 function updateRegionBadge(){const el=document.getElementById('active-region-label');if(!el)return;const eff=activeRegion==='auto'?(userLat?autoDetectRegion():'both'):activeRegion;if(eff==='A')el.textContent=REGION_A.label+' — '+REGION_A.sublabel;else if(eff==='B')el.textContent=REGION_B.label+' — '+REGION_B.sublabel;else el.textContent='All regions — '+REGION_A.label+' + '+REGION_B.label;}
 function sortedElevatorKeys(){const keys=Object.keys(ELEVATORS);if(!userLat)return keys;return keys.slice().sort((a,b)=>distMiles(userLat,userLon,ELEVATORS[a].lat,ELEVATORS[a].lon)-distMiles(userLat,userLon,ELEVATORS[b].lat,ELEVATORS[b].lon));}
-function onElevChange(){const key=document.getElementById('elev-select').value;const disp=document.getElementById('elev-basis-display');const distEl=document.getElementById('elev-dist-display');if(!key){disp.style.display='none';distEl.textContent='';updateGrainInsight();return;}const e=ELEVATORS[key];let html='<strong>'+e.name+'</strong> — Corn basis: ';const cb=e.cornBasis;html+='<span style="color:'+(cb>=0?'var(--up)':'var(--down)')+'">'+(cb>=0?'+':'')+cb.toFixed(2)+'</span>';if(e.soyBasis!==null){const sb=e.soyBasis;html+='  &nbsp;·&nbsp;  Soy basis: <span style="color:'+(sb>=0?'var(--up)':'var(--down)')+'">'+(sb>=0?'+':'')+sb.toFixed(2)+'</span>';}else{html+='  &nbsp;·&nbsp;  <span style="color:var(--txt3)">Soy: N/A</span>';}disp.innerHTML=html;disp.style.display='';if(userLat&&userLon){const d=Math.round(distMiles(userLat,userLon,e.lat,e.lon));distEl.textContent='~'+d+' mi away';}highlightTableRow(key);updateGrainInsight();}
+function onElevChange(){const key=document.getElementById('elev-select').value;const disp=document.getElementById('elev-basis-display');const distEl=document.getElementById('elev-dist-display');if(!key){disp.style.display='none';distEl.textContent='';updateGrainInsight();return;}const e=ELEVATORS[key];let html='<strong>'+e.name+'</strong> — Corn basis: ';const cb=e.cornBasis;if(cb!==null){html+='<span style="color:'+(cb>=0?'var(--up)':'var(--down)')+'">'+(cb>=0?'+':'')+cb.toFixed(2)+'</span>';}else{html+='<span style="color:var(--txt3)">N/A</span>';}if(e.soyBasis!==null){const sb=e.soyBasis;html+='  &nbsp;·&nbsp;  Soy basis: <span style="color:'+(sb>=0?'var(--up)':'var(--down)')+'">'+(sb>=0?'+':'')+sb.toFixed(2)+'</span>';}else{html+='  &nbsp;·&nbsp;  <span style="color:var(--txt3)">Soy: N/A</span>';}disp.innerHTML=html;disp.style.display='';if(userLat&&userLon){const d=Math.round(distMiles(userLat,userLon,e.lat,e.lon));distEl.textContent='~'+d+' mi away';}highlightTableRow(key);updateGrainInsight();}
 function highlightTableRow(key){document.querySelectorAll('#cash-table-body tr').forEach(tr=>tr.classList.toggle('selected',tr.dataset.key===key));}
 function selectFromTable(key){document.getElementById('elev-select').value=key;onElevChange();}
 function rebuildElevatorSelect(){const sel=document.getElementById('elev-select');if(!sel)return;const cur=sel.value;const sorted=sortedElevatorKeys();sel.innerHTML='<option value="">Select local buyer…</option>';const groups={A:[],B:[],discovered:[]};sorted.forEach(k=>{const e=ELEVATORS[k];if(e.discovered)groups.discovered.push(k);else if(e.region==='B')groups.B.push(k);else groups.A.push(k);});function addGroup(label,keys){if(!keys.length)return;const og=document.createElement('optgroup');og.label=label;keys.forEach(k=>{const e=ELEVATORS[k];const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const opt=document.createElement('option');opt.value=k;opt.textContent=e.name+' — '+e.loc+(dist!==null?' (~'+dist+' mi)':'');og.appendChild(opt);});sel.appendChild(og);}addGroup('Area 1 — Curated',groups.A);addGroup('Area 2 — Curated',groups.B);addGroup('Discovered Nearby',groups.discovered);if(cur&&ELEVATORS[cur])sel.value=cur;}
 let cashTableSort='distance';
-function elevCashPrice(e,crop){const fut=crop==='corn'?GRAIN_DATA.cn.price:GRAIN_DATA.sb.price;const basis=crop==='corn'?e.cornBasis:e.soyBasis;const actual=crop==='corn'?e.cornActual:e.soyActual;const cash=crop==='corn'?e.cornCash:e.soyCash;if(actual&&cash!=null)return cash;if(e.scraped)return null;if(basis===null)return null;return fut+basis;}
+function elevCashPrice(e,crop){const fut=crop==='corn'?GRAIN_DATA.cn.price:GRAIN_DATA.sb.price;const basis=crop==='corn'?e.cornBasis:e.soyBasis;if(basis===null)return null;return fut+basis;}
 function cashTableSortedKeys(){const keys=Object.keys(ELEVATORS);if(cashTableSort==='corn'){return keys.slice().sort((a,b)=>{const pa=elevCashPrice(ELEVATORS[a],'corn'),pb=elevCashPrice(ELEVATORS[b],'corn');if(pa==null&&pb==null)return 0;if(pa==null)return 1;if(pb==null)return-1;return pb-pa;});}if(cashTableSort==='soy'){return keys.slice().sort((a,b)=>{const pa=elevCashPrice(ELEVATORS[a],'soy'),pb=elevCashPrice(ELEVATORS[b],'soy');if(pa==null&&pb==null)return 0;if(pa==null)return 1;if(pb==null)return-1;return pb-pa;});}return sortedElevatorKeys();}
 function initCashSortBar(){document.querySelectorAll('.cash-sort-btn').forEach(btn=>{btn.addEventListener('click',function(){document.querySelectorAll('.cash-sort-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');cashTableSort=this.dataset.sort;buildCashTable();});});}
 function buyerLogoHtml(e){const w=e.name.replace(/[—–\-]+/g,' ').split(/\s+/).filter(Boolean);const init=w.map(c=>c[0]).join('').substring(0,3).toUpperCase();if(e.logo)return'<div class="buyer-logo-tile" style="background:'+(e.logoBg||'#fff')+'"><img src="'+e.logo+'" alt="" onerror="logoErr(this)"><span class="buyer-logo-fallback" style="display:none">'+init+'</span></div>';return'<div class="buyer-logo-tile buyer-logo-tile--fallback"><span class="buyer-logo-fallback">'+init+'</span></div>';}
 function logoErr(el){el.style.display='none';el.nextElementSibling.style.display='';}
-function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=cashTableSortedKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const lh=buyerLogoHtml(e);const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=(e.cornActual&&e.cornCash!=null)?e.cornCash.toFixed(4):(e.scraped?null:(cornFut+e.cornBasis).toFixed(4));const soyCash=(e.soyActual&&e.soyCash!=null)?e.soyCash.toFixed(4):(e.scraped?null:(e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(4):null));const cbStr=(e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2);const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'';const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:13px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'';function fmtScrapeBadge(d){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';const stale=(Date.now()-dt.getTime())>24*60*60*1000;const color=stale?'var(--down)':'var(--up)';const inner=tm?mo+' '+tm:mo;return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';">'+inner+'</span>';}const estBadge='<span class="scrape-ts est">est.</span>';const cornCashOnly=e.cornActual&&e.cornCash!=null&&!e.cornCbot&&!e.cornScrapedBasis;const soyCashOnly=e.soyActual&&e.soyCash!=null&&!e.soyCbot&&!e.soyScrapedBasis;const contractBadge=(del)=>'<span class="scrape-ts" style="color:var(--txt3);border-color:var(--txt3);">'+(del||'')+'</span>';const cornBasisLine=cornCash!=null&&!cornCashOnly?'<span class="basis-sublabel">basis '+cbStr+'</span>':'';const soyBasisLine=soyCash!=null&&!soyCashOnly&&e.soyBasis!==null?'<span class="basis-sublabel">basis '+sbStr+'</span>':'';const cornTimeBadge=cornCash!=null?(e.cornActual?fmtScrapeBadge(e.cornActualDate):(e.scraped?'':estBadge)):'';const soyTimeBadge=soyCash!=null?(e.soyActual?fmtScrapeBadge(e.soyActualDate):(e.scraped?'':estBadge)):'';const cornContract=cornCashOnly?contractBadge(e.cornDelivery):'';const soyContract=soyCashOnly?contractBadge(e.soyDelivery):'';const scrapeMap=GRAIN_SCRAPE_MAP[key];const sourceUrl=scrapeMap?GRAIN_SOURCE_URLS[scrapeMap.source]:null;const buyerUrl=e.url||null;let linksHtml='';if(buyerUrl)linksHtml+='<a href="'+buyerUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Site ↗</a>';if(sourceUrl&&sourceUrl!==buyerUrl)linksHtml+='<a href="'+sourceUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Bids ↗</a>';if(!linksHtml&&e.phone)linksHtml='<a href="tel:'+e.phone.replace(/[^+\d]/g,'')+'" class="buyer-link" onclick="event.stopPropagation()">Call ↗</a>';if(e.disabled){const linkUrl=e.url||'#';const linkLabel=e.phone?'Call for bids · '+e.phone:'Look up bids ↗';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td colspan="2" style="text-align:center;"><a href="${linkUrl}" target="_blank" rel="noopener" style="color:var(--corn);font-size:12px;letter-spacing:1px;text-decoration:none;" onclick="event.stopPropagation()">${linkLabel}</a></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;}return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td class="cash-price-cell"><div class="price-cell">${cornCash!=null?'<span class="cash-price">$'+cornCash+'</span>'+cornBasisLine+cornContract+cornTimeBadge:'<span style="color:var(--txt3)">—</span>'}</div></td><td class="cash-price-cell soy"><div class="price-cell">${soyCash!=null?'<span class="cash-price">$'+soyCash+'</span>'+soyBasisLine+soyContract+soyTimeBadge:'<span style="color:var(--txt3)">—</span>'}</div></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
+function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=cashTableSortedKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const lh=buyerLogoHtml(e);const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=e.cornBasis!==null?(cornFut+e.cornBasis).toFixed(4):null;const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(4):null;const cbStr=e.cornBasis!==null?((e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)):'';const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'';const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:13px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'';function fmtScrapeBadge(d,calc){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';const ts=tm?mo+' '+tm:mo;const stale=(Date.now()-dt.getTime())>24*60*60*1000;if(calc){const color=stale?'var(--down)':'var(--corn)';const tip='Basis calculated from scraped cash price \u2014 price updates live with CBOT';return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';" title="'+tip+'">basis calc. '+ts+'</span>';}const color=stale?'var(--down)':'var(--up)';const tip='Basis scraped from source \u2014 price updates live with CBOT';return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';" title="'+tip+'">basis '+ts+'</span>';}function fmtEstBadge(){const dt=cbotNow||new Date();const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});const tip='Basis estimated from historical average \u2014 price updates live with CBOT';return'<span class="scrape-ts est" title="'+tip+'">basis est. '+mo+' '+tm+'</span>';}const cornBasisLine=cornCash!=null?'<span class="basis-sublabel">basis '+cbStr+'</span>':'';const soyBasisLine=soyCash!=null&&e.soyBasis!==null?'<span class="basis-sublabel">basis '+sbStr+'</span>':'';const cornTimeBadge=cornCash!=null?(e.cornScrapedBasis?fmtScrapeBadge(e.cornActualDate,e.cornBasisCalculated):fmtEstBadge()):'';const soyTimeBadge=soyCash!=null?(e.soyScrapedBasis?fmtScrapeBadge(e.soyActualDate,e.soyBasisCalculated):fmtEstBadge()):'';const cornContract='';const soyContract='';const scrapeMap=GRAIN_SCRAPE_MAP[key];const sourceUrl=scrapeMap?GRAIN_SOURCE_URLS[scrapeMap.source]:null;const buyerUrl=e.url||null;let linksHtml='';if(buyerUrl)linksHtml+='<a href="'+buyerUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Site ↗</a>';if(sourceUrl&&sourceUrl!==buyerUrl)linksHtml+='<a href="'+sourceUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Bids ↗</a>';if(!linksHtml&&e.phone)linksHtml='<a href="tel:'+e.phone.replace(/[^+\d]/g,'')+'" class="buyer-link" onclick="event.stopPropagation()">Call ↗</a>';if(e.disabled){const linkUrl=e.url||'#';const linkLabel=e.phone?'Call for bids · '+e.phone:'Look up bids ↗';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td colspan="2" style="text-align:center;"><a href="${linkUrl}" target="_blank" rel="noopener" style="color:var(--corn);font-size:12px;letter-spacing:1px;text-decoration:none;" onclick="event.stopPropagation()">${linkLabel}</a></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;}return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td class="cash-price-cell"><div class="price-cell">${cornCash!=null?'<span class="cash-price">$'+cornCash+'</span>'+cornBasisLine+cornContract+cornTimeBadge:'<span style="color:var(--txt3)">—</span>'}</div></td><td class="cash-price-cell soy"><div class="price-cell">${soyCash!=null?'<span class="cash-price">$'+soyCash+'</span>'+soyBasisLine+soyContract+soyTimeBadge:'<span style="color:var(--txt3)">—</span>'}</div></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;});tbody.innerHTML=rows.join('');const cur=document.getElementById('elev-select').value;if(cur)highlightTableRow(cur);}
 function updateGrainInsight(){
   const el=document.getElementById('grain-insight');
   if(!el)return;
@@ -1425,20 +1436,22 @@ function updateGrainInsight(){
   const ts = grainScrapeTs ? new Date(grainScrapeTs) : (cbotNow||new Date());
   const tsStr='<span style="color:var(--txt3);font-size:13px;"> · as of '+ts.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' '+ts.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span>';
 
-  // If a buyer is selected and has actual data, show their prices
-  if(selElev&&selElev.cornActual){
+  // If a buyer is selected and has basis data, show computed prices
+  if(selElev&&selElev.cornBasis!=null){
+    const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;
     const parts=['<strong>'+selElev.name+'</strong>'];
-    if(selElev.cornCash!=null)parts.push('Corn <strong>$'+selElev.cornCash.toFixed(4)+'</strong> (basis '+(selElev.cornBasis>=0?'+':'')+selElev.cornBasis.toFixed(2)+')');
-    if(selElev.soyCash!=null)parts.push('Beans <strong>$'+selElev.soyCash.toFixed(4)+'</strong> (basis '+(selElev.soyBasis>=0?'+':'')+selElev.soyBasis.toFixed(2)+')');
+    parts.push('Corn <strong>$'+(cornFut+selElev.cornBasis).toFixed(4)+'</strong> (basis '+(selElev.cornBasis>=0?'+':'')+selElev.cornBasis.toFixed(2)+')');
+    if(selElev.soyBasis!=null)parts.push('Beans <strong>$'+(soyFut+selElev.soyBasis).toFixed(4)+'</strong> (basis '+(selElev.soyBasis>=0?'+':'')+selElev.soyBasis.toFixed(2)+')');
     el.innerHTML=parts.join(' · ')+tsStr;
     return;
   }
 
-  // No buyer selected or no actual data — show best actual prices (skip forward-only contracts)
+  // No buyer selected or no basis data — show best computed prices
+  const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;
   let bestCorn=null,bestCornName='',bestSoy=null,bestSoyName='',cornCount=0,soyCount=0;
   for(const[k,e]of Object.entries(ELEVATORS)){
-    if(e.cornActual&&e.cornCash!=null&&!e.cornForward){cornCount++;if(bestCorn===null||e.cornCash>bestCorn){bestCorn=e.cornCash;bestCornName=e.name;}}
-    if(e.soyActual&&e.soyCash!=null&&!e.soyForward){soyCount++;if(bestSoy===null||e.soyCash>bestSoy){bestSoy=e.soyCash;bestSoyName=e.name;}}
+    if(e.cornBasis!=null&&!e.cornForward){const cc=cornFut+e.cornBasis;cornCount++;if(bestCorn===null||cc>bestCorn){bestCorn=cc;bestCornName=e.name;}}
+    if(e.soyBasis!=null&&!e.soyForward){const sc=soyFut+e.soyBasis;soyCount++;if(bestSoy===null||sc>bestSoy){bestSoy=sc;bestSoyName=e.name;}}
   }
   if(bestCorn!==null||bestSoy!==null){
     const parts=[];
@@ -1494,13 +1507,13 @@ function rebuildElevatorDirectory() {
     </div>`;
 
     // Basis block
-    const cornBasisStr = (e.cornBasis >= 0 ? '+' : '') + e.cornBasis.toFixed(2);
+    const cornBasisStr = e.cornBasis !== null ? ((e.cornBasis >= 0 ? '+' : '') + e.cornBasis.toFixed(2)) : '—';
     const soyBasisStr  = e.soyBasis !== null ? (e.soyBasis >= 0 ? '+' : '') + e.soyBasis.toFixed(2) : null;
-    const cornAging = e.cornActual && e.cornActualDate && (Date.now() - new Date(e.cornActualDate + 'T12:00:00').getTime()) / 86400000 > 8;
-    const soyAging  = e.soyActual  && e.soyActualDate  && (Date.now() - new Date(e.soyActualDate  + 'T12:00:00').getTime()) / 86400000 > 8;
-    const cornTag = e.cornActual ? ' <span class="barn-src-badge ' + (cornAging ? 'barn-src-aging' : 'barn-src-live') + '" style="font-size:11px;">' + (cornAging ? 'AGING' : 'ACTUAL') + '</span>' : ' <span style="font-size:11px;color:var(--txt3);">est.</span>';
-    const soyTag  = e.soyActual  ? ' <span class="barn-src-badge ' + (soyAging  ? 'barn-src-aging' : 'barn-src-live') + '" style="font-size:11px;">' + (soyAging  ? 'AGING' : 'ACTUAL') + '</span>' : ' <span style="font-size:11px;color:var(--txt3);">est.</span>';
-    const dirCornCashOnly = e.cornActual && e.cornCash != null && !e.cornCbot;
+    const cornAging = e.cornScrapedBasis && e.cornActualDate && (Date.now() - new Date(e.cornActualDate + 'T12:00:00').getTime()) / 86400000 > 8;
+    const soyAging  = e.soyScrapedBasis  && e.soyActualDate  && (Date.now() - new Date(e.soyActualDate  + 'T12:00:00').getTime()) / 86400000 > 8;
+    const cornTag = e.cornScrapedBasis ? ' <span class="barn-src-badge ' + (cornAging ? 'barn-src-aging' : e.cornBasisCalculated ? 'barn-src-calc' : 'barn-src-live') + '" style="font-size:11px;">' + (cornAging ? 'AGING' : e.cornBasisCalculated ? 'CALC' : 'SCRAPED') + '</span>' : ' <span style="font-size:11px;color:var(--txt3);">est.</span>';
+    const soyTag  = e.soyScrapedBasis  ? ' <span class="barn-src-badge ' + (soyAging  ? 'barn-src-aging' : e.soyBasisCalculated  ? 'barn-src-calc' : 'barn-src-live') + '" style="font-size:11px;">' + (soyAging  ? 'AGING' : e.soyBasisCalculated  ? 'CALC' : 'SCRAPED') + '</span>' : ' <span style="font-size:11px;color:var(--txt3);">est.</span>';
+    const dirCornCashOnly = e.cornActual && e.cornCash != null && !e.cornCbot && !e.cornScrapedBasis;
     const basisBlock = e.disabled
     ? `<div class="elev-details-row" style="margin-top:10px;">
         <div class="elev-detail-item" style="flex:1;">
@@ -1517,12 +1530,12 @@ function rebuildElevatorDirectory() {
     </div>`
     : `<div class="elev-details-row" style="margin-top:10px;">
       <div class="elev-detail-item">CORN BASIS
-        <strong style="color:${e.cornActual?'var(--corn)':e.curated?'var(--corn)':'var(--txt3)'}">
+        <strong style="color:${e.cornScrapedBasis?'var(--corn)':e.curated?'var(--corn)':'var(--txt3)'}">
           ${cornBasisStr}${cornTag}
         </strong>
       </div>
       ${soyBasisStr !== null ? `<div class="elev-detail-item">SOY BASIS
-        <strong style="color:${e.soyActual?'var(--soy)':e.curated?'var(--soy)':'var(--txt3)'}">
+        <strong style="color:${e.soyScrapedBasis?'var(--soy)':e.curated?'var(--soy)':'var(--txt3)'}">
           ${soyBasisStr}${soyTag}
         </strong>
       </div>` : ''}

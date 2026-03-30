@@ -4,6 +4,19 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.163 (2026-03-31T04:00Z)
+
+### Live Cash Prices — Basis + CBOT Calculation
+- **`js/markets.js` — `elevCashPrice()` + `buildCashTable()`** — cash prices now computed as `live CBOT futures + basis` instead of showing static scraped cash values. Prices update every 15 min with Yahoo CBOT feed. Basis remains static (scraped daily).
+- **`js/markets.js` — scrape overlay** — when scraper returns empty array for a crop at a location, fallback basis is nulled out (no phantom prices). Pre-init clears fallback basis for all mapped elevators so stale estimates don't flash before scrape loads. Fallback restored on fetch failure.
+- **`js/markets.js` — `cornBasisCalculated` / `soyBasisCalculated` flags** — set during overlay when `basisNote` starts with "calculated" (POET, Jennie-O). Distinguishes source-published basis from back-calculated basis.
+- **`js/markets.js` — badge system rewrite** — three tiers: green `basis Mar 30 10:07 AM` (scraped from source), amber `basis calc. Mar 30 10:07 AM` (back-calculated from cash), gray `basis est. Mar 30 10:55 AM` (fallback estimate + CBOT time). Tooltips explain: "price updates live with CBOT".
+- **`js/markets.js` — `updateGrainInsight()`** — insight strip now uses computed cash (CBOT + basis) for selected buyer and best-price calculations.
+- **`js/markets.js` — null safety** — added guards for `cornBasis.toFixed()`, `onElevChange()`, and directory builder when basis is null.
+- **`css/style.css`** — added `.barn-src-calc` badge class (amber/corn color) for calculated-basis indicators.
+
+---
+
 ## v1.160–v1.162 (2026-03-30T23:00Z)
 
 ### Logo-First Grain Buyer Table Redesign
