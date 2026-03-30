@@ -261,8 +261,8 @@
   .basis-neg{color:var(--down);}
   .cash-price-cell{color:var(--corn);font-size:14px;font-weight:700;}
   .cash-price-cell.soy{color:var(--soy);}
-  .buyer-logo-tile{width:44px;height:44px;flex-shrink:0;border-radius:3px;padding:4px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-  .buyer-logo-tile img{width:100%;height:100%;object-fit:contain;display:block;}
+  .buyer-logo-tile{width:44px;height:44px;min-width:44px;max-width:44px;min-height:44px;max-height:44px;flex-shrink:0;border-radius:3px;padding:4px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box;}
+  .buyer-logo-tile img{max-width:36px;max-height:36px;object-fit:contain;display:block;}
   .buyer-logo-tile--fallback{background:var(--bg2,#16171a);border:1px solid var(--border,#252629);}
   .buyer-logo-fallback{font-family:'Courier New',Courier,monospace;font-size:10px;font-weight:700;color:#d4a027;letter-spacing:0.04em;}
   .buyer-identity{display:flex;flex-direction:column;gap:2px;}
