@@ -4,7 +4,7 @@ Chronological record of what was built, when, and why.
 
 ---
 
-## v1.160 (2026-03-30T22:00Z)
+## v1.160–v1.162 (2026-03-30T23:00Z)
 
 ### Logo-First Grain Buyer Table Redesign
 - **`public/logos/buyers/`** — new directory with 8 buyer logos (Crystal Valley, CFS, CHS, New Vision, POET, Al-Corn, Jennie-O, MN Valley Grain). Standardized filenames, copied from `buyer_logo/`.
@@ -12,7 +12,8 @@ Chronological record of what was built, when, and why.
 - **`js/markets.js` — `buildCashTable()`** — complete rewrite. Row layout: 44×44 logo tile + location (primary) + buyer name (secondary) | corn cash + basis sublabel + scrape timestamp | soy cash + basis sublabel + timestamp | distance | links (Site ↗ / Bids ↗). Basis always muted (not red/green). Removed separate basis columns. Contract badge and est. badge now block-level under basis.
 - **`js/markets.js` — sort bar** — `cashTableSort` variable, `elevCashPrice()` helper, `cashTableSortedKeys()` sort function, `initCashSortBar()` click handler. Three sort modes: Distance (default), Corn ↓ (highest first), Soy ↓ (highest first). Nulls sort to bottom.
 - **`index.html`** — table header updated to 5 columns (Local Buyer, Corn Cash, Soy Cash, Dist, links). Sort bar added above table with pill buttons.
-- **`css/style.css`** — added `.buyer-logo-tile`, `.buyer-identity`, `.buyer-location`, `.buyer-name`, `.price-cell`, `.basis-sublabel`, `.scrape-ts`, `.cash-sort-bar`, `.cash-sort-btn`, `.buyer-link` classes.
+- **`css/style.css`** — added `.buyer-logo-tile`, `.buyer-identity`, `.buyer-location`, `.buyer-name`, `.price-cell`, `.basis-sublabel`, `.scrape-ts`, `.cash-sort-bar`, `.cash-sort-btn`, `.buyer-link` classes. Fixed logo tile constraints with min/max dimensions and box-sizing.
+- **`index.html`** — "How to use" guide: added "Buyer Logos & Sort" section. About page: POET updated from Disabled to Active (3 locations), footnote updated for farmbucks.com + calculated basis.
 
 ---
 
