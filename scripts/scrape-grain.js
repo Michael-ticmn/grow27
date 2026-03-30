@@ -30,6 +30,64 @@ const INDEX_PATH  = path.join(PRICES_DIR, 'index.json');
 
 // No history limit — keep all scrape dates (monitor file size as data grows)
 
+// ── CBOT futures fetch (Yahoo Finance, Node 18+ built-in fetch) ─────────────
+
+async function fetchCbot() {
+  const tickers = { corn: 'ZC=F', beans: 'ZS=F' };
+  const cbot = { corn: null, beans: null, fetchedAt: null };
+
+  for (const [key, symbol] of Object.entries(tickers)) {
+    try {
+      const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=1d`;
+      const r = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (grow27-bot)' },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const j = await r.json();
+      const meta = j.chart.result[0].meta;
+      // regularMarketPrice is in cents for grain futures on Yahoo
+      const price = meta.regularMarketPrice;
+      if (price != null) {
+        // Yahoo returns $/bushel for ZC and ZS (e.g. 4.58 for corn)
+        cbot[key] = parseFloat(price.toFixed(4));
+      }
+    } catch (e) {
+      console.warn(`[cbot] ${key} (${symbol}) fetch failed: ${e.message}`);
+    }
+  }
+
+  cbot.fetchedAt = new Date().toISOString();
+  console.log(`[cbot] corn: ${cbot.corn != null ? '$' + cbot.corn : 'FAILED'}, beans: ${cbot.beans != null ? '$' + cbot.beans : 'FAILED'}`);
+  return cbot;
+}
+
+// ── Basis calculation for cash-only sources ─────────────────────────────────
+
+function fillCalculatedBasis(locations, cbot) {
+  const ts = cbot.fetchedAt;
+  let filled = 0;
+
+  for (const [slug, locData] of Object.entries(locations)) {
+    for (const commodity of ['corn', 'beans']) {
+      const cbotPrice = cbot[commodity];
+      if (cbotPrice == null) continue;
+      const bids = locData[commodity];
+      if (!Array.isArray(bids)) continue;
+
+      for (const bid of bids) {
+        if (bid.cash != null && bid.basis == null) {
+          bid.basis = parseFloat((bid.cash - cbotPrice).toFixed(4));
+          bid.basisNote = 'calculated ' + ts;
+          filled++;
+        }
+      }
+    }
+  }
+
+  return filled;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function today() {
@@ -120,6 +178,9 @@ async function run() {
   const grainConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
   console.log(`Loaded config · ${grainConfig.length} sources\n`);
 
+  // Fetch CBOT nearby futures for basis calculation on cash-only sources
+  const cbot = await fetchCbot();
+
   const indexOut = [];
 
   for (const config of grainConfig) {
@@ -145,10 +206,17 @@ async function run() {
 
       const result = await parser.parse({ id, config, browser });
 
+      // Fill calculated basis for sources that only provide cash prices
+      const locs = result.locations ?? {};
+      const basisFilled = fillCalculatedBasis(locs, cbot);
+      if (basisFilled > 0) {
+        console.log(`[${id}] filled calculated basis on ${basisFilled} bids (CBOT corn: ${cbot.corn}, beans: ${cbot.beans})`);
+      }
+
       const entry = {
         date:      todayStr,
         scrapedAt: new Date().toISOString(),
-        locations: result.locations ?? {},
+        locations: locs,
         source:    result.source ?? 'scraped',
       };
       if (result.error) entry.error = result.error;
