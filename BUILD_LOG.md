@@ -4,12 +4,17 @@ Chronological record of what was built, when, and why.
 
 ---
 
-## v1.151–v1.154 (2026-03-30T15:00Z)
+## v1.151–v1.158 (2026-03-30T16:00Z)
 
 ### POET Grain Parser — Farmbucks Rewrite + Markets Wiring
 - **`scripts/grain/poet.js`** — complete rewrite from blocked Gradable platform to farmbucks.com/grain-prices/poet. Static HTML table parser (same platform as Jennie-O). Handles `rowspan` on location cells to capture all delivery months. Corn only.
-- **`data/grain-config.json`** — updated POET entry: new Farmbucks URL, removed `disabled`/`disabledReason`, expanded from 2 to 3 MN locations (Bingham Lake, Lake Crystal, Preston). Albert Lea not on Farmbucks.
-- **`js/markets.js`** — added `poet`, `poet_lc`, `poet_pr` to `GRAIN_SCRAPE_MAP`. Added curated entries for POET Lake Crystal (Region A) and POET Preston (Region B). All 3 locations now show actual scraped cash prices instead of "est."
+- **`data/grain-config.json`** — updated POET entry: new Farmbucks URL, removed `disabled`/`disabledReason`, 3 MN locations (Bingham Lake, Lake Crystal, Preston).
+- **`js/markets.js`** — added `poet`, `poet_lc`, `poet_pr` to `GRAIN_SCRAPE_MAP`. Added curated entries for POET Lake Crystal (Region A) and POET Preston (Region B). All 3 locations now show actual scraped cash prices instead of "est." Removed POET Albert Lea and CFS Owatonna (not real locations). Updated Region B sublabel.
+
+### Calculated Basis for Cash-Only Sources
+- **`scripts/scrape-grain.js`** — fetches CBOT nearby corn + soy from Yahoo Finance at start of each scraper run. For sources that only provide cash prices (POET, Jennie-O), computes `basis = cash - CBOT` and stores `basisNote: "calculated YYYY-MM-DDTHH:MMZ"` on each bid. Sources with native basis (CFS, AGP, etc.) are unaffected.
+
+### History Limits + File Size Monitoring
 - **`scripts/scrape-grain.js`** — removed 30-day history cap (`MAX_AGE_DAYS`), `trimHistory()` now passthrough. Added `checkFileSizes()` warning at 5 MB threshold.
 - **`scripts/scrape-barns.js`** — added matching `checkFileSizes()` 5 MB warning.
 - **`CLAUDE.md`** — updated history descriptions: both barn and grain data kept with no limit.

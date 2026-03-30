@@ -291,5 +291,7 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - ✅ [Code] POET Biorefining parser built then shelved — Gradable WAF blocks headless browsers, disabled in config — 2026-03-26 (v1.123–v1.124)
 - ✅ [Code] POET parser rewritten for farmbucks.com, 3 MN locations active, wired to markets table — 2026-03-30 (v1.151–v1.154)
 - ✅ [Code] History limits removed from grain scraper, 5MB file size warnings added to both scrapers — 2026-03-30 (v1.153)
+- ✅ [Code] Calculated basis for cash-only sources — CBOT fetched at scrape time, basis = cash - CBOT, timestamped basisNote — 2026-03-30 (v1.156–v1.157)
+- ✅ [Code] Removed POET Albert Lea and CFS Owatonna from curated elevators (not real locations) — 2026-03-30 (v1.158)
 - ✅ [Code] Est. badge + hidden basis for non-scraped buyers, About page + How To updates — 2026-03-26 (v1.125)
 - ✅ [Code] About page brand-voice rewrite, page loader overhaul (360px logo, 7s grow, rotating taglines, 95% opacity) — 2026-03-26 (v1.126)
