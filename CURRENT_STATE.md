@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.158
+**Version:** 1.159 (v1.160 pending on UserUpdates)
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-03-30T16:00Z
+**Last updated:** 2026-03-30T22:00Z
 
 ---
 
@@ -15,7 +15,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Module | File | Status |
 |--------|------|--------|
 | Navigation & utilities | `js/app.js` (176 lines) | Active |
-| Markets (grain/cattle/dairy) | `js/markets.js` (~3,500 lines) | Active |
+| Markets (grain/cattle/dairy) | `js/markets.js` (~3,600 lines) | Active — logo-first buyer table, sort bar |
 | Barn data loader | `js/data-loader.js` (82 lines) | Active |
 | Herd | `js/herd.js` | Placeholder |
 | Fields | `js/fields.js` | Placeholder |

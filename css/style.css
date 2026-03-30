@@ -261,6 +261,25 @@
   .basis-neg{color:var(--down);}
   .cash-price-cell{color:var(--corn);font-size:14px;font-weight:700;}
   .cash-price-cell.soy{color:var(--soy);}
+  .buyer-logo-tile{width:44px;height:44px;flex-shrink:0;border-radius:3px;padding:4px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .buyer-logo-tile img{width:100%;height:100%;object-fit:contain;display:block;}
+  .buyer-logo-tile--fallback{background:var(--bg2,#16171a);border:1px solid var(--border,#252629);}
+  .buyer-logo-fallback{font-family:'Courier New',Courier,monospace;font-size:10px;font-weight:700;color:#d4a027;letter-spacing:0.04em;}
+  .buyer-identity{display:flex;flex-direction:column;gap:2px;}
+  .buyer-location{font-size:11px;color:var(--txt1,#dedad4);letter-spacing:0.03em;}
+  .buyer-name{font-size:9px;color:var(--txt3,#7a7874);letter-spacing:0.04em;}
+  .price-cell{display:flex;flex-direction:column;}
+  .basis-sublabel{font-size:9px;color:var(--txt3,#7a7874);letter-spacing:0.06em;display:block;margin-top:3px;font-weight:400;}
+  .scrape-ts{display:block;font-size:9px;margin-top:2px;border:1px solid;border-radius:3px;padding:1px 4px;width:fit-content;line-height:1.3;}
+  .scrape-ts.est{color:var(--txt3);border-color:var(--border);}
+  .cash-sort-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);}
+  .cash-sort-label{font-size:10px;color:var(--txt3);letter-spacing:2px;text-transform:uppercase;}
+  .cash-sort-btn{font-size:11px;padding:3px 10px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--txt3);cursor:pointer;letter-spacing:0.5px;transition:all .12s;}
+  .cash-sort-btn:hover{border-color:var(--border2);color:var(--txt2);}
+  .cash-sort-btn.active{background:var(--corn);color:#0f0f0f;border-color:var(--corn);font-weight:700;}
+  .buyer-links-cell{white-space:nowrap;}
+  .buyer-link{display:block;font-size:10px;color:var(--soy);text-decoration:none;letter-spacing:0.5px;padding:1px 0;}
+  .buyer-link:hover{text-decoration:underline;}
   .elev-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px 18px;margin-bottom:10px;}
   .elev-card:hover{border-color:var(--border2);}
   .elev-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:9px;}

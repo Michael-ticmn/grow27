@@ -293,5 +293,6 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - ✅ [Code] History limits removed from grain scraper, 5MB file size warnings added to both scrapers — 2026-03-30 (v1.153)
 - ✅ [Code] Calculated basis for cash-only sources — CBOT fetched at scrape time, basis = cash - CBOT, timestamped basisNote — 2026-03-30 (v1.156–v1.157)
 - ✅ [Code] Removed POET Albert Lea and CFS Owatonna from curated elevators (not real locations) — 2026-03-30 (v1.158)
+- ✅ [Chat → Code] Logo-first grain buyer table — local logos, basis sublabel, sort bar, links column — 2026-03-30 (v1.160)
 - ✅ [Code] Est. badge + hidden basis for non-scraped buyers, About page + How To updates — 2026-03-26 (v1.125)
 - ✅ [Code] About page brand-voice rewrite, page loader overhaul (360px logo, 7s grow, rotating taglines, 95% opacity) — 2026-03-26 (v1.126)
