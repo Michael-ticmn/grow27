@@ -12,7 +12,10 @@
           "low": 224,
           "high": 240
         },
-        "crossbred": null,
+        "crossbred": {
+          "low": 220,
+          "high": 236.25
+        },
         "holstein": {
           "low": 210,
           "high": 226.25
@@ -246,6 +249,11 @@
             "head": 1
           },
           {
+            "range": "1700-1799 lbs",
+            "avgPrice": 193,
+            "head": 1
+          },
+          {
             "range": "1900-1999 lbs",
             "avgPrice": 202.5,
             "head": 1
@@ -270,7 +278,7 @@
         "headCount": {
           "finished": 94,
           "feeder": 21,
-          "bulls": 8,
+          "bulls": 9,
           "cows": 0
         }
       },
