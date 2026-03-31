@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.165
+**Version:** 1.166
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-03-31T02:00Z
+**Last updated:** 2026-03-31T04:00Z
 
 ---
 
@@ -15,7 +15,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Module | File | Status |
 |--------|------|--------|
 | Navigation & utilities | `js/app.js` (176 lines) | Active |
-| Markets (grain/cattle/dairy) | `js/markets.js` (~4,200 lines) | Active — live CBOT+basis cash prices, grain charts, zip+radius filtering, market status indicator, Globex electronic session support |
+| Markets (grain/cattle/dairy) | `js/markets.js` (~4,200 lines) | Active — live CBOT+basis cash prices, grain charts, zip+radius filtering with persistent location name, market status indicator (Intl-based CT detection, all 5 CBOT session windows), Globex electronic session support |
 | Barn data loader | `js/data-loader.js` (82 lines) | Active |
 | Herd | `js/herd.js` | Placeholder |
 | Fields | `js/fields.js` | Placeholder |
@@ -69,15 +69,6 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Yahoo Finance (client-side, `ZC=F` etc.) | Real-time price cards — cached batch fetch, 5-min TTL, Globex electronic session support | Active |
 | `data/prices/futures-history.json` | Historical charts + seasonal — scraped daily by GitHub Actions | Active |
 | Scraped grain data (CFS, AGP, etc.) | Override — `parseCbotNotation()` extracts CBOT from bid data | Active |
-
-### Data Pipeline
-| Component | Schedule | Status |
-|-----------|----------|--------|
-| Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running on main |
-| Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley, POET) | Mon–Fri 4am + 7am CT | Running on main |
-| Futures history scraper (LE, GF, ZC, ZS, DC, ZM) | Mon–Fri 5pm + 7pm CT | Running on main |
-| Staleness check (`scripts/check-staleness.js`) | After each scrape | Alerts on stale sources |
-| Test scrapers (`test-scrapers.yml`) | Push to UserUpdates | Dry-run validation |
 
 ### PWA Modules & Tabs
 ```

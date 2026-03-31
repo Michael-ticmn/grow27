@@ -334,21 +334,47 @@ function getNearbyContract(prefix, contractMonths, exchange) {
 const fb_grain={cn:{price:4.3475,open:4.3100,high:4.3775,low:4.2875,change:0.0375,pct:0.87},cn2:{price:4.5225,open:4.4900,high:4.5500,low:4.4750,change:0.0325,pct:0.72},sb:{price:9.7225,open:9.6800,high:9.8100,low:9.6200,change:0.0425,pct:0.44},sb2:{price:10.045,open:10.010,high:10.120,low:9.970,change:0.0350,pct:0.35}};
 
 // ── MARKET STATUS (grain screen only) ────────────────────────────────────────
-// CBOT electronic grain: Sun 7pm – Fri 1:20pm CT, with daily break 1:20pm–7pm CT
-// Main day session: Mon–Fri 8:30am – 1:20pm CT
+// CME Globex grain hours (CT):
+//   Sunday 7:00 PM – Monday 7:45 AM  (evening/overnight)
+//   Mon–Thu 7:00 PM – next day 7:45 AM  (evening/overnight)
+//   Mon–Fri 8:30 AM – 1:20 PM  (day session)
+//   Friday 1:20 PM – Sunday 7:00 PM  (weekend closed)
+//   Daily maintenance: 7:45 AM – 8:30 AM
 // Returns 'open' (day session), 'online' (Globex/electronic), or 'closed'
 function cbotMarketState(){
-  const now=new Date();
-  const ct=new Date(now.toLocaleString('en-US',{timeZone:'America/Chicago'}));
-  const day=ct.getDay(),t=ct.getHours()*60+ct.getMinutes();
-  if(day===6) return 'closed'; // Saturday: fully closed
-  if(day===0) return t>=19*60?'online':'closed'; // Sunday: Globex opens 7pm CT
-  // Mon–Fri
-  const dayOpen=8*60+30, dayClose=13*60+20, globexOpen=19*60;
-  if(day===5 && t>=dayClose) return 'closed'; // Friday after 1:20pm: closed for weekend
-  if(t>=dayOpen && t<dayClose) return 'open';  // Day session
-  if(t<dayClose || t>=globexOpen) return 'online'; // Globex before day open or after 7pm
-  return 'closed'; // 1:20pm–7pm daily break
+  // Extract CT day/time reliably via Intl formatter (avoids locale string round-trip bugs)
+  const fmt=new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour12:false,weekday:'short',hour:'numeric',minute:'numeric'});
+  const parts=Object.fromEntries(fmt.formatToParts(new Date()).map(p=>[p.type,p.value]));
+  const dayMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+  const day=dayMap[parts.weekday];
+  const t=parseInt(parts.hour)*60+parseInt(parts.minute); // minutes since midnight CT
+
+  // Saturday: fully closed all day
+  if(day===6) return 'closed';
+
+  // Time boundaries (minutes since midnight CT)
+  const globexClose=7*60+45;   // 7:45 AM — overnight session ends
+  const dayOpen=8*60+30;       // 8:30 AM — day session opens
+  const dayClose=13*60+20;     // 1:20 PM — day session closes
+  const globexOpen=19*60;      // 7:00 PM — evening session opens
+
+  // Sunday: only Globex evening session from 7 PM onward
+  if(day===0) return t>=globexOpen?'online':'closed';
+
+  // Friday: no Globex evening session after day close
+  if(day===5){
+    if(t<globexClose) return 'online';                // overnight session until 7:45 AM
+    if(t>=dayOpen && t<dayClose) return 'open';        // day session 8:30 AM – 1:20 PM
+    if(t>=globexClose && t<dayOpen) return 'closed';   // maintenance 7:45–8:30 AM
+    return 'closed';                                   // after 1:20 PM — weekend
+  }
+
+  // Mon–Thu
+  if(t<globexClose) return 'online';                   // overnight session until 7:45 AM
+  if(t>=dayOpen && t<dayClose) return 'open';           // day session 8:30 AM – 1:20 PM
+  if(t>=globexOpen) return 'online';                    // evening session from 7:00 PM
+  if(t>=globexClose && t<dayOpen) return 'closed';      // maintenance 7:45–8:30 AM
+  return 'closed';                                      // daily break 1:20 PM – 7:00 PM
 }
 function updateMarketStatus(isLive,dataTime){
   const el=document.getElementById('status-txt');
@@ -1285,7 +1311,7 @@ const REGION_B={id:'regionB',label:'Area 2',sublabel:'Northfield · Kenyon · Le
 let activeRegion='auto';
 let CURATED=Object.assign({},REGION_A.elevators,REGION_B.elevators);
 let ELEVATORS=Object.assign({},CURATED);
-let userLat=null,userLon=null;
+let userLat=null,userLon=null,userLocName='';
 
 // ── BUYER LOGO ASSIGNMENTS ──────────────────────────────────────────────────
 const BUYER_LOGOS={
@@ -1483,7 +1509,8 @@ function updateLocationStatus(){
   if(!el)return;
   const count=Object.keys(ELEVATORS).length;
   if(!userLat){el.textContent='No location set';return;}
-  el.textContent=count+' buyer'+(count!==1?'s':'')+' within '+(buyerRadius>=9999?'all areas':buyerRadius+' mi');
+  const radius=buyerRadius>=9999?'all areas':buyerRadius+' mi';
+  el.textContent=count+' buyer'+(count!==1?'s':'')+' within '+radius+(userLocName?' · '+userLocName:'');
 }
 
 async function applyZip(){
@@ -1497,13 +1524,13 @@ async function applyZip(){
     const place=d.places[0];
     userLat=parseFloat(place.latitude);
     userLon=parseFloat(place.longitude);
-    const locEl=document.getElementById('location-status');
-    if(locEl)locEl.textContent=place['place name']+', '+place['state abbreviation'];
+    userLocName=place['place name']+', '+place['state abbreviation'];
     filterElevatorsByRadius();
     loadWeather(userLat,userLon);
     // Reset basis chart defaults for new location
     _grainBasisChecked=new Set();_grainBasisData=null;
   }catch(e){
+    userLocName='';
     const locEl=document.getElementById('location-status');
     if(locEl)locEl.textContent='Invalid zip code';
   }
@@ -1520,8 +1547,8 @@ function useGeoLocation(){
       loadWeather(userLat,userLon);
       discoverElevators(userLat,userLon);
       _grainBasisChecked=new Set();_grainBasisData=null;
-      const name=await getCityName(userLat,userLon);
-      if(locEl)locEl.textContent=name;
+      userLocName=await getCityName(userLat,userLon);
+      updateLocationStatus();
     },()=>{
       if(locEl)locEl.textContent='Location denied';
     });
