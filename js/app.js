@@ -115,8 +115,8 @@ async function loadWeather(ulat,ulon){
 }
 
 function initLocation(){
-  if(navigator.geolocation){navigator.geolocation.getCurrentPosition(async pos=>{userLat=pos.coords.latitude;userLon=pos.coords.longitude;filterElevatorsByRadius();loadWeather(userLat,userLon);discoverElevators(userLat,userLon);rebuildDairyPlantSelect();rebuildBarnSelect();const nm=await getCityName(userLat,userLon);const locEl=document.getElementById('location-status');if(locEl)locEl.textContent=nm;},()=>{userLat=44.03;userLon=-94.76;filterElevatorsByRadius();loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();const locEl=document.getElementById('location-status');if(locEl)locEl.textContent='SOUTHERN MN (DEFAULT)';});}
-  else{userLat=44.03;userLon=-94.76;filterElevatorsByRadius();loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();const locEl=document.getElementById('location-status');if(locEl)locEl.textContent='SOUTHERN MN (DEFAULT)';}
+  if(navigator.geolocation){navigator.geolocation.getCurrentPosition(async pos=>{userLat=pos.coords.latitude;userLon=pos.coords.longitude;filterElevatorsByRadius();loadWeather(userLat,userLon);discoverElevators(userLat,userLon);rebuildDairyPlantSelect();rebuildBarnSelect();userLocName=await getCityName(userLat,userLon);updateLocationStatus();},()=>{userLat=44.03;userLon=-94.76;userLocName='SOUTHERN MN (DEFAULT)';filterElevatorsByRadius();loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();});}
+  else{userLat=44.03;userLon=-94.76;userLocName='SOUTHERN MN (DEFAULT)';filterElevatorsByRadius();loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();}
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
