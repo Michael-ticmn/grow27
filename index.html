@@ -34,7 +34,7 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.164%0A%0AFeedback%3A%0A">Feedback</a>
+    <a class="feedback-btn" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.165%0A%0AFeedback%3A%0A">Feedback</a>
     <div class="clock-bar">
       <span><span class="status-dot"></span><span id="status-txt">Loading...</span></span>
       <div style="font-size:12px;color:var(--txt3);" id="last-updated-txt">—</div>
@@ -71,9 +71,9 @@
 
   <!-- Sub-tab bar: Grain / Cattle -->
   <div class="subtabs">
-    <div class="subtab active" id="subtab-grain" onclick="switchSubtab('grain')">Grain</div>
-    <div class="subtab" id="subtab-cattle" onclick="switchSubtab('cattle')">Cattle</div>
-    <div class="subtab" id="subtab-dairy" onclick="switchSubtab('dairy')">Dairy</div>
+    <div class="subtab active" id="subtab-grain" onclick="switchSubtab('grain')"><span class="subtab-icon">🌾</span>Grain</div>
+    <div class="subtab" id="subtab-cattle" onclick="switchSubtab('cattle')"><span class="subtab-icon">🐂</span>Cattle</div>
+    <div class="subtab" id="subtab-dairy" onclick="switchSubtab('dairy')"><span class="subtab-icon">🥛</span>Dairy</div>
   </div>
 
   <!-- ── GRAIN SUBMODULE ── -->
@@ -90,35 +90,42 @@
 
       <!-- GRAIN PRICES -->
       <div class="section active" id="grain-prices">
-        <div class="elevator-bar">
-          <div class="elevator-label">Location</div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <input type="text" id="zip-input" placeholder="Zip code" maxlength="5" style="font-family:inherit;font-size:12px;width:70px;padding:6px 10px;border:1px solid var(--border);border-radius:3px;background:var(--bg2);color:var(--txt1);letter-spacing:1px;" onkeydown="if(event.key==='Enter')applyZip()">
-            <button onclick="applyZip()" style="font-family:inherit;font-size:11px;padding:6px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt3);cursor:pointer;">Go</button>
-            <button onclick="useGeoLocation()" title="Use current location" style="font-family:inherit;font-size:14px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--corn);cursor:pointer;">&#8982;</button>
+        <div class="elevator-bar loc-bar">
+          <div class="loc-row-top">
+            <div class="elevator-label">Location</div>
+            <div class="loc-inputs">
+              <input type="text" id="zip-input" placeholder="Zip code" maxlength="5" class="loc-zip" onkeydown="if(event.key==='Enter')applyZip()">
+              <button onclick="applyZip()" class="loc-btn">Go</button>
+              <button onclick="useGeoLocation()" title="Use current location" class="loc-geo-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+                <span class="geo-label">Use My Location</span>
+              </button>
+            </div>
+            <div id="location-status" class="loc-status"></div>
           </div>
-          <div class="elevator-label" style="margin-left:10px;">Radius</div>
-          <select id="radius-select" onchange="setRadius(+this.value)" style="font-family:inherit;font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:3px;background:var(--bg2);color:var(--txt1);">
-            <option value="25">25 mi</option>
-            <option value="50" selected>50 mi</option>
-            <option value="75">75 mi</option>
-            <option value="100">100 mi</option>
-            <option value="150">150 mi</option>
-            <option value="9999">All</option>
-          </select>
-          <div style="position:relative;margin-left:10px;" id="buyer-dropdown-wrap">
-            <button id="buyer-dropdown-btn" onclick="toggleBuyerDropdown()" style="font-family:inherit;font-size:12px;padding:6px 14px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt2);cursor:pointer;letter-spacing:0.5px;">
-              Buyers <span id="buyer-checked-count" style="color:var(--corn);">0</span> ▾
-            </button>
-            <div id="buyer-dropdown" style="display:none;position:absolute;left:0;top:100%;margin-top:4px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:8px 0;z-index:50;min-width:250px;max-height:360px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);">
-              <div style="display:flex;gap:8px;padding:4px 12px 8px;border-bottom:1px solid var(--border);margin-bottom:4px;">
-                <button onclick="buyerSelectAll()" style="font-family:inherit;font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--corn);cursor:pointer;">Select All</button>
-                <button onclick="buyerClearAll()" style="font-family:inherit;font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt3);cursor:pointer;">Clear All</button>
+          <div class="loc-row-bottom">
+            <div class="elevator-label">Radius</div>
+            <select id="radius-select" onchange="setRadius(+this.value)" class="loc-select">
+              <option value="25">25 mi</option>
+              <option value="50" selected>50 mi</option>
+              <option value="75">75 mi</option>
+              <option value="100">100 mi</option>
+              <option value="150">150 mi</option>
+              <option value="9999">All</option>
+            </select>
+            <div style="position:relative;" id="buyer-dropdown-wrap">
+              <button id="buyer-dropdown-btn" onclick="toggleBuyerDropdown()" style="font-family:inherit;font-size:12px;padding:6px 14px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt2);cursor:pointer;letter-spacing:0.5px;">
+                Buyers <span id="buyer-checked-count" style="color:var(--corn);">0</span> ▾
+              </button>
+              <div id="buyer-dropdown" style="display:none;position:absolute;left:0;top:100%;margin-top:4px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:8px 0;z-index:50;min-width:250px;max-height:360px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+                <div style="display:flex;gap:8px;padding:4px 12px 8px;border-bottom:1px solid var(--border);margin-bottom:4px;">
+                  <button onclick="buyerSelectAll()" style="font-family:inherit;font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--corn);cursor:pointer;">Select All</button>
+                  <button onclick="buyerClearAll()" style="font-family:inherit;font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt3);cursor:pointer;">Clear All</button>
+                </div>
+                <div id="buyer-location-list" style="font-size:12px;"></div>
               </div>
-              <div id="buyer-location-list" style="font-size:12px;"></div>
             </div>
           </div>
-          <div id="location-status" style="font-size:12px;color:var(--txt3);margin-left:auto;letter-spacing:0.5px;"></div>
         </div>
 
         <div class="insight-strip" id="grain-insight">Loading best local prices…</div>
@@ -1278,7 +1285,7 @@
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:24px;font-size:12px;color:var(--txt3);letter-spacing:1px;text-align:center;">
-      grow27 · southern Minnesota · <span class="app-version">v1.164</span> · © 2026
+      grow27 · southern Minnesota · <span class="app-version">v1.165</span> · © 2026
     </div>
 
   </div>
@@ -1288,7 +1295,7 @@
 <footer class="g27-footer">
   <div class="g27-footer-wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" height="24" style="display:inline-block;"><line x1="14" y1="50" x2="14" y2="10" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="50" x2="25" y2="14" stroke="#2a2a1a" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="10" x2="14" y2="3" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><line x1="25" y1="14" x2="25" y2="7" stroke="#3ea8aa" stroke-width="2" stroke-linecap="round"/><path d="M14 26 Q6 22 9 14" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M14 36 Q22 32 19 24" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 30 Q17 26 20 18" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><path d="M25 40 Q33 36 30 28" fill="none" stroke="#3ea8aa" stroke-width="1.5" stroke-linecap="round"/><line x1="42" y1="8" x2="42" y2="48" stroke="#454c58" stroke-width="1"/><text x="54" y="42" font-family="Courier New,monospace" font-weight="700" font-size="30" fill="#d4a027" letter-spacing="-1">grow27</text></svg></div>
   <div class="g27-footer-tagline">#27 — worth more than its weight</div>
-  <div class="g27-footer-copy"><span class="app-version">v1.164</span> · © 2026 grow27 · All rights reserved</div>
+  <div class="g27-footer-copy"><span class="app-version">v1.165</span> · © 2026 grow27 · All rights reserved</div>
 </footer>
 
 <!-- ── BARN TREND MODAL ── -->
@@ -1339,14 +1346,15 @@
 </nav>
 
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script defer src="js/markets.js?v=1.164"></script>
-<script defer src="js/data-loader.js?v=1.164"></script>
-<script defer src="js/app.js?v=1.164"></script>
+<script defer src="js/markets.js?v=1.165"></script>
+<script defer src="js/data-loader.js?v=1.165"></script>
+<script defer src="js/app.js?v=1.165"></script>
 
 <!-- ── MOBILE FEEDBACK FAB ── -->
-<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.164%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
+<a class="feedback-fab" href="mailto:Michael@ticmn.com?subject=grow27%20Feedback&body=Version%3A%20v1.165%0A%0AFeedback%3A%0A" aria-label="Send feedback">✉</a>
 </body>
 </html>
+
 
 
 

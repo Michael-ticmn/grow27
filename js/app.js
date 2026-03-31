@@ -115,8 +115,8 @@ async function loadWeather(ulat,ulon){
 }
 
 function initLocation(){
-  if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{userLat=pos.coords.latitude;userLon=pos.coords.longitude;filterElevatorsByRadius();loadWeather(userLat,userLon);discoverElevators(userLat,userLon);rebuildDairyPlantSelect();rebuildBarnSelect();},()=>{userLat=44.03;userLon=-94.76;filterElevatorsByRadius();loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();});}
-  else{userLat=44.03;userLon=-94.76;filterElevatorsByRadius();loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();}
+  if(navigator.geolocation){navigator.geolocation.getCurrentPosition(async pos=>{userLat=pos.coords.latitude;userLon=pos.coords.longitude;filterElevatorsByRadius();loadWeather(userLat,userLon);discoverElevators(userLat,userLon);rebuildDairyPlantSelect();rebuildBarnSelect();const nm=await getCityName(userLat,userLon);const locEl=document.getElementById('location-status');if(locEl)locEl.textContent=nm;},()=>{userLat=44.03;userLon=-94.76;filterElevatorsByRadius();loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();const locEl=document.getElementById('location-status');if(locEl)locEl.textContent='SOUTHERN MN (DEFAULT)';});}
+  else{userLat=44.03;userLon=-94.76;filterElevatorsByRadius();loadWeather(44.03,-94.76);discoverElevators(44.03,-94.76);rebuildDairyPlantSelect();rebuildBarnSelect();const locEl=document.getElementById('location-status');if(locEl)locEl.textContent='SOUTHERN MN (DEFAULT)';}
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
@@ -163,9 +163,12 @@ updateRegionBadge();
 // Build directories — slight delay to ensure DOM is ready
 setTimeout(()=>{ rebuildElevatorDirectory(); rebuildBarnSelect(); buildBarnDirectory(); buildLockerDirectory(); rebuildDairyPlantSelect(); buildDairyPlantDirectory(); }, 100);
 
-setInterval(loadGrainPrices,15*60*1000);
-setInterval(loadCattlePrices,15*60*1000);
-setInterval(loadDairyPrices,15*60*1000);
+// Refresh prices every 5 min when markets are open/online, every 15 min when closed
+function _priceRefreshMs(){ const s=cbotMarketState(); return s==='closed'?15*60*1000:5*60*1000; }
+function _scheduleRefresh(fn){ setTimeout(()=>{ fn().finally(()=>_scheduleRefresh(fn)); }, _priceRefreshMs()); }
+_scheduleRefresh(loadGrainPrices);
+_scheduleRefresh(loadCattlePrices);
+_scheduleRefresh(loadDairyPrices);
 setInterval(()=>{if(userLat)loadWeather(userLat,userLon);},30*60*1000);
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}

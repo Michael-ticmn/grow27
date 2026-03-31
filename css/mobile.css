@@ -24,9 +24,11 @@
   .topbar{padding-left:14px;padding-right:14px;}
 
   /* Subtabs + inner tabs: horizontal scroll, no wrap */
-  .subtabs,.tabs{padding:0 8px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;}
+  .subtabs{padding:8px;gap:6px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;}
+  .tabs{padding:6px 8px;gap:6px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;}
   .subtabs::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none;}
-  .subtab,.tab{padding:10px 12px;font-size:11px;white-space:nowrap;}
+  .subtab{padding:8px 14px;font-size:11px;white-space:nowrap;}
+  .tab{padding:7px 12px;font-size:10px;white-space:nowrap;}
 
   /* Barn detail panel: 2x2 grid on tablet */
   .barn-detail-inner{grid-template-columns:1fr 1fr;}
@@ -36,6 +38,12 @@
   .elevator-select{min-width:0;width:100%;}
   .region-toggle{width:100%;}
   .region-btn{flex:1;text-align:center;}
+  /* Location bar mobile */
+  .loc-row-top{flex-wrap:wrap;gap:8px;}
+  .loc-inputs{flex-wrap:wrap;gap:6px;}
+  .loc-geo-btn{flex:1 1 auto;justify-content:center;}
+  .loc-status{margin-left:0;width:100%;}
+  .loc-row-bottom{flex-wrap:wrap;gap:8px;}
   .elev-detail{margin-left:0;}
 
   /* Cash tables: slightly tighter */
@@ -168,7 +176,8 @@
   .nav-item{padding:4px 6px;max-width:54px;}
 
   /* Subtabs / inner tabs */
-  .subtab,.tab{padding:9px 10px;font-size:10px;}
+  .subtab{padding:7px 10px;font-size:10px;}
+  .tab{padding:6px 8px;font-size:9px;}
 
   /* Price cards */
   .card-price{font-size:20px;}

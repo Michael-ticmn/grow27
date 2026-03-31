@@ -4,16 +4,13 @@ Decisions and open items for the next Chat session to pick up.
 
 ---
 
-## Completed This Session (v1.164)
+## Completed This Session (v1.165)
 
-- [x] Grain Charts tab — CBOT futures + buyer basis per location
-- [x] Zip code + radius location filtering (replaced region selector)
-- [x] Market status indicator (open/online/closed with CBOT timestamps)
-- [x] No fallback basis — scraper-only data, no made-up prices
-- [x] Website URLs on all elevators
-- [x] Watchdog workflow for missed scraper runs
-- [x] robots.txt compliance system (midnight check + watchlist)
-- [x] Coordinates for all scraped grain locations
+- [x] Button-style tab selectors with emoji icons (Grain/Cattle/Dairy)
+- [x] Location bar restructured — two-row layout, visible geo button with label, city name display
+- [x] Yahoo Finance Globex fix — electronic session prices now update after 7 PM CT
+- [x] Adaptive refresh — 5 min polling during active sessions, 15 min when closed
+- [x] Cache TTL reduced from 10 min to 5 min with per-minute cache-buster
 
 ## Pending Handoffs
 
@@ -229,7 +226,7 @@ SHOW ME BEFORE WRITING THE FULL PARSER:
 - **Context:** History limits removed from both scrapers (grain was 30 days, now unlimited; barns already unlimited). Data accumulating in `data/prices/grain/<id>.json` and `data/prices/<id>.json` history arrays. File sizes monitored at 5 MB threshold.
 - **Decision needed:** UI design — chart per location? table view? Which locations/sources first?
 
-### [ ] [FROM: Code] Grain Charts tab — mirror cattle chart architecture — QUEUED 2026-03-25
+### [x] [FROM: Code] Grain Charts tab — mirror cattle chart architecture — COMPLETED 2026-03-31
 - **Date queued:** 2026-03-25
 - **Task:** Add a Charts tab to the Grain module, mirroring the cattle charts architecture
 - **Why:** Cattle now has Futures/Auction toggle, 5-year history, seasonal pattern, insights, sale calendar. Grain has none of this — the data is already in `futures-history.json` (ZC, ZS, ZM daily) but no charts exist.

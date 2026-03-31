@@ -246,15 +246,16 @@ function getContractMonths() {
 // ── YAHOO FINANCE FUTURES — cached batch fetch ───────────────────────────────
 // All tickers fetched once, cached for 10 min. No duplicate requests.
 const _yahooCache = {};           // sym → { data, ts }
-const YAHOO_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const YAHOO_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Fetch a single Yahoo ticker. Returns raw meta or null.
 async function _fetchYahooRaw(sym) {
   const now = Date.now();
   const cached = _yahooCache[sym];
   if (cached && (now - cached.ts) < YAHOO_CACHE_TTL) return cached.data;
-  // Use raw sym in path (not encodeURIComponent) so proxies don't double-encode %3D
-  const url = 'https://query2.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=1d';
+  // Cache-buster prevents CORS proxies from returning stale responses
+  const cb = '&_t=' + Math.floor(now / 60000); // changes every minute
+  const url = 'https://query2.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=1m&includePrePost=true' + cb;
   const proxies = [url, 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url), 'https://corsproxy.io/?' + encodeURIComponent(url), 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url)];
   try {
     let r;
@@ -263,6 +264,8 @@ async function _fetchYahooRaw(sym) {
     const j = await r.json();
     const meta = j.chart.result[0].meta;
     _yahooCache[sym] = { data: meta, ts: now };
+    const mktTime = meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toLocaleTimeString() : '?';
+    console.log('[yahoo] ' + sym + ' price=' + meta.regularMarketPrice + ' ts=' + mktTime);
     return meta;
   } catch { return null; }
 }
@@ -278,8 +281,11 @@ async function fetchYahoo(sym, divisor) {
   const high  = (meta.regularMarketDayHigh || meta.regularMarketPrice) / d;
   const low   = (meta.regularMarketDayLow  || meta.regularMarketPrice) / d;
   const change = close - prev;
-  // regularMarketTime = Unix epoch seconds from the exchange
-  const marketTime = meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000) : null;
+  // Prefer currentTradingPeriod or regularMarketTime — whichever is more recent
+  let ts = meta.regularMarketTime;
+  // Yahoo sometimes has a more recent timestamp in the trading period data
+  try { const cp = meta.currentTradingPeriod?.regular?.end; if (cp && cp > ts) ts = Math.min(cp, Math.floor(Date.now()/1000)); } catch(_){}
+  const marketTime = ts ? new Date(ts * 1000) : null;
   return { price: close, open: prev, high: high, low: low, change: change, pct: (change / prev) * 100, marketTime: marketTime };
 }
 
@@ -1507,13 +1513,15 @@ function useGeoLocation(){
   const locEl=document.getElementById('location-status');
   if(locEl)locEl.textContent='Locating…';
   if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(pos=>{
+    navigator.geolocation.getCurrentPosition(async pos=>{
       userLat=pos.coords.latitude;userLon=pos.coords.longitude;
       document.getElementById('zip-input').value='';
       filterElevatorsByRadius();
       loadWeather(userLat,userLon);
       discoverElevators(userLat,userLon);
       _grainBasisChecked=new Set();_grainBasisData=null;
+      const name=await getCityName(userLat,userLon);
+      if(locEl)locEl.textContent=name;
     },()=>{
       if(locEl)locEl.textContent='Location denied';
     });

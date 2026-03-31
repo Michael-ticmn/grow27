@@ -79,18 +79,19 @@
   .module.active{display:block;}
 
   /* ── SUB-TAB BAR (Markets: Grain / Cattle) ── */
-  .subtabs{display:flex;background:var(--bg1);border-bottom:1px solid var(--border);padding:0 20px;}
-  .subtab{padding:10px 18px;font-size:12px;letter-spacing:2px;color:var(--txt3);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;transition:color .12s,border-color .12s;user-select:none;}
-  .subtab.active{color:var(--txt1);border-bottom-color:var(--corn);}
-  .subtab:hover:not(.active){color:var(--txt2);}
+  .subtabs{display:flex;gap:10px;background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 20px;}
+  .subtab{display:inline-flex;align-items:center;gap:6px;padding:10px 24px;font-size:12px;letter-spacing:2px;color:var(--txt3);cursor:pointer;border:1px solid var(--border);border-radius:6px;text-transform:uppercase;transition:all .15s ease;user-select:none;background:var(--bg2);text-align:center;}
+  .subtab-icon{font-size:16px;line-height:1;}
+  .subtab.active{color:var(--txt1);background:var(--bg3);border-color:var(--corn);box-shadow:0 0 8px rgba(212,160,39,.15);}
+  .subtab:hover:not(.active){color:var(--txt2);background:var(--bg3);border-color:var(--border2);}
   .submodule{display:none;}
   .submodule.active{display:block;}
 
   /* ── INNER TABS (within each submodule) ── */
-  .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg1);padding:0 20px;flex-wrap:wrap;}
-  .tab{padding:11px 18px;font-size:12px;letter-spacing:2px;color:var(--txt3);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;transition:color .12s,border-color .12s;user-select:none;}
-  .tab.active{color:var(--txt1);border-bottom-color:var(--corn);}
-  .tab:hover:not(.active){color:var(--txt2);}
+  .tabs{display:flex;gap:8px;border-bottom:1px solid var(--border);background:var(--bg1);padding:8px 20px;flex-wrap:wrap;}
+  .tab{padding:8px 16px;font-size:11px;letter-spacing:1.5px;color:var(--txt3);cursor:pointer;border:1px solid var(--border);border-radius:5px;text-transform:uppercase;transition:all .15s ease;user-select:none;background:var(--bg2);}
+  .tab.active{color:var(--txt1);background:var(--bg3);border-color:var(--corn);box-shadow:0 0 6px rgba(212,160,39,.12);}
+  .tab:hover:not(.active){color:var(--txt2);background:var(--bg3);border-color:var(--border2);}
   .content{padding:20px;}
   .section{display:none;}
   .section.active{display:block;}
@@ -239,6 +240,19 @@
 
   /* ── ELEVATOR / LOCAL BUYERS ── */
   .elevator-bar{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+
+  /* ── LOCATION BAR ── */
+  .loc-bar{flex-direction:column;align-items:stretch;gap:12px;}
+  .loc-row-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .loc-row-bottom{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .loc-inputs{display:flex;align-items:center;gap:6px;}
+  .loc-zip{font-family:inherit;font-size:12px;width:70px;padding:6px 10px;border:1px solid var(--border);border-radius:3px;background:var(--bg2);color:var(--txt1);letter-spacing:1px;}
+  .loc-btn{font-family:inherit;font-size:11px;padding:6px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--txt3);cursor:pointer;}
+  .loc-geo-btn{display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:11px;padding:6px 12px;border:1px solid var(--corn-border);border-radius:3px;background:var(--corn-dim);color:var(--corn);cursor:pointer;letter-spacing:0.5px;transition:all .15s ease;}
+  .loc-geo-btn:hover{background:var(--corn);color:var(--bg0);border-color:var(--corn);}
+  .geo-label{white-space:nowrap;}
+  .loc-status{font-size:13px;color:var(--corn);letter-spacing:0.5px;font-weight:700;margin-left:auto;}
+  .loc-select{font-family:inherit;font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:3px;background:var(--bg2);color:var(--txt1);}
   .elevator-label{font-size:12px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;white-space:nowrap;}
   .elevator-select{background:var(--bg0);border:1px solid var(--border2);border-radius:3px;color:var(--txt1);font-family:inherit;font-size:13px;padding:6px 32px 6px 12px;cursor:pointer;min-width:260px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath fill='%235e6369' d='M0 0l6 7 6-7z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;transition:border-color .12s;}
   .elevator-select:focus{outline:none;border-color:var(--corn);}

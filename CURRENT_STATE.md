@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.164
+**Version:** 1.165
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-03-31T06:00Z
+**Last updated:** 2026-03-31T02:00Z
 
 ---
 
@@ -15,7 +15,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Module | File | Status |
 |--------|------|--------|
 | Navigation & utilities | `js/app.js` (176 lines) | Active |
-| Markets (grain/cattle/dairy) | `js/markets.js` (~4,200 lines) | Active — live CBOT+basis cash prices, grain charts, zip+radius filtering, market status indicator |
+| Markets (grain/cattle/dairy) | `js/markets.js` (~4,200 lines) | Active — live CBOT+basis cash prices, grain charts, zip+radius filtering, market status indicator, Globex electronic session support |
 | Barn data loader | `js/data-loader.js` (82 lines) | Active |
 | Herd | `js/herd.js` | Placeholder |
 | Fields | `js/fields.js` | Placeholder |
@@ -66,7 +66,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 ### CBOT Futures Display
 | Source | Usage | Status |
 |--------|-------|--------|
-| Yahoo Finance (client-side, `ZC=F` etc.) | Real-time price cards — cached batch fetch, 10-min TTL | Active |
+| Yahoo Finance (client-side, `ZC=F` etc.) | Real-time price cards — cached batch fetch, 5-min TTL, Globex electronic session support | Active |
 | `data/prices/futures-history.json` | Historical charts + seasonal — scraped daily by GitHub Actions | Active |
 | Scraped grain data (CFS, AGP, etc.) | Override — `parseCbotNotation()` extracts CBOT from bid data | Active |
 
@@ -99,8 +99,8 @@ ABOUT — data sources, app info
 - History files: no cap — 5 MB file size warning in scraper logs
 
 ### Refresh Intervals (frontend)
-- Futures price cards: Yahoo Finance client-side, cached 10 min (prefetched at startup)
-- Grain cash prices: computed live as `CBOT + basis` — CBOT refreshes every 15 min, basis refreshes daily via scraper
+- Futures price cards: Yahoo Finance client-side, cached 5 min (prefetched at startup, includes Globex/electronic session data)
+- Grain cash prices: computed live as `CBOT + basis` — CBOT refreshes every 5 min (markets open/online) or 15 min (closed), basis refreshes daily via scraper
 - Futures charts + seasonal: `futures-history.json`, loaded once per session (~264KB, scraped daily)
 - Scraped grain/barn data: loaded once on init from pre-scraped index
 - Weather: every 30 min
