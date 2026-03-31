@@ -4,6 +4,31 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.165 (2026-03-31T02:00Z)
+
+### UI Polish — Button Tabs, Location Bar, Yahoo Globex Fix
+
+**Tab selectors restyled** — both subtabs (Grain/Cattle/Dairy) and inner tabs (Prices/Buyers/Charts…) redesigned as rounded bordered buttons:
+- Subtabs: `border-radius:6px`, `--bg2` fill, gold border + glow on active, emoji icons (🌾 Grain, 🐂 Cattle, 🥛 Dairy), content-width (not full-span)
+- Inner tabs: smaller pill-style buttons (`border-radius:5px`), gap spacing between items
+- Mobile responsive: horizontal scroll with adjusted padding at 768px and 375px breakpoints
+
+**Location bar restructured** — split into two rows for better mobile alignment:
+- Top row: Location label + zip input + Go + "Use My Location" button + location name display
+- Bottom row: Radius dropdown + Buyers dropdown
+- Geo button: gold-tinted background with crosshair SVG icon + "Use My Location" label (was invisible `⌖` character)
+- Location name: shown in bold gold after geolocation or zip lookup (calls `getCityName()` reverse geocode)
+- `initLocation()` now displays city name on startup, or "SOUTHERN MN (DEFAULT)" if denied
+
+**Yahoo Finance Globex fix** — electronic session prices were not updating after 7 PM CT:
+- Added cache-buster (`&_t=` per-minute timestamp) to prevent CORS proxies from returning stale responses
+- Changed API params from `interval=1d` to `interval=1m&includePrePost=true` to capture Globex/electronic session data
+- Reduced cache TTL from 10 min to 5 min
+- Adaptive refresh: 5 min polling when markets open/online, 15 min when closed (was fixed 15 min)
+- Added console logging per ticker (`[yahoo] ZC=F price=456.25 ts=6:20 PM`) for diagnostics
+
+---
+
 ## v1.164 (2026-03-31T06:00Z)
 
 ### Grain Charts, Location Filtering, Market Status, robots.txt Compliance
