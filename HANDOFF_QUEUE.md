@@ -4,13 +4,15 @@ Decisions and open items for the next session to pick up.
 
 ---
 
-## Completed This Session (v1.166)
+## Completed This Session (v1.167)
 
-- [x] Location name layout fix — no longer obscured by radius row on mobile
-- [x] Buyers dropdown mobile overflow fix — anchors right, capped to viewport width
-- [x] Market status logic rewrite — Intl.DateTimeFormat, all 5 CBOT session windows modeled correctly
-- [x] CLAUDE.md — added Browser Usage + Billing & API Usage sections
-- [x] Location name fix — `userLocName` persists city name across filter updates, displays in status bar
+- [x] Delivery month dropdown — filter cash table by delivery period, defaults to current month
+- [x] "Next available" display — buyers without selected month show next future delivery or "—"
+- [x] Non-standard delivery normalization — "Cash" → current month, "Oct-Nov26" → "Oct26"
+- [x] OSM discovery fix — `applyZip()` now triggers Overpass search, expanded keyword list for CO/IA/WI
+- [x] Removed unnamed silo discovery — only named facilities shown
+- [x] Request Prices button — discovered buyers without scraped data get mailto CTA
+- [x] submissions.md — added Price Requests tracking table
 
 ## Pending Handoffs
 
@@ -69,3 +71,5 @@ Decisions and open items for the next session to pick up.
 - About page rewrite, page loader, est. badges, CBOT labels — v1.125–v1.126 (2026-03-26)
 - CBOT futures scraper — resolved via Yahoo client-side fetch (2026-03-25)
 - UI polish — button tabs, location bar, Yahoo Globex fix — v1.165 (2026-03-31)
+- Mobile fixes, market status rewrite, location name persist — v1.166 (2026-03-31)
+- Delivery month filter, OSM discovery, Request Prices — v1.167 (2026-03-31)

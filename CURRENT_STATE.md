@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.166
+**Version:** 1.167
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-03-31T04:00Z
+**Last updated:** 2026-03-31T04:30Z
 
 ---
 
@@ -15,7 +15,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | Module | File | Status |
 |--------|------|--------|
 | Navigation & utilities | `js/app.js` (176 lines) | Active |
-| Markets (grain/cattle/dairy) | `js/markets.js` (~4,200 lines) | Active — live CBOT+basis cash prices, grain charts, zip+radius filtering with persistent location name, market status indicator (Intl-based CT detection, all 5 CBOT session windows), Globex electronic session support |
+| Markets (grain/cattle/dairy) | `js/markets.js` (~4,300 lines) | Active — live CBOT+basis cash prices, grain charts, delivery month filter, zip+radius filtering with persistent location name, OSM buyer discovery, Request Prices for undiscovered buyers, market status indicator (Intl-based CT detection, all 5 CBOT session windows), Globex electronic session support |
 | Barn data loader | `js/data-loader.js` (82 lines) | Active |
 | Herd | `js/herd.js` | Placeholder |
 | Fields | `js/fields.js` | Placeholder |
