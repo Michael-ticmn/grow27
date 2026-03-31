@@ -1,0 +1,125 @@
+{
+  "cfs": {
+    "url": "https://www.cfscoop.com/products-services/grain/cash-bids",
+    "active": true,
+    "allowed": true,
+    "reason": "allowed by robots.txt",
+    "checkedAt": "2026-03-31T09:46:43.097Z"
+  },
+  "mvg": {
+    "url": "https://www.mnvalleygrain.com/markets/cash.php?location_filter=&showcwt=0",
+    "active": true,
+    "allowed": false,
+    "reason": "disallowed by robots.txt",
+    "checkedAt": "2026-03-31T09:46:43.430Z"
+  },
+  "agp": {
+    "url": "https://agpartners.net/markets-cashbids/",
+    "active": true,
+    "allowed": true,
+    "reason": "robots.txt HTTP 403",
+    "checkedAt": "2026-03-31T09:46:43.927Z"
+  },
+  "jennieo": {
+    "url": "https://farmbucks.com/grain-prices/jennie-o/minnesota",
+    "active": true,
+    "allowed": true,
+    "reason": "allowed by robots.txt",
+    "checkedAt": "2026-03-31T09:46:44.042Z"
+  },
+  "chs": {
+    "url": "https://chsag.com/grain/cash-bids/",
+    "active": true,
+    "allowed": true,
+    "reason": "robots.txt HTTP 403",
+    "checkedAt": "2026-03-31T09:46:44.262Z"
+  },
+  "newvision": {
+    "url": "https://newvision.coop/current-grain-prices/?format=grid&groupby=location&setLocation=&commodity=",
+    "active": true,
+    "allowed": true,
+    "reason": "allowed by robots.txt",
+    "checkedAt": "2026-03-31T09:46:44.468Z"
+  },
+  "crystalvalley": {
+    "url": "https://crystalvalley.coop/grain/",
+    "active": true,
+    "allowed": true,
+    "reason": "robots.txt HTTP 403",
+    "checkedAt": "2026-03-31T09:46:44.807Z"
+  },
+  "alcorn": {
+    "url": "https://al-corn.com/cash-bids/",
+    "active": true,
+    "allowed": true,
+    "reason": "allowed by robots.txt",
+    "checkedAt": "2026-03-31T09:46:44.934Z"
+  },
+  "poet": {
+    "url": "https://farmbucks.com/grain-prices/poet",
+    "active": true,
+    "allowed": true,
+    "reason": "allowed by robots.txt",
+    "checkedAt": "2026-03-31T09:46:45.997Z"
+  },
+  "central": {
+    "url": "https://centrallivestock.com/monday---cattle.html",
+    "active": true,
+    "allowed": true,
+    "reason": "robots.txt HTTP 406",
+    "checkedAt": "2026-03-31T09:46:46.020Z"
+  },
+  "lanesboro": {
+    "url": "https://www.lanesborosalescommission.com/wednesday-auction",
+    "active": true,
+    "allowed": true,
+    "reason": "allowed by robots.txt",
+    "checkedAt": "2026-03-31T09:46:46.239Z"
+  },
+  "rockcreek": {
+    "url": "https://rockcreeklivestockmarket.com/?page_id=348",
+    "active": true,
+    "allowed": true,
+    "reason": "no robots.txt (404)",
+    "checkedAt": "2026-03-31T09:46:46.611Z"
+  },
+  "sleepyeye": {
+    "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR21gPJvWlLmM010wpiEW3Q1XSr_Sel4aguwc3oadClksTc8BEoqktTIQIms5MW2XeVpzNsNVOPQyeI/pubhtml",
+    "active": true,
+    "allowed": false,
+    "reason": "disallowed by robots.txt",
+    "checkedAt": "2026-03-31T09:46:47.067Z"
+  },
+  "dtn-cashbids": {
+    "url": "https://www.dtnpf.com/agriculture/web/ag/grains/local-grain-prices",
+    "active": false,
+    "allowed": true,
+    "reason": "allowed by robots.txt",
+    "checkedAt": "2026-03-31T09:46:47.229Z",
+    "note": "DTN Progressive Farmer — local cash bids widget used by many elevators"
+  },
+  "cmegroup-corn": {
+    "url": "https://www.cmegroup.com/markets/agriculture/grains/corn.html",
+    "active": false,
+    "allowed": true,
+    "reason": "robots.txt HTTP 403",
+    "checkedAt": "2026-03-31T09:46:47.699Z",
+    "note": "CME Group — official CBOT corn futures"
+  },
+  "cmegroup-soybeans": {
+    "url": "https://www.cmegroup.com/markets/agriculture/oilseeds/soybean.html",
+    "active": false,
+    "allowed": true,
+    "reason": "robots.txt HTTP 403",
+    "checkedAt": "2026-03-31T09:46:47.852Z",
+    "note": "CME Group — official CBOT soybean futures"
+  },
+  "aghost-jennieo": {
+    "url": "https://jennieo.aghostportal.com/index.cfm?show=11&mid=3&theLocation=4&layout=1046",
+    "active": false,
+    "allowed": true,
+    "reason": "allowed by robots.txt",
+    "checkedAt": "2026-03-31T09:46:47.936Z",
+    "note": "Jennie-O AgHost portal — direct bid page, robots.txt blocks scrapers"
+  }
+}
