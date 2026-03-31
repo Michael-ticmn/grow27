@@ -1379,6 +1379,104 @@ let GRAIN_SCRAPED = {}; // populated by loadGrainScrapedData()
 let GRAIN_SCRAPE_DATES = {}; // { sourceId: "2026-03-22" }
 // All basis values start null — only populated by scraper overlay in loadGrainScrapedData()
 
+// Delivery month filter — default to current month
+const _now=new Date();
+let selectedDeliveryMonth=_now.toLocaleString('en-US',{month:'short'}).substring(0,3)+String(_now.getFullYear()).slice(-2); // e.g. "Mar26"
+const MONTH_NAMES={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+const MONTH_ABBRS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function parseDelivery(d){if(!d)return null;const m=d.match(/^([A-Za-z]{3})(\d{2})$/);if(!m)return null;const mi=MONTH_NAMES[m[1]];if(mi==null)return null;return{month:mi,year:2000+parseInt(m[2]),key:m[1]+m[2]};}
+function deliveryLabel(d){const p=parseDelivery(d);if(!p)return d;return MONTH_ABBRS[p.month]+' 20'+String(p.year).slice(-2);}
+function deliverySortKey(d){const p=parseDelivery(d);if(!p)return 999999;return p.year*100+p.month;}
+function normalizeDelivery(d){if(!d)return d;if(/^[A-Za-z]{3}\d{2}$/.test(d))return d;const lo=d.toLowerCase().trim();if(lo==='cash'||lo==='spot'||lo==='immediate')return selectedDeliveryMonth;const range=d.match(/^([A-Za-z]{3})-[A-Za-z]{3}(\d{2})$/);if(range)return range[1]+range[2];return d;}
+
+function _applyDeliveryBid(elev, isForwardBid) {
+  const scrapeDate = elev._scrapeDate || null;
+  // Find bid matching selected delivery month, or note next available
+  const cornBid = (elev._cornBids || []).find(b => b.delivery === selectedDeliveryMonth);
+  const selKey = deliverySortKey(selectedDeliveryMonth);
+  const cornNext = !cornBid ? (elev._cornBids || []).filter(b => deliverySortKey(b.delivery) > selKey).sort((a,b) => deliverySortKey(a.delivery) - deliverySortKey(b.delivery))[0] || null : null;
+  if (cornBid && (cornBid.basis != null || cornBid.cash != null)) {
+    if (cornBid.basis != null) { elev.cornBasis = cornBid.basis; elev.cornScrapedBasis = true; elev.cornBasisCalculated = !!(cornBid.basisNote && cornBid.basisNote.startsWith('calculated')); }
+    elev.cornCash = cornBid.cash;
+    elev.cornCbot = cornBid.cbot;
+    elev.cornFuturesMonth = cornBid.futuresMonth;
+    elev.cornDelivery = cornBid.delivery || null;
+    elev.cornActual = true;
+    elev.cornActualDate = scrapeDate;
+    elev.cornForward = isForwardBid ? isForwardBid(cornBid) : false;
+    elev.cornNextDelivery = null;
+  } else if (elev._cornBids && elev._cornBids.length > 0) {
+    // No bid for selected month — clear price, note next available
+    elev.cornBasis = null; elev.cornCash = null; elev.cornScrapedBasis = false;
+    elev.cornActual = false; elev.cornDelivery = null; elev.cornForward = false;
+    elev.cornNextDelivery = cornNext ? cornNext.delivery : null;
+  } else if (elev._cornBids && elev._cornBids.length === 0) {
+    elev.cornBasis = null; elev.cornNextDelivery = null;
+  }
+  const beanBid = (elev._beanBids || []).find(b => b.delivery === selectedDeliveryMonth);
+  const beanNext = !beanBid ? (elev._beanBids || []).filter(b => deliverySortKey(b.delivery) > selKey).sort((a,b) => deliverySortKey(a.delivery) - deliverySortKey(b.delivery))[0] || null : null;
+  if (beanBid && (beanBid.basis != null || beanBid.cash != null)) {
+    if (beanBid.basis != null) { elev.soyBasis = beanBid.basis; elev.soyScrapedBasis = true; elev.soyBasisCalculated = !!(beanBid.basisNote && beanBid.basisNote.startsWith('calculated')); }
+    elev.soyCash = beanBid.cash;
+    elev.soyCbot = beanBid.cbot;
+    elev.soyFuturesMonth = beanBid.futuresMonth;
+    elev.soyDelivery = beanBid.delivery || null;
+    elev.soyActual = true;
+    elev.soyForward = beanBid ? (isForwardBid ? isForwardBid(beanBid) : false) : false;
+    elev.soyActualDate = scrapeDate;
+    elev.soyNextDelivery = null;
+  } else if (elev._beanBids && elev._beanBids.length > 0) {
+    elev.soyBasis = null; elev.soyCash = null; elev.soyScrapedBasis = false;
+    elev.soyActual = false; elev.soyDelivery = null; elev.soyForward = false;
+    elev.soyNextDelivery = beanNext ? beanNext.delivery : null;
+  } else if (elev._beanBids && elev._beanBids.length === 0) {
+    elev.soyBasis = null; elev.soyNextDelivery = null;
+  }
+}
+
+function _reapplyAllDeliveryBids() {
+  function isForwardBid(bid) {
+    if (!bid?.delivery) return false;
+    const m = bid.delivery.match(/^([A-Za-z]{3})(\d{2})$/);
+    if (!m) return false;
+    const bidMonth = MONTH_NAMES[m[1]];
+    const bidYear = 2000 + parseInt(m[2]);
+    if (bidMonth == null) return false;
+    const cutoff = new Date(_now.getFullYear(), _now.getMonth() + 2, 1);
+    return new Date(bidYear, bidMonth, 1) >= cutoff;
+  }
+  for (const elevKey of Object.keys(ELEVATORS)) {
+    const elev = ELEVATORS[elevKey];
+    if (!elev._cornBids && !elev._beanBids) continue;
+    _applyDeliveryBid(elev, isForwardBid);
+  }
+}
+
+function setDeliveryMonth(val) {
+  selectedDeliveryMonth = val;
+  _reapplyAllDeliveryBids();
+  buildCashTable();
+  rebuildElevatorDirectory();
+  updateGrainInsight();
+}
+
+function buildDeliveryDropdown() {
+  const sel = document.getElementById('delivery-month-select');
+  if (!sel) return;
+  // Collect all unique delivery months from raw scraped data
+  const months = new Set();
+  for (const src of Object.values(GRAIN_SCRAPED)) {
+    for (const loc of Object.values(src)) {
+      (loc.corn || []).forEach(b => { if (b.delivery && /^[A-Za-z]{3}\d{2}$/.test(b.delivery)) months.add(b.delivery); });
+      (loc.beans || []).forEach(b => { if (b.delivery && /^[A-Za-z]{3}\d{2}$/.test(b.delivery)) months.add(b.delivery); });
+    }
+  }
+  // Always include current month even if no bids exist for it
+  months.add(selectedDeliveryMonth);
+  const sorted = [...months].sort((a, b) => deliverySortKey(a) - deliverySortKey(b));
+  sel.innerHTML = sorted.map(m => `<option value="${m}"${m === selectedDeliveryMonth ? ' selected' : ''}>${deliveryLabel(m)}</option>`).join('');
+}
+
 async function loadGrainScrapedData() {
   try {
     const r = await fetch('data/prices/grain/index.json');
@@ -1419,36 +1517,17 @@ async function loadGrainScrapedData() {
         // Mark this elevator as scraped — even if a commodity has no bids,
         // don't backfill with default data. Leave blank instead.
         elev.scraped = true;
-        if (cornNearby && (cornNearby.basis != null || cornNearby.cash != null)) {
-          if (cornNearby.basis != null) { elev.cornBasis = cornNearby.basis; elev.cornScrapedBasis = true; elev.cornBasisCalculated = !!(cornNearby.basisNote && cornNearby.basisNote.startsWith('calculated')); }
-          elev.cornCash = cornNearby.cash;
-          elev.cornCbot = cornNearby.cbot;
-          elev.cornFuturesMonth = cornNearby.futuresMonth;
-          elev.cornDelivery = cornNearby.delivery || null;
-          elev.cornActual = true;
-          elev.cornActualDate = scrapeDate;
-          elev.cornForward = isForwardBid(cornNearby);
-        } else if (locData.corn && locData.corn.length === 0) {
-          // Scraper confirmed no corn bids — clear fallback basis
-          elev.cornBasis = null;
-        }
-        if (beanNearby && (beanNearby.basis != null || beanNearby.cash != null)) {
-          if (beanNearby.basis != null) { elev.soyBasis = beanNearby.basis; elev.soyScrapedBasis = true; elev.soyBasisCalculated = !!(beanNearby.basisNote && beanNearby.basisNote.startsWith('calculated')); }
-          elev.soyCash = beanNearby.cash;
-          elev.soyCbot = beanNearby.cbot;
-          elev.soyFuturesMonth = beanNearby.futuresMonth;
-          elev.soyDelivery = beanNearby.delivery || null;
-          elev.soyActual = true;
-          elev.soyForward = isForwardBid(beanNearby);
-          elev.soyActualDate = scrapeDate;
-        } else if (locData.beans && locData.beans.length === 0) {
-          // Scraper confirmed no bean bids — clear fallback basis
-          elev.soyBasis = null;
-        }
+        // Store full bid arrays for delivery month filtering (normalize non-standard delivery values)
+        elev._cornBids = (locData.corn || []).map(b => ({...b, delivery: normalizeDelivery(b.delivery)}));
+        elev._beanBids = (locData.beans || []).map(b => ({...b, delivery: normalizeDelivery(b.delivery)}));
+        elev._scrapeDate = scrapeDate;
+        // Apply the selected delivery month's bid (or nearest)
+        _applyDeliveryBid(elev, isForwardBid);
       }
       updated++;
     }
     console.log('[grain] overlaid actual prices on ' + updated + ' elevators');
+    buildDeliveryDropdown();
 
     // Extract CBOT futures from scraped data to update market cards.
     // Scraped sources like CFS include cbot values (e.g. "458'4" = $4.585).
@@ -1527,6 +1606,7 @@ async function applyZip(){
     userLocName=place['place name']+', '+place['state abbreviation'];
     filterElevatorsByRadius();
     loadWeather(userLat,userLon);
+    discoverElevators(userLat,userLon);
     // Reset basis chart defaults for new location
     _grainBasisChecked=new Set();_grainBasisData=null;
   }catch(e){
@@ -1658,7 +1738,7 @@ function cashTableSortedKeys(){const keys=Object.keys(ELEVATORS).filter(k=>!_buy
 function initCashSortBar(){document.querySelectorAll('.cash-sort-btn').forEach(btn=>{btn.addEventListener('click',function(){document.querySelectorAll('.cash-sort-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');cashTableSort=this.dataset.sort;buildCashTable();});});}
 function buyerLogoHtml(e){const w=e.name.replace(/[—–\-]+/g,' ').split(/\s+/).filter(Boolean);const init=w.map(c=>c[0]).join('').substring(0,3).toUpperCase();if(e.logo)return'<div class="buyer-logo-tile" style="background:'+(e.logoBg||'#fff')+'"><img src="'+e.logo+'" alt="" onerror="logoErr(this)"><span class="buyer-logo-fallback" style="display:none">'+init+'</span></div>';return'<div class="buyer-logo-tile buyer-logo-tile--fallback"><span class="buyer-logo-fallback">'+init+'</span></div>';}
 function logoErr(el){el.style.display='none';el.nextElementSibling.style.display='';}
-function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=cashTableSortedKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const lh=buyerLogoHtml(e);const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=e.cornBasis!==null?(cornFut+e.cornBasis).toFixed(4):null;const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(4):null;const cbStr=e.cornBasis!==null?((e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)):'';const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'';const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:13px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'';function fmtScrapeBadge(d,calc){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';const ts=tm?mo+' '+tm:mo;const stale=(Date.now()-dt.getTime())>24*60*60*1000;if(calc){const color=stale?'var(--down)':'var(--corn)';const tip='Basis calculated from scraped cash price \u2014 price updates live with CBOT';return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';" title="'+tip+'">basis calc. '+ts+'</span>';}const color=stale?'var(--down)':'var(--up)';const tip='Basis scraped from source \u2014 price updates live with CBOT';return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';" title="'+tip+'">basis '+ts+'</span>';}function fmtEstBadge(){const dt=cbotNow||new Date();const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});const tip='Basis estimated from historical average \u2014 price updates live with CBOT';return'<span class="scrape-ts est" title="'+tip+'">basis est. '+mo+' '+tm+'</span>';}const cornBasisLine=cornCash!=null?'<span class="basis-sublabel">basis '+cbStr+'</span>':'';const soyBasisLine=soyCash!=null&&e.soyBasis!==null?'<span class="basis-sublabel">basis '+sbStr+'</span>':'';const cornTimeBadge=cornCash!=null?(e.cornScrapedBasis?fmtScrapeBadge(e.cornActualDate,e.cornBasisCalculated):fmtEstBadge()):'';const soyTimeBadge=soyCash!=null?(e.soyScrapedBasis?fmtScrapeBadge(e.soyActualDate,e.soyBasisCalculated):fmtEstBadge()):'';const cornContract='';const soyContract='';const scrapeMap=GRAIN_SCRAPE_MAP[key];const sourceUrl=scrapeMap?GRAIN_SOURCE_URLS[scrapeMap.source]:null;const buyerUrl=e.url||null;let linksHtml='';if(buyerUrl)linksHtml+='<a href="'+buyerUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Site ↗</a>';if(sourceUrl&&sourceUrl!==buyerUrl)linksHtml+='<a href="'+sourceUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Bids ↗</a>';if(!linksHtml&&e.phone)linksHtml='<a href="tel:'+e.phone.replace(/[^+\d]/g,'')+'" class="buyer-link" onclick="event.stopPropagation()">Call ↗</a>';if(e.disabled){const linkUrl=e.url||'#';const linkLabel=e.phone?'Call for bids · '+e.phone:'Look up bids ↗';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td colspan="2" style="text-align:center;"><a href="${linkUrl}" target="_blank" rel="noopener" style="color:var(--corn);font-size:12px;letter-spacing:1px;text-decoration:none;" onclick="event.stopPropagation()">${linkLabel}</a></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;}return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td class="cash-price-cell"><div class="price-cell">${cornCash!=null?'<span class="cash-price">$'+cornCash+'</span>'+cornBasisLine+cornContract+cornTimeBadge:'<span style="color:var(--txt3)">—</span>'}</div></td><td class="cash-price-cell soy"><div class="price-cell">${soyCash!=null?'<span class="cash-price">$'+soyCash+'</span>'+soyBasisLine+soyContract+soyTimeBadge:'<span style="color:var(--txt3)">—</span>'}</div></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;});tbody.innerHTML=rows.join('');}
+function buildCashTable(){const tbody=document.getElementById('cash-table-body');if(!tbody)return;const sorted=cashTableSortedKeys();const rows=sorted.map((key,idx)=>{const e=ELEVATORS[key];const lh=buyerLogoHtml(e);const cornFut=GRAIN_DATA.cn.price,soyFut=GRAIN_DATA.sb.price;const cornCash=e.cornBasis!==null?(cornFut+e.cornBasis).toFixed(4):null;const soyCash=e.soyBasis!==null?(soyFut+e.soyBasis).toFixed(4):null;const cbStr=e.cornBasis!==null?((e.cornBasis>=0?'+':'')+e.cornBasis.toFixed(2)):'';const sbStr=e.soyBasis!==null?((e.soyBasis>=0?'+':'')+e.soyBasis.toFixed(2)):'';const dist=userLat?Math.round(distMiles(userLat,userLon,e.lat,e.lon)):null;const distBadge=dist!==null?(idx===0?`<span style="color:var(--corn);background:var(--corn-dim);padding:2px 7px;border-radius:3px;font-size:13px;">${dist} mi ★</span>`:`<span style="font-size:12px;">${dist} mi</span>`):'';function fmtScrapeBadge(d,calc){if(!d)return'';const dt=new Date(d.includes('T')?d:d+'T12:00:00');const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=d.includes('T')?dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';const ts=tm?mo+' '+tm:mo;const stale=(Date.now()-dt.getTime())>24*60*60*1000;if(calc){const color=stale?'var(--down)':'var(--corn)';const tip='Basis calculated from scraped cash price \u2014 price updates live with CBOT';return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';" title="'+tip+'">basis calc. '+ts+'</span>';}const color=stale?'var(--down)':'var(--up)';const tip='Basis scraped from source \u2014 price updates live with CBOT';return'<span class="scrape-ts" style="color:'+color+';border-color:'+color+';" title="'+tip+'">basis '+ts+'</span>';}function fmtEstBadge(){const dt=cbotNow||new Date();const mo=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});const tm=dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});const tip='Basis estimated from historical average \u2014 price updates live with CBOT';return'<span class="scrape-ts est" title="'+tip+'">basis est. '+mo+' '+tm+'</span>';}const cornBasisLine=cornCash!=null?'<span class="basis-sublabel">basis '+cbStr+'</span>':'';const soyBasisLine=soyCash!=null&&e.soyBasis!==null?'<span class="basis-sublabel">basis '+sbStr+'</span>':'';const cornTimeBadge=cornCash!=null?(e.cornScrapedBasis?fmtScrapeBadge(e.cornActualDate,e.cornBasisCalculated):fmtEstBadge()):'';const soyTimeBadge=soyCash!=null?(e.soyScrapedBasis?fmtScrapeBadge(e.soyActualDate,e.soyBasisCalculated):fmtEstBadge()):'';const cornContract='';const soyContract='';const scrapeMap=GRAIN_SCRAPE_MAP[key];const sourceUrl=scrapeMap?GRAIN_SOURCE_URLS[scrapeMap.source]:null;const buyerUrl=e.url||null;let linksHtml='';if(buyerUrl)linksHtml+='<a href="'+buyerUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Site ↗</a>';if(sourceUrl&&sourceUrl!==buyerUrl)linksHtml+='<a href="'+sourceUrl+'" target="_blank" rel="noopener" class="buyer-link" onclick="event.stopPropagation()">Bids ↗</a>';if(!linksHtml&&e.phone)linksHtml='<a href="tel:'+e.phone.replace(/[^+\d]/g,'')+'" class="buyer-link" onclick="event.stopPropagation()">Call ↗</a>';if(e.discovered&&!e.cornScrapedBasis){const reqSubject=encodeURIComponent('grow27 Price Request: '+e.name);const reqBody=encodeURIComponent('Facility: '+e.name+'\nLocation: '+e.loc+'\nCoordinates: '+e.lat+', '+e.lon+'\n\nPlease add price tracking for this buyer.');const reqHref='mailto:Michael@ticmn.com?subject='+reqSubject+'&body='+reqBody;return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td colspan="2" style="text-align:center;"><a href="${reqHref}" style="color:var(--corn);font-size:12px;letter-spacing:1px;text-decoration:none;border:1px solid var(--corn-dim);padding:4px 12px;border-radius:4px;" onclick="event.stopPropagation()">Request Prices</a></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;}if(e.disabled){const linkUrl=e.url||'#';const linkLabel=e.phone?'Call for bids · '+e.phone:'Look up bids ↗';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td colspan="2" style="text-align:center;"><a href="${linkUrl}" target="_blank" rel="noopener" style="color:var(--corn);font-size:12px;letter-spacing:1px;text-decoration:none;" onclick="event.stopPropagation()">${linkLabel}</a></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;}const cornNoDelivery=cornCash==null&&e.cornNextDelivery?'<span style="color:var(--txt3);font-size:12px;">Next: '+deliveryLabel(e.cornNextDelivery)+'</span>':'<span style="color:var(--txt3)">—</span>';const soyNoDelivery=soyCash==null&&e.soyNextDelivery?'<span style="color:var(--txt3);font-size:12px;">Next: '+deliveryLabel(e.soyNextDelivery)+'</span>':'<span style="color:var(--txt3)">—</span>';return`<tr data-key="${key}" onclick="selectFromTable('${key}')"><td><div style="display:flex;align-items:center;gap:10px;">${lh}<div class="buyer-identity"><span class="buyer-location">${e.loc}</span><span class="buyer-name">${e.name}</span></div></div></td><td class="cash-price-cell"><div class="price-cell">${cornCash!=null?'<span class="cash-price">$'+cornCash+'</span>'+cornBasisLine+cornContract+cornTimeBadge:cornNoDelivery}</div></td><td class="cash-price-cell soy"><div class="price-cell">${soyCash!=null?'<span class="cash-price">$'+soyCash+'</span>'+soyBasisLine+soyContract+soyTimeBadge:soyNoDelivery}</div></td><td>${distBadge}</td><td class="buyer-links-cell">${linksHtml}</td></tr>`;});tbody.innerHTML=rows.join('');}
 // ── GRAIN CHARTS ─────────────────────────────────────────────────────────────
 let grainChartRange=90;
 let grainChartCrop='corn'; // 'corn' | 'soy'
@@ -2152,7 +2232,8 @@ function rebuildElevatorDirectory() {
     const cornTag = e.cornScrapedBasis ? ' <span class="barn-src-badge ' + (cornAging ? 'barn-src-aging' : e.cornBasisCalculated ? 'barn-src-calc' : 'barn-src-live') + '" style="font-size:11px;">' + (cornAging ? 'AGING' : e.cornBasisCalculated ? 'CALC' : 'SCRAPED') + '</span>' : ' <span style="font-size:11px;color:var(--txt3);">est.</span>';
     const soyTag  = e.soyScrapedBasis  ? ' <span class="barn-src-badge ' + (soyAging  ? 'barn-src-aging' : e.soyBasisCalculated  ? 'barn-src-calc' : 'barn-src-live') + '" style="font-size:11px;">' + (soyAging  ? 'AGING' : e.soyBasisCalculated  ? 'CALC' : 'SCRAPED') + '</span>' : ' <span style="font-size:11px;color:var(--txt3);">est.</span>';
     const dirCornCashOnly = e.cornActual && e.cornCash != null && !e.cornCbot && !e.cornScrapedBasis;
-    const basisBlock = e.disabled
+    const basisBlock = (e.discovered && !e.cornScrapedBasis) ? ''
+    : e.disabled
     ? `<div class="elev-details-row" style="margin-top:10px;">
         <div class="elev-detail-item" style="flex:1;">
           <span style="color:var(--txt3);font-size:12px;">Automated bids unavailable</span><br>
@@ -2190,8 +2271,12 @@ function rebuildElevatorDirectory() {
     // Note
     const noteHtml = e.note
       ? `<div class="auction-detail" style="margin-top:6px;">${e.note}</div>` : '';
-    const discoveredNote = e.discovered
-      ? `<div class="auction-detail" style="font-style:italic;margin-top:4px;">Found via OpenStreetMap · basis estimated</div>` : '';
+    const discoveredNote = e.discovered && !e.cornScrapedBasis
+      ? `<div class="auction-detail" style="margin-top:8px;">
+          <a href="mailto:Michael@ticmn.com?subject=${encodeURIComponent('grow27 Price Request: '+e.name)}&body=${encodeURIComponent('Facility: '+e.name+'\nLocation: '+e.loc+'\nCoordinates: '+e.lat+', '+e.lon+'\n\nPlease add price tracking for this buyer.')}" style="color:var(--corn);font-size:13px;letter-spacing:1px;text-decoration:none;border:1px solid var(--corn-dim);padding:5px 14px;border-radius:4px;display:inline-block;">Request Prices</a>
+          <div style="font-style:italic;margin-top:4px;color:var(--txt3);font-size:12px;">Found via OpenStreetMap · no price data yet</div>
+        </div>`
+      : e.discovered ? `<div class="auction-detail" style="font-style:italic;margin-top:4px;">Found via OpenStreetMap</div>` : '';
 
     // Links
     const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(e.name + ', ' + e.loc)}`;
@@ -2224,12 +2309,42 @@ function rebuildElevatorDirectory() {
 }
 
 // ── OSM ELEVATOR DISCOVERY ───────────────────────────────────────────────────
-const SEARCH_RADIUS_M=80000;
-const OVERPASS_QUERY=(lat,lon)=>`[out:json][timeout:20];(node["man_made"="silo"](around:${SEARCH_RADIUS_M},${lat},${lon});node["name"~"elevator|grain|coop|co-op|chs|cenex|feed|ethanol|agri|landmark|heartland|adf|poet|farmer",i]["name"!~"^$"](around:${SEARCH_RADIUS_M},${lat},${lon});way["man_made"="silo"]["name"~".",i](around:${SEARCH_RADIUS_M},${lat},${lon}););out center tags;`;
+const DISCOVER_KEYWORDS=['elevator','grain','coop','co-op','chs','cenex','feed','ethanol','agri','poet','farmer','bunge','adm','cargill','gavilon','scoular','mill','terminal','storage','growmark','landus','badger','country visions','united cooperative','landmark','heartland','adf'];
+const OVERPASS_NAMED=(lat,lon,r)=>`[out:json][timeout:25];node["name"~"${DISCOVER_KEYWORDS.join('|')}",i]["name"!~"^$"](around:${r},${lat},${lon});out;`;
+// Unnamed silo query removed — anonymous silos without names/contact are not actionable
 function slugify(str){return str.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');}
-function isTooClose(lat,lon){return Object.values(ALL_ELEVATORS).some(c=>distMiles(lat,lon,c.lat,c.lon)<1.3);}
+function isTooClose(lat,lon,pool){return Object.values(pool||ALL_ELEVATORS).some(c=>distMiles(lat,lon,c.lat,c.lon)<1.3);}
 function estimateBasis(lat,lon,isCorn){const s=Math.abs(Math.sin(lat*1000+lon*997));const base=isCorn?-0.20:-0.27;return parseFloat((base+(s*0.10-0.05)).toFixed(2));}
-async function discoverElevators(lat,lon){const statusEl=document.getElementById('discovery-status');if(statusEl)statusEl.textContent='Searching for nearby buyers…';try{const body='data='+encodeURIComponent(OVERPASS_QUERY(lat,lon));const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});if(!r.ok)throw new Error('overpass '+r.status);const d=await r.json();let added=0;(d.elements||[]).forEach(el=>{const name=(el.tags&&(el.tags.name||el.tags['operator']||el.tags['brand']))||'';if(!name||name.length<3)return;const elat=el.lat||(el.center&&el.center.lat);const elon=el.lon||(el.center&&el.center.lon);if(!elat||!elon)return;if(isTooClose(elat,elon))return;const key='osm_'+slugify(name)+'_'+el.id;if(ELEVATORS[key])return;const n=name.toLowerCase();if(!n.includes('elevator')&&!n.includes('grain')&&!n.includes('coop')&&!n.includes('co-op')&&!n.includes('chs')&&!n.includes('cenex')&&!n.includes('feed')&&!n.includes('ethanol')&&!n.includes('agri')&&!n.includes('poet')&&!n.includes('farmer'))return;const city=(el.tags['addr:city']||el.tags['addr:town']||'');const state=(el.tags['addr:state']||'MN');const loc=city?(city+' '+state).trim():(state);const entry={name,loc,lat:elat,lon:elon,cornBasis:null,soyBasis:null,curated:false,discovered:true};ELEVATORS[key]=entry;ALL_ELEVATORS[key]=entry;added++;});if(statusEl){statusEl.textContent=added>0?added+' additional buyer'+(added>1?'s':'')+' found nearby':'No additional buyers found in range';setTimeout(()=>{if(statusEl)statusEl.textContent='';},4000);}}catch(e){if(statusEl)statusEl.textContent='Buyer search unavailable';setTimeout(()=>{if(statusEl)statusEl.textContent='';},3000);}rebuildElevatorSelect();buildCashTable();rebuildElevatorDirectory();}
+async function _overpassFetch(query){const body='data='+encodeURIComponent(query);const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});if(!r.ok)throw new Error('overpass '+r.status);return r.json();}
+async function discoverElevators(lat,lon){
+  const statusEl=document.getElementById('discovery-status');
+  if(statusEl)statusEl.textContent='Searching for nearby buyers…';
+  // 50 mile fixed discovery radius (~80 km)
+  const radiusM=80000;
+  let added=0;
+  const merged={...ALL_ELEVATORS,...Object.fromEntries(Object.entries(ELEVATORS).filter(([,e])=>e.discovered))};
+  try{
+    // Only discover named facilities — unnamed silos are not actionable
+    const namedData=await _overpassFetch(OVERPASS_NAMED(lat,lon,radiusM)).catch(()=>({elements:[]}));
+    (namedData.elements||[]).forEach(el=>{
+      const name=(el.tags&&(el.tags.name||el.tags['operator']||el.tags['brand']))||'';
+      if(!name||name.length<3)return;
+      const elat=el.lat||(el.center&&el.center.lat);
+      const elon=el.lon||(el.center&&el.center.lon);
+      if(!elat||!elon)return;
+      if(isTooClose(elat,elon,merged))return;
+      const key='osm_'+slugify(name)+'_'+el.id;
+      if(merged[key])return;
+      const city=(el.tags['addr:city']||el.tags['addr:town']||'');
+      const state=(el.tags['addr:state']||'');
+      const loc=city?(city+' '+state).trim():(state);
+      const entry={name,loc,lat:elat,lon:elon,cornBasis:null,soyBasis:null,curated:false,discovered:true};
+      ELEVATORS[key]=entry;ALL_ELEVATORS[key]=entry;merged[key]=entry;added++;
+    });
+    if(statusEl){statusEl.textContent=added>0?added+' additional buyer'+(added>1?'s':'')+' found nearby':'No additional buyers found in range';setTimeout(()=>{if(statusEl)statusEl.textContent='';},4000);}
+  }catch(e){if(statusEl){statusEl.textContent='Buyer search unavailable';setTimeout(()=>{if(statusEl)statusEl.textContent='';},3000);}}
+  filterElevatorsByRadius();
+}
 
 // ── CATTLE TYPE + AUCTION BARN PRICES ────────────────────────────────────────
 // Cattle type dropdown — affects barn price display

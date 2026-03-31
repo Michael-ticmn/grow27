@@ -4,6 +4,33 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.167 (2026-03-31T04:30Z)
+
+### Delivery Month Filter, OSM Discovery, Request Prices
+
+**Delivery month dropdown** — added a delivery month selector to the cash prices table:
+- Dropdown defaults to current month, populated from all scraped bid delivery periods (Mar26–Oct27+)
+- Switching months re-overlays bids from the full bid array stored on each elevator
+- Buyers without a bid for the selected month show "Next: [month]" (only future months, not past)
+- Non-standard delivery values normalized: "Cash"/"Spot" → current month, range formats like "Oct-Nov26" → first month ("Oct26")
+- Full bid arrays (`_cornBids`, `_beanBids`) now stored on each elevator during scrape overlay
+
+**OSM elevator discovery improvements:**
+- Fixed `applyZip()` to call `discoverElevators()` — zip code changes now trigger new OSM searches
+- Expanded Overpass keyword list: added `bunge`, `adm`, `cargill`, `gavilon`, `scoular`, `mill`, `terminal`, `storage`, `growmark`, `landus`, `badger`, `country visions`, `united cooperative`
+- Removed unnamed silo discovery — anonymous `man_made=silo` nodes without names/contact are not actionable
+- Removed hardcoded 'MN' state fallback for discovered elevators
+- Single Overpass query (named facilities only) instead of parallel named+silo queries
+- `filterElevatorsByRadius()` called after discovery to update status count
+
+**Request Prices for discovered buyers:**
+- Discovered elevators without scraped data show "Request Prices" button instead of estimated prices
+- mailto link pre-fills facility name, location, and coordinates to Michael@ticmn.com
+- Directory cards show same button with "no price data yet" note
+- `submissions.md` updated with Price Requests tracking table
+
+---
+
 ## v1.166 (2026-03-31T04:00Z)
 
 ### Mobile Fixes, Market Status Rewrite, CLAUDE.md Updates
