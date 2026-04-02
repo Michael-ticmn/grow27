@@ -2,8 +2,8 @@
   "id": "rockcreek",
   "name": "Rock Creek Livestock Market",
   "location": "Pine City MN",
-  "lastUpdated": "2026-04-01",
-  "lastSuccess": "2026-03-30",
+  "lastUpdated": "2026-04-02",
+  "lastSuccess": "2026-04-01",
   "history": [
     {
       "date": "2026-03-30",
@@ -287,6 +287,26 @@
           "cows": 23
         }
       },
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
+      "date": "2026-03-30",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": null,
+      "liteTestNote": null,
+      "repSales": null,
       "hogs": null,
       "source": "scraped"
     },
@@ -3639,20 +3659,159 @@
       "source": "scraped"
     },
     {
-      "date": "2026-03-30",
+      "date": "2026-04-01",
       "slaughter": {
-        "beef": null,
+        "beef": {
+          "low": 205,
+          "high": 235
+        },
         "crossbred": null,
-        "holstein": null
+        "holstein": {
+          "low": 187,
+          "high": 205
+        }
       },
       "feeder": {
-        "beef": null,
+        "beef": {
+          "low": 275,
+          "high": 560
+        },
         "crossbred": null,
-        "holstein": null,
+        "holstein": {
+          "low": 265,
+          "high": 310
+        },
         "liteTest": false
       },
-      "feederWeights": [],
-      "saleDay": null,
+      "feederWeights": [
+        {
+          "range": "400–800#",
+          "low": 230,
+          "price": 310,
+          "types": [
+            "holstein"
+          ],
+          "label": "hol"
+        },
+        {
+          "range": "800–1100#",
+          "low": 200,
+          "price": 265,
+          "types": [
+            "holstein"
+          ],
+          "label": "hol"
+        },
+        {
+          "range": "300–400#",
+          "low": 450,
+          "price": 560,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "400–500#",
+          "low": 390,
+          "price": 525,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "500–600#",
+          "low": 390,
+          "price": 450,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "600–700#",
+          "low": 380,
+          "price": 400,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "700–800#",
+          "low": 285,
+          "price": 350,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "800–900#",
+          "low": 275,
+          "price": 350,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "300–400#",
+          "low": 490,
+          "price": 540,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "400–500#",
+          "low": 330,
+          "price": 530,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "500–600#",
+          "low": 375,
+          "price": 415,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "600–700#",
+          "low": 300,
+          "price": 375,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "700–800#",
+          "low": 230,
+          "price": 300,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "800–900#",
+          "low": 215,
+          "price": 275,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        }
+      ],
+      "saleDay": "Wednesday",
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
