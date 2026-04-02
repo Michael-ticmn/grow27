@@ -382,17 +382,15 @@ function updateMarketStatus(isLive,dataTime){
   if(!el)return;
   const state=cbotMarketState();
   const checkTs=dataTime?dataTime.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'—';
-  if(!isLive){
-    el.textContent='Markets closed · no data';
-    if(dot){dot.style.background='var(--txt3)';dot.style.animation='none';}
-  } else if(state==='open'){
-    el.textContent='Markets open · last check '+checkTs;
+  const suffix=isLive?' · last check '+checkTs:' · no data';
+  if(state==='open'){
+    el.textContent='Markets open'+suffix;
     if(dot){dot.style.background='var(--up)';dot.style.animation='pulse 2.5s infinite';}
   } else if(state==='online'){
-    el.textContent='Markets online · last check '+checkTs;
+    el.textContent='Markets online'+suffix;
     if(dot){dot.style.background='var(--corn)';dot.style.animation='pulse 2.5s infinite';}
   } else {
-    el.textContent='Markets closed · last check '+checkTs;
+    el.textContent='Markets closed'+suffix;
     if(dot){dot.style.background='var(--txt3)';dot.style.animation='none';}
   }
 }
