@@ -4,9 +4,10 @@ Decisions and open items for the next session to pick up.
 
 ---
 
-## Completed This Session (v1.168)
+## Completed This Session (v1.169)
 
-- [x] Market status fix — correct state shown when Yahoo fetch fails on mobile
+- [x] Market status fix — correct state shown when Yahoo fetch fails on mobile (v1.168)
+- [x] Watchdog workflow fix — added `permissions: actions: write` for workflow_dispatch (v1.169)
 
 ## Pending Handoffs
 
