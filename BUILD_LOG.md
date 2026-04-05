@@ -4,6 +4,26 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.169 (2026-04-05T12:00Z)
+
+### Watchdog Workflow Fix — Permissions for workflow_dispatch
+
+**Watchdog workflow** failed daily with `403 Resource not accessible by integration` when trying to trigger missed scraper runs:
+- Added `permissions: actions: write` to `watchdog.yml` — the default `GITHUB_TOKEN` lacked write access to dispatch other workflows
+- Watchdog can now successfully trigger `workflow_dispatch` on barns, grain, futures, and robots-check workflows
+
+---
+
+## v1.168 (2026-04-02T15:13Z)
+
+### Market Status Fix — Yahoo Fetch Failure on Mobile
+
+**Market status indicator** showed incorrect state when Yahoo Finance fetch failed on mobile:
+- Fixed `cbotMarketState()` to return correct market status even when Yahoo data is unavailable
+- Prevents mobile users from seeing stale or wrong market state after a failed fetch
+
+---
+
 ## v1.167 (2026-03-31T04:30Z)
 
 ### Delivery Month Filter, OSM Discovery, Request Prices

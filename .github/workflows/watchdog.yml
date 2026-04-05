@@ -9,6 +9,9 @@ on:
     - cron: '0 3 * * 2-6'
   workflow_dispatch:
 
+permissions:
+  actions: write
+
 jobs:
   watchdog:
     runs-on: ubuntu-latest
