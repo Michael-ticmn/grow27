@@ -4,6 +4,16 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.168 (2026-04-02T15:13Z)
+
+### Market Status Fix — Yahoo Fetch Failure on Mobile
+
+**Market status indicator** showed incorrect state when Yahoo Finance fetch failed on mobile:
+- Fixed `cbotMarketState()` to return correct market status even when Yahoo data is unavailable
+- Prevents mobile users from seeing stale or wrong market state after a failed fetch
+
+---
+
 ## v1.167 (2026-03-31T04:30Z)
 
 ### Delivery Month Filter, OSM Discovery, Request Prices
