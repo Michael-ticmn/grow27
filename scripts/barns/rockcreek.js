@@ -3,7 +3,9 @@
 // Parses PDF market reports linked from their website.
 //
 // Reports are published at irregular intervals as PDFs.
-// URL pattern: https://rockcreeklivestockmarket.com/wp-content/uploads/YYYY/MM/YYYY-MM-DD-mr.pdf
+// URL patterns:
+//   Legacy: https://rockcreeklivestockmarket.com/wp-content/uploads/YYYY/MM/YYYY-MM-DD-mr.pdf
+//   New:    https://rockcreeklivestockmarket.com/wp-content/uploads/YYYY/MM/Market-Report-*.pdf
 //
 // Strategy: scrape index page for PDF links, select newest unprocessed,
 // download via Puppeteer, extract text with pdf-parse, parse prices.
@@ -31,51 +33,114 @@ const PRICES_DIR = path.join(ROOT, 'data', 'prices');
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 const DEV_MODE = false;  // validated — Phase 2/3 active
-const PDF_PATTERN = /\/wp-content\/uploads\/\d{4}\/\d{2}\/(\d{4}-\d{2}-\d{2})-mr\.pdf/i;
+// Legacy pattern: /wp-content/uploads/YYYY/MM/YYYY-MM-DD-mr.pdf
+const PDF_PATTERN_DATED = /\/wp-content\/uploads\/(\d{4})\/(\d{2})\/(\d{4}-\d{2}-\d{2})-mr\.pdf/i;
+// New pattern: /wp-content/uploads/YYYY/MM/<anything>.pdf (date NOT in filename)
+const PDF_PATTERN_BROAD = /\/wp-content\/uploads\/(\d{4})\/(\d{2})\/[^/"]+\.pdf/i;
 
 // ── PDF link discovery ────────────────────────────────────────────────────────
 
+// Month name/abbr → zero-padded number
+const MONTH_MAP = {
+  january:'01', february:'02', march:'03', april:'04', may:'05', june:'06',
+  july:'07', august:'08', september:'09', october:'10', november:'11', december:'12',
+  jan:'01', feb:'02', mar:'03', apr:'04', may:'05', jun:'06',
+  jul:'07', aug:'08', sep:'09', oct:'10', nov:'11', dec:'12',
+};
+
+// Try to extract a YYYY-MM-DD date from link text or nearby context
+function dateFromLinkText(text) {
+  if (!text) return null;
+  // "April 6th, 2026" / "March 30, 2026" / "Apr 6, 2026"
+  const m = text.match(/(\w+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})/i);
+  if (m) {
+    const mon = MONTH_MAP[m[1].toLowerCase()];
+    if (mon) return `${m[3]}-${mon}-${String(m[2]).padStart(2, '0')}`;
+  }
+  // "2026-04-06" already in text
+  const iso = text.match(/(\d{4}-\d{2}-\d{2})/);
+  if (iso) return iso[1];
+  return null;
+}
+
 function discoverPdfs($, id) {
   const pdfs = [];
-  const seen = new Set();
+  const seenUrls = new Set();
 
   $('a[href]').each((_, el) => {
     const href = $(el).attr('href');
     if (!href) return;
-    const m = href.match(PDF_PATTERN);
-    if (!m) return;
-    const date = m[1];
-    if (seen.has(date)) return;
-    seen.add(date);
+
+    // Must be a PDF in wp-content/uploads
+    if (!PDF_PATTERN_BROAD.test(href)) return;
 
     const url = href.startsWith('http')
       ? href
       : `https://rockcreeklivestockmarket.com${href}`;
+    if (seenUrls.has(url)) return;
+    seenUrls.add(url);
+
+    // Try dated filename first (legacy: YYYY-MM-DD-mr.pdf)
+    const dm = href.match(PDF_PATTERN_DATED);
+    let date = dm ? dm[3] : null;
+
+    // If no date in filename, try link text / parent text
+    if (!date) {
+      const linkText = $(el).text();
+      date = dateFromLinkText(linkText);
+      // Walk up to parent <li> or <div> for context
+      if (!date) {
+        const parentText = $(el).closest('li, div, td').text();
+        date = dateFromLinkText(parentText);
+      }
+      // Last resort: infer YYYY-MM from upload path, use day 01 as placeholder
+      if (!date) {
+        const pm = href.match(/\/wp-content\/uploads\/(\d{4})\/(\d{2})\//);
+        if (pm) {
+          date = `${pm[1]}-${pm[2]}-01`;
+          console.log(`[${id}] PDF date estimated from path: ${date} for ${url}`);
+        }
+      }
+    }
+
+    if (!date) return; // skip if we can't determine any date
     pdfs.push({ url, date });
   });
 
-  // Also check for links that aren't <a> tags — some sites put URLs in text
-  // (fallback: scan raw HTML)
+  // Fallback: scan raw HTML for PDF links not in <a> tags
   if (pdfs.length === 0) {
     const htmlStr = $.html ? $.html() : '';
-    const re = new RegExp(PDF_PATTERN.source, 'gi');
+    const re = new RegExp(PDF_PATTERN_BROAD.source, 'gi');
     let match;
     while ((match = re.exec(htmlStr)) !== null) {
-      const date = match[1];
-      if (seen.has(date)) continue;
-      seen.add(date);
       const fullMatch = match[0];
       const url = fullMatch.startsWith('http')
         ? fullMatch
         : `https://rockcreeklivestockmarket.com${fullMatch}`;
-      pdfs.push({ url, date });
+      if (seenUrls.has(url)) continue;
+      seenUrls.add(url);
+      // Try dated filename
+      const dm = fullMatch.match(PDF_PATTERN_DATED);
+      const date = dm ? dm[3] : null;
+      if (date) pdfs.push({ url, date });
     }
     if (pdfs.length > 0) {
       console.log(`[${id}] found ${pdfs.length} PDFs via HTML scan fallback`);
     }
   }
 
-  return pdfs.sort((a, b) => b.date.localeCompare(a.date)); // newest first
+  // Deduplicate by date — prefer dated-filename URLs over estimated dates
+  const byDate = new Map();
+  for (const p of pdfs) {
+    const existing = byDate.get(p.date);
+    if (!existing) { byDate.set(p.date, p); continue; }
+    // Prefer the URL with date in filename
+    if (PDF_PATTERN_DATED.test(p.url) && !PDF_PATTERN_DATED.test(existing.url)) {
+      byDate.set(p.date, p);
+    }
+  }
+
+  return [...byDate.values()].sort((a, b) => b.date.localeCompare(a.date)); // newest first
 }
 
 // ── Date filter — select which PDFs to process ────────────────────────────────
@@ -383,6 +448,27 @@ function parseRepSales(lines, id) {
   };
 }
 
+// ── Extract report date from PDF text ────────────────────────────────────────
+// For new-format PDFs where the filename has no date, try to find it in the text.
+// Rock Creek PDFs typically have a date line like "April 6, 2026" or "04/06/2026".
+function extractDateFromPdfText(text) {
+  // "April 6, 2026" / "April 6th, 2026"
+  const mNamed = text.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/i);
+  if (mNamed) {
+    const mon = MONTH_MAP[mNamed[1].toLowerCase()];
+    if (mon) return `${mNamed[3]}-${mon}-${String(mNamed[2]).padStart(2, '0')}`;
+  }
+  // "04/06/2026" or "4/6/2026"
+  const mSlash = text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
+  if (mSlash) {
+    return `${mSlash[3]}-${String(mSlash[1]).padStart(2, '0')}-${String(mSlash[2]).padStart(2, '0')}`;
+  }
+  // "2026-04-06"
+  const mIso = text.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+  if (mIso) return mIso[1];
+  return null;
+}
+
 // ── Main parse function (called by orchestrator) ──────────────────────────────
 
 async function parse({ id, browser, html, $ }) {
@@ -441,17 +527,26 @@ async function parse({ id, browser, html, $ }) {
     const { slaughter, feeder, feederWeights, repSales } = parsePdfText(pdfData.text, id);
     const hasSlaughter = Object.values(slaughter).some(v => v !== null);
     const hasFeeder    = feeder.beef !== null || feeder.holstein !== null;
-    console.log(`[${id}] ${pdf.date} — hasSlaughter=${hasSlaughter}, hasFeeder=${hasFeeder}, hasRepSales=${repSales != null}`);
+
+    // For new-format PDFs with estimated dates, extract real date from PDF text
+    let reportDate = pdf.date;
+    const pdfDate = extractDateFromPdfText(pdfData.text);
+    if (pdfDate && pdfDate !== pdf.date) {
+      console.log(`[${id}] date corrected: ${pdf.date} → ${pdfDate} (from PDF text)`);
+      reportDate = pdfDate;
+    }
+
+    console.log(`[${id}] ${reportDate} — hasSlaughter=${hasSlaughter}, hasFeeder=${hasFeeder}, hasRepSales=${repSales != null}`);
 
     if (!hasSlaughter && !hasFeeder) {
-      console.error(`[${id}] ✗ no prices from ${pdf.date}`);
+      console.error(`[${id}] ✗ no prices from ${reportDate}`);
       continue;
     }
 
     batchEntries.push({
       slaughter, feeder, feederWeights,
-      reportDate: pdf.date,
-      saleDay: DAYS[new Date(pdf.date + 'T12:00:00').getDay()],
+      reportDate,
+      saleDay: DAYS[new Date(reportDate + 'T12:00:00').getDay()],
       liteTestNote: null,
       repSales,
       hogs: null,
