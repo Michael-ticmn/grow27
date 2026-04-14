@@ -1,8 +1,8 @@
 {
   "id": "crystalvalley",
   "name": "Crystal Valley Cooperative",
-  "lastUpdated": "2026-04-13",
-  "lastSuccess": "2026-04-13",
+  "lastUpdated": "2026-04-14",
+  "lastSuccess": "2026-04-14",
   "history": [
     {
       "date": "2026-03-26",
@@ -9017,6 +9017,717 @@
               "basis": -0.9,
               "change": "-.0225",
               "cbot": "11.66"
+            }
+          ]
+        }
+      },
+      "source": "scraped"
+    },
+    {
+      "date": "2026-04-14",
+      "scrapedAt": "2026-04-14T08:19:11.809Z",
+      "locations": {
+        "hope": {
+          "name": "Hope",
+          "corn": [
+            {
+              "delivery": "Apr26",
+              "cash": 3.96,
+              "futuresMonth": "@CK26",
+              "basis": -0.47,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "May26",
+              "cash": 3.98,
+              "futuresMonth": "@CK26",
+              "basis": -0.45,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 4.05,
+              "futuresMonth": "@CN26",
+              "basis": -0.49,
+              "change": "+.0275",
+              "cbot": "4.54"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 4.05,
+              "futuresMonth": "@CN26",
+              "basis": -0.49,
+              "change": "+.0275",
+              "cbot": "4.54"
+            },
+            {
+              "delivery": "Aug26",
+              "cash": 4.07,
+              "futuresMonth": "@CU26",
+              "basis": -0.51,
+              "change": "+.0225",
+              "cbot": "4.58"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 4.23,
+              "futuresMonth": "@CZ26",
+              "basis": -0.5,
+              "change": "+.02",
+              "cbot": "4.73"
+            },
+            {
+              "delivery": "Nov26",
+              "cash": 4.23,
+              "futuresMonth": "@CZ26",
+              "basis": -0.5,
+              "change": "+.02",
+              "cbot": "4.73"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4.33,
+              "futuresMonth": "@CZ26",
+              "basis": -0.4,
+              "change": "+.02",
+              "cbot": "4.73"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Apr26",
+              "cash": 10.76,
+              "futuresMonth": "@SK26",
+              "basis": -0.88,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "May26",
+              "cash": 10.77,
+              "futuresMonth": "@SK26",
+              "basis": -0.87,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 10.89,
+              "futuresMonth": "@SN26",
+              "basis": -0.9,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 10.89,
+              "futuresMonth": "@SN26",
+              "basis": -0.9,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 10.61,
+              "futuresMonth": "@SX26",
+              "basis": -0.9,
+              "change": "+.0175",
+              "cbot": "11.51"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 10.72,
+              "futuresMonth": "@SF27",
+              "basis": -0.9,
+              "change": "+.01",
+              "cbot": "11.62"
+            }
+          ]
+        },
+        "jackson": {
+          "name": "Jackson",
+          "corn": [
+            {
+              "delivery": "Apr26",
+              "cash": 3.88,
+              "futuresMonth": "@CK26",
+              "basis": -0.55,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "May26",
+              "cash": 3.9,
+              "futuresMonth": "@CK26",
+              "basis": -0.53,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 3.96,
+              "futuresMonth": "@CN26",
+              "basis": -0.58,
+              "change": "+.0275",
+              "cbot": "4.54"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 3.96,
+              "futuresMonth": "@CN26",
+              "basis": -0.58,
+              "change": "+.0275",
+              "cbot": "4.54"
+            },
+            {
+              "delivery": "Aug26",
+              "cash": 3.95,
+              "futuresMonth": "@CU26",
+              "basis": -0.63,
+              "change": "+.0225",
+              "cbot": "4.58"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 4.23,
+              "futuresMonth": "@CZ26",
+              "basis": -0.5,
+              "change": "+.02",
+              "cbot": "4.73"
+            },
+            {
+              "delivery": "Nov26",
+              "cash": 4.23,
+              "futuresMonth": "@CZ26",
+              "basis": -0.5,
+              "change": "+.02",
+              "cbot": "4.73"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4.28,
+              "futuresMonth": "@CZ26",
+              "basis": -0.45,
+              "change": "+.02",
+              "cbot": "4.73"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Apr26",
+              "cash": 10.84,
+              "futuresMonth": "@SK26",
+              "basis": -0.8,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "May26",
+              "cash": 10.88,
+              "futuresMonth": "@SK26",
+              "basis": -0.76,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 10.91,
+              "futuresMonth": "@SN26",
+              "basis": -0.88,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 10.91,
+              "futuresMonth": "@SN26",
+              "basis": -0.88,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 10.66,
+              "futuresMonth": "@SX26",
+              "basis": -0.85,
+              "change": "+.0175",
+              "cbot": "11.51"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 10.72,
+              "futuresMonth": "@SF27",
+              "basis": -0.9,
+              "change": "+.01",
+              "cbot": "11.62"
+            }
+          ]
+        },
+        "la-salle": {
+          "name": "La Salle",
+          "corn": [
+            {
+              "delivery": "Apr26",
+              "cash": 3.89,
+              "futuresMonth": "@CK26",
+              "basis": -0.54,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "May26",
+              "cash": 3.91,
+              "futuresMonth": "@CK26",
+              "basis": -0.52,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 3.99,
+              "futuresMonth": "@CN26",
+              "basis": -0.55,
+              "change": "+.0275",
+              "cbot": "4.54"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Apr26",
+              "cash": 10.82,
+              "futuresMonth": "@SK26",
+              "basis": -0.82,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "May26",
+              "cash": 10.82,
+              "futuresMonth": "@SK26",
+              "basis": -0.82,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 10.91,
+              "futuresMonth": "@SN26",
+              "basis": -0.88,
+              "change": "+.02",
+              "cbot": "11.79"
+            }
+          ]
+        },
+        "lake-crystal": {
+          "name": "Lake Crystal",
+          "corn": [],
+          "beans": [
+            {
+              "delivery": "Apr26",
+              "cash": 10.89,
+              "futuresMonth": "@SK26",
+              "basis": -0.75,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "May26",
+              "cash": 10.92,
+              "futuresMonth": "@SK26",
+              "basis": -0.72,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 10.97,
+              "futuresMonth": "@SN26",
+              "basis": -0.82,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 10.97,
+              "futuresMonth": "@SN26",
+              "basis": -0.82,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 10.66,
+              "futuresMonth": "@SX26",
+              "basis": -0.85,
+              "change": "+.0175",
+              "cbot": "11.51"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 10.72,
+              "futuresMonth": "@SF27",
+              "basis": -0.9,
+              "change": "+.01",
+              "cbot": "11.62"
+            }
+          ]
+        },
+        "madelia": {
+          "name": "Madelia",
+          "corn": [
+            {
+              "delivery": "Apr26",
+              "cash": 3.97,
+              "futuresMonth": "@CK26",
+              "basis": -0.46,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "May26",
+              "cash": 3.99,
+              "futuresMonth": "@CK26",
+              "basis": -0.44,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 4.05,
+              "futuresMonth": "@CN26",
+              "basis": -0.49,
+              "change": "+.0275",
+              "cbot": "4.54"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 4.05,
+              "futuresMonth": "@CN26",
+              "basis": -0.49,
+              "change": "+.0275",
+              "cbot": "4.54"
+            },
+            {
+              "delivery": "Aug26",
+              "cash": 4.09,
+              "futuresMonth": "@CU26",
+              "basis": -0.49,
+              "change": "+.0225",
+              "cbot": "4.58"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 4.23,
+              "futuresMonth": "@CZ26",
+              "basis": -0.5,
+              "change": "+.02",
+              "cbot": "4.73"
+            },
+            {
+              "delivery": "Nov26",
+              "cash": 4.23,
+              "futuresMonth": "@CZ26",
+              "basis": -0.5,
+              "change": "+.02",
+              "cbot": "4.73"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4.33,
+              "futuresMonth": "@CZ26",
+              "basis": -0.4,
+              "change": "+.02",
+              "cbot": "4.73"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Apr26",
+              "cash": 10.85,
+              "futuresMonth": "@SK26",
+              "basis": -0.79,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "May26",
+              "cash": 10.88,
+              "futuresMonth": "@SK26",
+              "basis": -0.76,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 10.93,
+              "futuresMonth": "@SN26",
+              "basis": -0.86,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 10.93,
+              "futuresMonth": "@SN26",
+              "basis": -0.86,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 10.61,
+              "futuresMonth": "@SX26",
+              "basis": -0.9,
+              "change": "+.0175",
+              "cbot": "11.51"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 10.72,
+              "futuresMonth": "@SF27",
+              "basis": -0.9,
+              "change": "+.01",
+              "cbot": "11.62"
+            }
+          ]
+        },
+        "trimont": {
+          "name": "Trimont",
+          "corn": [
+            {
+              "delivery": "Apr26",
+              "cash": 4.03,
+              "futuresMonth": "@CK26",
+              "basis": -0.4,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "May26",
+              "cash": 3.93,
+              "futuresMonth": "@CK26",
+              "basis": -0.5,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 3.94,
+              "futuresMonth": "@CN26",
+              "basis": -0.6,
+              "change": "+.0275",
+              "cbot": "4.54"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 3.99,
+              "futuresMonth": "@CN26",
+              "basis": -0.55,
+              "change": "+.0275",
+              "cbot": "4.54"
+            },
+            {
+              "delivery": "Aug26",
+              "cash": 4.03,
+              "futuresMonth": "@CU26",
+              "basis": -0.55,
+              "change": "+.0225",
+              "cbot": "4.58"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 4.23,
+              "futuresMonth": "@CZ26",
+              "basis": -0.5,
+              "change": "+.02",
+              "cbot": "4.73"
+            },
+            {
+              "delivery": "Nov26",
+              "cash": 4.23,
+              "futuresMonth": "@CZ26",
+              "basis": -0.5,
+              "change": "+.02",
+              "cbot": "4.73"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4.33,
+              "futuresMonth": "@CZ26",
+              "basis": -0.4,
+              "change": "+.02",
+              "cbot": "4.73"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Apr26",
+              "cash": 10.85,
+              "futuresMonth": "@SK26",
+              "basis": -0.79,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "May26",
+              "cash": 10.9,
+              "futuresMonth": "@SK26",
+              "basis": -0.74,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 10.95,
+              "futuresMonth": "@SN26",
+              "basis": -0.84,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 10.95,
+              "futuresMonth": "@SN26",
+              "basis": -0.84,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 10.66,
+              "futuresMonth": "@SX26",
+              "basis": -0.85,
+              "change": "+.0175",
+              "cbot": "11.51"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 10.72,
+              "futuresMonth": "@SF27",
+              "basis": -0.9,
+              "change": "+.01",
+              "cbot": "11.62"
+            }
+          ]
+        },
+        "vernon-center": {
+          "name": "Vernon Center",
+          "corn": [
+            {
+              "delivery": "Apr26",
+              "cash": 4.03,
+              "futuresMonth": "@CK26",
+              "basis": -0.4,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "May26",
+              "cash": 3.93,
+              "futuresMonth": "@CK26",
+              "basis": -0.5,
+              "change": "+.025",
+              "cbot": "4.43"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 3.94,
+              "futuresMonth": "@CN26",
+              "basis": -0.6,
+              "change": "+.0275",
+              "cbot": "4.54"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 3.99,
+              "futuresMonth": "@CN26",
+              "basis": -0.55,
+              "change": "+.0275",
+              "cbot": "4.54"
+            },
+            {
+              "delivery": "Aug26",
+              "cash": 4.03,
+              "futuresMonth": "@CU26",
+              "basis": -0.55,
+              "change": "+.0225",
+              "cbot": "4.58"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 4.23,
+              "futuresMonth": "@CZ26",
+              "basis": -0.5,
+              "change": "+.02",
+              "cbot": "4.73"
+            },
+            {
+              "delivery": "Nov26",
+              "cash": 4.23,
+              "futuresMonth": "@CZ26",
+              "basis": -0.5,
+              "change": "+.02",
+              "cbot": "4.73"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4.33,
+              "futuresMonth": "@CZ26",
+              "basis": -0.4,
+              "change": "+.02",
+              "cbot": "4.73"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Apr26",
+              "cash": 10.85,
+              "futuresMonth": "@SK26",
+              "basis": -0.79,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "May26",
+              "cash": 10.9,
+              "futuresMonth": "@SK26",
+              "basis": -0.74,
+              "change": "+.02",
+              "cbot": "11.64"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 10.95,
+              "futuresMonth": "@SN26",
+              "basis": -0.84,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 10.95,
+              "futuresMonth": "@SN26",
+              "basis": -0.84,
+              "change": "+.02",
+              "cbot": "11.79"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 10.61,
+              "futuresMonth": "@SX26",
+              "basis": -0.9,
+              "change": "+.0175",
+              "cbot": "11.51"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 10.72,
+              "futuresMonth": "@SF27",
+              "basis": -0.9,
+              "change": "+.01",
+              "cbot": "11.62"
             }
           ]
         }
