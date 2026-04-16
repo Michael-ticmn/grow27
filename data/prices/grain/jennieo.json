@@ -2,7 +2,7 @@
   "id": "jennieo",
   "name": "Jennie-O Turkey Store",
   "lastUpdated": "2026-04-16",
-  "lastSuccess": "2026-04-15",
+  "lastSuccess": "2026-04-16",
   "history": [
     {
       "date": "2026-03-22",
@@ -2067,10 +2067,70 @@
     },
     {
       "date": "2026-04-16",
-      "scrapedAt": "2026-04-16T08:20:58.061Z",
-      "locations": {},
-      "source": "fetch_failed",
-      "error": "no locations scraped"
+      "scrapedAt": "2026-04-16T15:16:24.479Z",
+      "locations": {
+        "atwater-feed-mill": {
+          "name": "Atwater Feed Mill",
+          "corn": [
+            {
+              "delivery": "Aug26",
+              "cash": 4.25,
+              "futuresMonth": null,
+              "basis": -0.255,
+              "change": null,
+              "cbot": null,
+              "basisNote": "calculated 2026-04-16T15:14:48.071Z"
+            }
+          ],
+          "beans": []
+        },
+        "dawson-feed-mill": {
+          "name": "Dawson Feed Mill",
+          "corn": [
+            {
+              "delivery": "Oct26",
+              "cash": 4.4,
+              "futuresMonth": null,
+              "basis": -0.105,
+              "change": null,
+              "cbot": null,
+              "basisNote": "calculated 2026-04-16T15:14:48.071Z"
+            }
+          ],
+          "beans": []
+        },
+        "faribault-mill": {
+          "name": "Faribault Mill",
+          "corn": [
+            {
+              "delivery": "Aug26",
+              "cash": 4.15,
+              "futuresMonth": null,
+              "basis": -0.355,
+              "change": null,
+              "cbot": null,
+              "basisNote": "calculated 2026-04-16T15:14:48.071Z"
+            }
+          ],
+          "beans": []
+        },
+        "perham-feed-mill": {
+          "name": "Perham Feed Mill",
+          "corn": [
+            {
+              "delivery": "Feb27",
+              "cash": 4.29,
+              "futuresMonth": null,
+              "basis": -0.215,
+              "change": null,
+              "cbot": null,
+              "basisNote": "calculated 2026-04-16T15:14:48.071Z"
+            }
+          ],
+          "beans": []
+        }
+      },
+      "source": "scraped"
     }
   ]
 }
