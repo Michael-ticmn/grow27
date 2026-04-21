@@ -2,8 +2,8 @@
   "id": "rockcreek",
   "name": "Rock Creek Livestock Market",
   "location": "Pine City MN",
-  "lastUpdated": "2026-04-20",
-  "lastSuccess": "2026-04-15",
+  "lastUpdated": "2026-04-21",
+  "lastSuccess": "2026-04-20",
   "history": [
     {
       "date": "2026-04-15",
@@ -153,6 +153,26 @@
         }
       ],
       "saleDay": "Wednesday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
+      "date": "2026-04-15",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": null,
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
@@ -4322,20 +4342,39 @@
       "source": "scraped"
     },
     {
-      "date": "2026-04-15",
+      "date": "2026-04-20",
       "slaughter": {
-        "beef": null,
+        "beef": {
+          "low": 226,
+          "high": 240.5
+        },
         "crossbred": null,
-        "holstein": null
+        "holstein": {
+          "low": 185,
+          "high": 215
+        }
       },
       "feeder": {
-        "beef": null,
+        "beef": {
+          "low": 240,
+          "high": 240
+        },
         "crossbred": null,
         "holstein": null,
         "liteTest": false
       },
-      "feederWeights": [],
-      "saleDay": null,
+      "feederWeights": [
+        {
+          "range": "110–145#",
+          "low": 110,
+          "price": 240,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        }
+      ],
+      "saleDay": "Monday",
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
