@@ -1,8 +1,8 @@
 {
   "id": "alcorn",
   "name": "Al-Corn Clean Fuel",
-  "lastUpdated": "2026-04-20",
-  "lastSuccess": "2026-04-20",
+  "lastUpdated": "2026-04-21",
+  "lastSuccess": "2026-04-21",
   "history": [
     {
       "date": "2026-03-26",
@@ -1974,6 +1974,114 @@
               "futuresMonth": "May27",
               "cbot": "5.0000",
               "change": "0.0150"
+            }
+          ]
+        }
+      },
+      "source": "scraped"
+    },
+    {
+      "date": "2026-04-21",
+      "scrapedAt": "2026-04-21T05:20:28.221Z",
+      "locations": {
+        "claremont": {
+          "name": "Al-Corn",
+          "corn": [
+            {
+              "delivery": "Apr26",
+              "cash": 4.21,
+              "basis": -0.3,
+              "futuresMonth": "May26",
+              "cbot": "4.5100",
+              "change": "-0.0100"
+            },
+            {
+              "delivery": "May26",
+              "cash": 4.21,
+              "basis": -0.3,
+              "futuresMonth": "May26",
+              "cbot": "4.5100",
+              "change": "-0.0100"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 4.21,
+              "basis": -0.38,
+              "futuresMonth": "Jul26",
+              "cbot": "4.5900",
+              "change": "-0.0125"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 4.21,
+              "basis": -0.38,
+              "futuresMonth": "Jul26",
+              "cbot": "4.5900",
+              "change": "-0.0125"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 4.38,
+              "basis": -0.4,
+              "futuresMonth": "Dec26",
+              "cbot": "4.7850",
+              "change": "-0.0100"
+            },
+            {
+              "delivery": "Nov26",
+              "cash": 4.38,
+              "basis": -0.4,
+              "futuresMonth": "Dec26",
+              "cbot": "4.7850",
+              "change": "-0.0100"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4.48,
+              "basis": -0.3,
+              "futuresMonth": "Dec26",
+              "cbot": "4.7850",
+              "change": "-0.0100"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 4.5,
+              "basis": -0.42,
+              "futuresMonth": "Mar27",
+              "cbot": "4.9250",
+              "change": "-0.0100"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 4.52,
+              "basis": -0.4,
+              "futuresMonth": "Mar27",
+              "cbot": "4.9250",
+              "change": "-0.0100"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 4.52,
+              "basis": -0.4,
+              "futuresMonth": "Mar27",
+              "cbot": "4.9250",
+              "change": "-0.0100"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 4.6,
+              "basis": -0.4,
+              "futuresMonth": "May27",
+              "cbot": "5.0025",
+              "change": "-0.0100"
+            },
+            {
+              "delivery": "May27",
+              "cash": 4.6,
+              "basis": -0.4,
+              "futuresMonth": "May27",
+              "cbot": "5.0025",
+              "change": "-0.0100"
             }
           ]
         }
