@@ -1,8 +1,8 @@
 {
   "id": "chs",
   "name": "CHS",
-  "lastUpdated": "2026-05-04",
-  "lastSuccess": "2026-05-04",
+  "lastUpdated": "2026-05-05",
+  "lastSuccess": "2026-05-05",
   "history": [
     {
       "date": "2026-03-22",
@@ -5646,6 +5646,154 @@
               "basis": -0.85,
               "change": "0.0550",
               "cbot": "11.8825"
+            }
+          ]
+        }
+      },
+      "source": "scraped"
+    },
+    {
+      "date": "2026-05-05",
+      "scrapedAt": "2026-05-05T05:34:22.657Z",
+      "locations": {
+        "fairmont": {
+          "name": "Fairmont",
+          "corn": [],
+          "beans": [
+            {
+              "delivery": "May26",
+              "cash": 11.98,
+              "futuresMonth": "ZSN26",
+              "basis": -0.25,
+              "change": "0.0075",
+              "cbot": "12.2350"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 11.78,
+              "futuresMonth": "ZSN26",
+              "basis": -0.45,
+              "change": "0.0075",
+              "cbot": "12.2350"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 11.78,
+              "futuresMonth": "ZSN26",
+              "basis": -0.45,
+              "change": "0.0075",
+              "cbot": "12.2350"
+            },
+            {
+              "delivery": "Aug26",
+              "cash": 11.76,
+              "futuresMonth": "ZSQ26",
+              "basis": -0.4,
+              "change": "0.0000",
+              "cbot": "12.1600"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 11.46,
+              "futuresMonth": "ZSX26",
+              "basis": -0.5,
+              "change": "-0.0050",
+              "cbot": "11.9625"
+            },
+            {
+              "delivery": "Nov26",
+              "cash": 11.51,
+              "futuresMonth": "ZSX26",
+              "basis": -0.45,
+              "change": "-0.0050",
+              "cbot": "11.9625"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 11.57,
+              "futuresMonth": "ZSF27",
+              "basis": -0.5,
+              "change": "-0.0075",
+              "cbot": "12.0750"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 11.6,
+              "futuresMonth": "ZSF27",
+              "basis": -0.47,
+              "change": "-0.0075",
+              "cbot": "12.0750"
+            }
+          ]
+        },
+        "kasson": {
+          "name": "Kasson",
+          "corn": [
+            {
+              "delivery": "May26",
+              "cash": 4.27,
+              "futuresMonth": "ZCN26",
+              "basis": -0.59,
+              "change": "0.0025",
+              "cbot": "4.8600"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 4.36,
+              "futuresMonth": "ZCN26",
+              "basis": -0.5,
+              "change": "0.0025",
+              "cbot": "4.8600"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 4.36,
+              "futuresMonth": "ZCN26",
+              "basis": -0.5,
+              "change": "0.0025",
+              "cbot": "4.8600"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 4.54,
+              "futuresMonth": "ZCZ26",
+              "basis": -0.5,
+              "change": "-0.0025",
+              "cbot": "5.0425"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "May26",
+              "cash": 11.3,
+              "futuresMonth": "ZSN26",
+              "basis": -0.93,
+              "change": "0.0075",
+              "cbot": "12.2350"
+            },
+            {
+              "delivery": "Jun26",
+              "cash": 11.38,
+              "futuresMonth": "ZSN26",
+              "basis": -0.85,
+              "change": "0.0075",
+              "cbot": "12.2350"
+            },
+            {
+              "delivery": "Jul26",
+              "cash": 11.38,
+              "futuresMonth": "ZSN26",
+              "basis": -0.85,
+              "change": "0.0075",
+              "cbot": "12.2350"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 11.11,
+              "futuresMonth": "ZSX26",
+              "basis": -0.85,
+              "change": "-0.0050",
+              "cbot": "11.9625"
             }
           ]
         }
