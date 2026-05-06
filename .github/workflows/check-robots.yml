@@ -29,4 +29,5 @@ jobs:
           git config user.email "bot@grow27.local"
           git add data/robots-log.json
           git diff --cached --quiet || git commit -m "data: update robots.txt log"
-          git push
+          git pull --rebase origin main || true
+          git push origin main
