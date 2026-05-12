@@ -1351,20 +1351,20 @@
     "id": "rockcreek",
     "name": "Rock Creek Livestock Market",
     "location": "Pine City MN",
-    "lastSuccess": "2026-05-06",
+    "lastSuccess": "2026-05-11",
     "slaughter": {
       "beef": {
-        "low": 210,
-        "high": 240.5
+        "low": 226,
+        "high": 252
       },
       "crossbred": null,
       "holstein": {
-        "low": 221,
-        "high": 222
+        "low": 190,
+        "high": 193
       }
     },
     "slaughterSaleDay": "Monday",
-    "slaughterDate": "2026-05-04",
+    "slaughterDate": "2026-05-11",
     "feeder": {
       "beef": {
         "low": 265,
@@ -1512,6 +1512,44 @@
     "liteTestNote": null,
     "saleDays": [
       {
+        "day": "Monday",
+        "date": "2026-05-11",
+        "slaughter": {
+          "beef": {
+            "low": 226,
+            "high": 252
+          },
+          "crossbred": null,
+          "holstein": {
+            "low": 190,
+            "high": 193
+          }
+        },
+        "feeder": {
+          "beef": {
+            "low": 220,
+            "high": 220
+          },
+          "crossbred": null,
+          "holstein": null,
+          "liteTest": false
+        },
+        "feederWeights": [
+          {
+            "range": "110–145#",
+            "low": 135,
+            "price": 220,
+            "types": [
+              "beef"
+            ],
+            "label": "steers"
+          }
+        ],
+        "repSales": null,
+        "hogs": null,
+        "liteTestNote": null
+      },
+      {
         "day": "Wednesday",
         "date": "2026-05-06",
         "slaughter": {
@@ -1657,44 +1695,6 @@
               "beef"
             ],
             "label": "heifers"
-          }
-        ],
-        "repSales": null,
-        "hogs": null,
-        "liteTestNote": null
-      },
-      {
-        "day": "Monday",
-        "date": "2026-05-04",
-        "slaughter": {
-          "beef": {
-            "low": 210,
-            "high": 240.5
-          },
-          "crossbred": null,
-          "holstein": {
-            "low": 221,
-            "high": 222
-          }
-        },
-        "feeder": {
-          "beef": {
-            "low": 310,
-            "high": 310
-          },
-          "crossbred": null,
-          "holstein": null,
-          "liteTest": false
-        },
-        "feederWeights": [
-          {
-            "range": "110–145#",
-            "low": 155,
-            "price": 310,
-            "types": [
-              "beef"
-            ],
-            "label": "steers"
           }
         ],
         "repSales": null,
