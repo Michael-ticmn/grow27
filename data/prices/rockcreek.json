@@ -45,6 +45,26 @@
       "source": "scraped"
     },
     {
+      "date": "2026-05-18",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": null,
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
       "date": "2026-05-11",
       "slaughter": {
         "beef": {
@@ -4790,7 +4810,7 @@
       "source": "scraped"
     },
     {
-      "date": "2026-05-18",
+      "date": "2026-05-19",
       "slaughter": {
         "beef": null,
         "crossbred": null,
@@ -4802,12 +4822,9 @@
         "holstein": null,
         "liteTest": false
       },
-      "feederWeights": [],
+      "source": "fetch_failed",
       "saleDay": null,
-      "liteTestNote": null,
-      "repSales": null,
-      "hogs": null,
-      "source": "scraped"
+      "error": "Navigation timeout of 30000 ms exceeded"
     }
   ]
 }
