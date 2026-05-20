@@ -2,9 +2,26 @@
   "id": "rockcreek",
   "name": "Rock Creek Livestock Market",
   "location": "Pine City MN",
-  "lastUpdated": "2026-05-19",
+  "lastUpdated": "2026-05-20",
   "lastSuccess": "2026-05-18",
   "history": [
+    {
+      "date": "2026-05-19",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "source": "fetch_failed",
+      "saleDay": null,
+      "error": "Navigation timeout of 30000 ms exceeded"
+    },
     {
       "date": "2026-05-18",
       "slaughter": {
@@ -39,26 +56,6 @@
         }
       ],
       "saleDay": "Monday",
-      "liteTestNote": null,
-      "repSales": null,
-      "hogs": null,
-      "source": "scraped"
-    },
-    {
-      "date": "2026-05-18",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "feederWeights": [],
-      "saleDay": null,
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
@@ -4810,7 +4807,7 @@
       "source": "scraped"
     },
     {
-      "date": "2026-05-19",
+      "date": "2026-05-18",
       "slaughter": {
         "beef": null,
         "crossbred": null,
@@ -4822,9 +4819,12 @@
         "holstein": null,
         "liteTest": false
       },
-      "source": "fetch_failed",
+      "feederWeights": [],
       "saleDay": null,
-      "error": "Navigation timeout of 30000 ms exceeded"
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
     }
   ]
 }
