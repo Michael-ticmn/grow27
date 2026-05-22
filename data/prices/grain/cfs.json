@@ -1,7 +1,7 @@
 {
   "id": "cfs",
   "name": "Central Farm Service",
-  "lastUpdated": "2026-05-21",
+  "lastUpdated": "2026-05-22",
   "lastSuccess": "2026-05-21",
   "history": [
     {
@@ -86964,6 +86964,13 @@
         }
       },
       "source": "scraped"
+    },
+    {
+      "date": "2026-05-22",
+      "scrapedAt": "2026-05-22T06:37:09.068Z",
+      "locations": {},
+      "source": "fetch_failed",
+      "error": "Navigation timeout of 30000 ms exceeded"
     }
   ]
 }
