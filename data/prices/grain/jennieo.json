@@ -4144,70 +4144,10 @@
     },
     {
       "date": "2026-05-29",
-      "scrapedAt": "2026-05-29T12:40:31.383Z",
-      "locations": {
-        "atwater-feed-mill": {
-          "name": "Atwater Feed Mill",
-          "corn": [
-            {
-              "delivery": "Aug26",
-              "cash": 4.22,
-              "futuresMonth": null,
-              "basis": -0.31,
-              "change": null,
-              "cbot": null,
-              "basisNote": "calculated 2026-05-29T12:38:52.287Z"
-            }
-          ],
-          "beans": []
-        },
-        "dawson-feed-mill": {
-          "name": "Dawson Feed Mill",
-          "corn": [
-            {
-              "delivery": "Oct26",
-              "cash": 4.4,
-              "futuresMonth": null,
-              "basis": -0.13,
-              "change": null,
-              "cbot": null,
-              "basisNote": "calculated 2026-05-29T12:38:52.287Z"
-            }
-          ],
-          "beans": []
-        },
-        "faribault-mill": {
-          "name": "Faribault Mill",
-          "corn": [
-            {
-              "delivery": "Aug26",
-              "cash": 4.12,
-              "futuresMonth": null,
-              "basis": -0.41,
-              "change": null,
-              "cbot": null,
-              "basisNote": "calculated 2026-05-29T12:38:52.287Z"
-            }
-          ],
-          "beans": []
-        },
-        "perham-feed-mill": {
-          "name": "Perham Feed Mill",
-          "corn": [
-            {
-              "delivery": "Feb27",
-              "cash": 4.3,
-              "futuresMonth": null,
-              "basis": -0.23,
-              "change": null,
-              "cbot": null,
-              "basisNote": "calculated 2026-05-29T12:38:52.287Z"
-            }
-          ],
-          "beans": []
-        }
-      },
-      "source": "scraped"
+      "scrapedAt": "2026-05-29T15:39:59.947Z",
+      "locations": {},
+      "source": "fetch_failed",
+      "error": "Navigation timeout of 30000 ms exceeded"
     }
   ]
 }
