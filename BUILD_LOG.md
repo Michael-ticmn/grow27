@@ -4,6 +4,18 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.173 (2026-05-29T18:00Z)
+
+### Staleness Check — Per-Barn Threshold Override
+
+**Scrape Auction Barn Prices** workflow failed daily on the staleness check: rockcreek's `lastSuccess` (2026-05-20) exceeded the flat 7-day barns threshold. Investigation confirmed this was a **false alarm** — the scraper is healthy and had Rock Creek's latest report (05-20); the barn simply hadn't published since (irregular publisher, skipped Memorial Day week).
+
+- `data/barns-config.json` — added `"staleDays": 14` to the rockcreek entry
+- `scripts/check-staleness.js` — reads optional per-source `staleDays` from the config file (barns-config.json / grain-config.json), overriding the default threshold (7d barns, 3d grain/futures). Default stays sharp for regular barns; only flagged sources get a longer leash. Read from config (not index.json) so it applies without a re-scrape. Error output annotates the per-source limit.
+- Rejected GitHub's AI suggestions: "debug the scraper" (nothing broken) and `continue-on-error: true` (would blind the check for *all* barns).
+
+---
+
 ## v1.169 (2026-04-05T12:00Z)
 
 ### Watchdog Workflow Fix — Permissions for workflow_dispatch

@@ -4,7 +4,11 @@ Decisions and open items for the next session to pick up.
 
 ---
 
-## Completed This Session (v1.169)
+## Completed This Session (v1.173)
+
+- [x] Staleness check per-barn threshold override — rockcreek set to 14d, default stays 7d barns / 3d grain (v1.173). Resolved false-alarm workflow failures from Rock Creek's irregular publishing cadence.
+
+## Completed Earlier (v1.169)
 
 - [x] Market status fix — correct state shown when Yahoo fetch fails on mobile (v1.168)
 - [x] Watchdog workflow fix — added `permissions: actions: write` for workflow_dispatch (v1.169)

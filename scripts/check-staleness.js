@@ -46,23 +46,37 @@ if (mode === 'futures') {
   }
   const index = JSON.parse(fs.readFileSync(indexFile, 'utf8'));
 
+  // Per-source threshold overrides from the config file (optional `staleDays`).
+  // Irregular publishers (e.g. rockcreek) can tolerate longer gaps than the default.
+  const configFile = mode === 'barns'
+    ? path.join(__dirname, '..', 'data', 'barns-config.json')
+    : path.join(__dirname, '..', 'data', 'grain-config.json');
+  const overrides = {};
+  try {
+    for (const c of JSON.parse(fs.readFileSync(configFile, 'utf8'))) {
+      if (c && typeof c.staleDays === 'number') overrides[c.id] = c.staleDays;
+    }
+  } catch (e) { /* no config / unreadable — fall back to default threshold */ }
+
   for (const entry of index) {
     // Skip sources that aren't expected to have data
     if (entry.source === 'pending') continue;
     if (entry.status === 'directory') continue;
 
+    const limit = overrides[entry.id] || maxDays;
     const age = daysSince(entry.lastSuccess);
-    if (age > maxDays) {
-      stale.push({ id: entry.id, lastSuccess: entry.lastSuccess || 'never', age });
+    if (age > limit) {
+      stale.push({ id: entry.id, lastSuccess: entry.lastSuccess || 'never', age, limit });
     }
   }
 }
 
 if (stale.length > 0) {
-  console.error(`\n⚠️  STALE ${mode.toUpperCase()} SOURCES (threshold: ${maxDays} days)\n`);
+  console.error(`\n⚠️  STALE ${mode.toUpperCase()} SOURCES (default threshold: ${maxDays} days)\n`);
   for (const s of stale) {
     const ageStr = s.age === Infinity ? 'never scraped' : `${s.age} days ago`;
-    console.error(`  ${s.id}: last success ${s.lastSuccess} (${ageStr})`);
+    const limitStr = s.limit && s.limit !== maxDays ? ` [limit ${s.limit}d]` : '';
+    console.error(`  ${s.id}: last success ${s.lastSuccess} (${ageStr})${limitStr}`);
   }
   console.error('');
   process.exit(1);
