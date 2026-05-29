@@ -6,13 +6,19 @@ $TO="main"
 git fetch origin $TO
 git checkout "origin/$TO" -- data/prices/
 git add data/prices/
-$hasChanges = git diff --staged --quiet; $LASTEXITCODE -ne 0
+git diff --staged --quiet
+$hasChanges = $LASTEXITCODE -ne 0   # --quiet exits 1 when there ARE staged changes
 if ($hasChanges) {
     git commit -m "data: sync latest scraped data from main"
     git push origin $FROM
 }
 
 git checkout $TO
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "checkout $TO failed (uncommitted changes?) - aborting before reset" -ForegroundColor Red
+    git checkout $FROM
+    exit 1
+}
 git reset --hard "origin/$TO"
 git merge $FROM --no-edit
 if ($LASTEXITCODE -ne 0) {

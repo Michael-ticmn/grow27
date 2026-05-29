@@ -4,6 +4,16 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.174 (2026-05-29T19:00Z)
+
+### Fix push-main.ps1 — Skipped Data-Sync Commit & Missing Checkout Guard
+
+While promoting v1.173, `push-main.ps1` left the local repo half-reset (recovered, no data lost). Two bugs fixed:
+- **Line 9** `$hasChanges = git diff --staged --quiet; $LASTEXITCODE -ne 0` assigned git's empty stdout to `$hasChanges` (always falsy) and only *printed* the exit-code test. The "sync latest scraped data from main" commit was therefore skipped, leaving uncommitted staged files. Split into two statements so `$hasChanges` captures `--quiet`'s exit code (1 = staged changes present).
+- **After `git checkout main`** — added an exit guard. Previously a failed checkout (caused by the leftover uncommitted files) fell straight through to `git reset --hard origin/main`, which clobbered the local `UserUpdates` branch ref. Now aborts back to UserUpdates before any reset.
+
+---
+
 ## v1.173 (2026-05-29T18:00Z)
 
 ### Staleness Check — Per-Barn Threshold Override
