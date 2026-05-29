@@ -4,9 +4,10 @@ Decisions and open items for the next session to pick up.
 
 ---
 
-## Completed This Session (v1.173)
+## Completed This Session (v1.173–v1.174)
 
 - [x] Staleness check per-barn threshold override — rockcreek set to 14d, default stays 7d barns / 3d grain (v1.173). Resolved false-alarm workflow failures from Rock Creek's irregular publishing cadence.
+- [x] Fixed `push-main.ps1` data-sync detection + checkout guard (v1.174). The line-9 `$hasChanges` bug skipped the data-sync commit and a failed checkout fell through to `git reset --hard`, clobbering the local branch ref during promotion.
 
 ## Completed Earlier (v1.169)
 
