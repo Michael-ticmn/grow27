@@ -6,6 +6,23 @@
   "lastSuccess": "2026-06-01",
   "history": [
     {
+      "date": "2026-06-03",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "source": "fetch_failed",
+      "saleDay": null,
+      "error": "Navigation timeout of 30000 ms exceeded"
+    },
+    {
       "date": "2026-06-01",
       "slaughter": {
         "beef": {
@@ -36,26 +53,6 @@
         }
       ],
       "saleDay": "Monday",
-      "liteTestNote": null,
-      "repSales": null,
-      "hogs": null,
-      "source": "scraped"
-    },
-    {
-      "date": "2026-06-01",
-      "slaughter": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null
-      },
-      "feeder": {
-        "beef": null,
-        "crossbred": null,
-        "holstein": null,
-        "liteTest": false
-      },
-      "feederWeights": [],
-      "saleDay": null,
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
@@ -5056,7 +5053,7 @@
       "source": "scraped"
     },
     {
-      "date": "2026-06-03",
+      "date": "2026-06-01",
       "slaughter": {
         "beef": null,
         "crossbred": null,
@@ -5068,9 +5065,12 @@
         "holstein": null,
         "liteTest": false
       },
-      "source": "fetch_failed",
+      "feederWeights": [],
       "saleDay": null,
-      "error": "Navigation timeout of 30000 ms exceeded"
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
     }
   ]
 }
