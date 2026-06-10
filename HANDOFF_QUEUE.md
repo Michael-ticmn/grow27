@@ -4,7 +4,11 @@ Decisions and open items for the next session to pick up.
 
 ---
 
-## Completed This Session (v1.173–v1.174)
+## Completed This Session (v1.175)
+
+- [x] Staleness override for jennieo + poet set to 14d (v1.175). farmbucks.com stopped serving both bid pages ~2026-06-06 (now "No results", zero tables, server-rendered, confirmed via WebFetch from a non-Actions IP — upstream outage, not a code bug). Stops the daily grain-workflow false-alarm failures. **See pending decision below — re-check ~2026-06-19.**
+
+## Completed Prior Session (v1.173–v1.174)
 
 - [x] Staleness check per-barn threshold override — rockcreek set to 14d, default stays 7d barns / 3d grain (v1.173). Resolved false-alarm workflow failures from Rock Creek's irregular publishing cadence.
 - [x] Fixed `push-main.ps1` data-sync detection + checkout guard (v1.174). The line-9 `$hasChanges` bug skipped the data-sync commit and a failed checkout fell through to `git reset --hard`, clobbering the local branch ref during promotion.
@@ -29,6 +33,11 @@ Decisions and open items for the next session to pick up.
 ---
 
 ## Pending Decisions
+
+### 0. farmbucks outage — Jennie-O & POET — RE-CHECK ~2026-06-19
+- **Status:** Both farmbucks.com bid pages went dark ~2026-06-06 ("No results — Please try again later", zero tables). Suppressed with `staleDays: 14` in `grain-config.json` (v1.175) to stop daily workflow failures. Parsers + config left intact so they resume automatically if data returns.
+- **Affected:** Jennie-O (Atwater, Dawson, Faribault, Perham); POET MN plants (Bingham Lake, Lake Crystal, Preston). `newvision`'s `poet-ashton` is Ashton **IA** — does NOT cover the MN POET plants.
+- **Decision needed if still dark at 14d (alert re-fires):** (a) mark both `directory`/`pending`, (b) remove the sources, or (c) find an alternate source (DTN, individual elevator pages, or a New Vision slug for the MN POET plants).
 
 ### 1. Hog data display — DEFERRED
 - Central parser captures hog data (market hogs, sows, boars) from Wednesday reports. Stored but not displayed. Future build when needed.

@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.174
+**Version:** 1.175
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-05-29T19:00Z
+**Last updated:** 2026-06-10T14:00Z
 
 ---
 
@@ -26,7 +26,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 |-----------|----------|--------|
 | Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running on main |
 | Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley, POET) | Mon–Fri 4am + 7am CT | Running on main |
-| Staleness check | After each scrape | Fails workflow if source stale (default 7d barns, 3d grain/futures; per-source `staleDays` override in config — rockcreek 14d) |
+| Staleness check | After each scrape | Fails workflow if source stale (default 7d barns, 3d grain/futures; per-source `staleDays` override in config — rockcreek 14d, jennieo + poet 14d while farmbucks outage persists) |
 | robots.txt check | Daily midnight CT | Checks all sources + watchlist, writes robots-log.json |
 | Watchdog | 3x daily | Triggers missed scraper runs via workflow_dispatch |
 | Test scrapers (dry run) | Push to UserUpdates (path-filtered) | Validates parsers without committing |

@@ -4,6 +4,20 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.175 (2026-06-10T14:00Z)
+
+### Staleness Check — Per-Source Override for Jennie-O & POET (farmbucks outage)
+
+**Scrape Grain Cash Bids** workflow failed every run from 2026-06-09 on the grain staleness check: `jennieo` and `poet` both had `lastSuccess` 2026-06-05, exceeding the flat 3-day grain threshold.
+
+Investigation confirmed this is an **upstream outage, not a code bug**. Both farmbucks.com pages (`/grain-prices/jennie-o/minnesota`, `/grain-prices/poet`) stopped serving bid data around 2026-06-06 — they now return *"No results — Please try again later"* with zero `<table>` elements. The pages are server-rendered (fbx.js is 4.5KB of UI helpers, no XHR data fetch), and Anthropic WebFetch (a different IP than GitHub Actions) sees the same empty state — so it is **not** Actions-IP bot-blocking. Every other grain source scraped fine in the same run.
+
+- `data/grain-config.json` — added `"staleDays": 14` to the `jennieo` and `poet` entries (same mechanism as rockcreek's barn override, v1.173). Stops the daily false-alarm failures while keeping the parsers and config intact, so both sources resume automatically if farmbucks restores data.
+- **Caveat:** this silences the alarm only — it does not restore data. Jennie-O (Atwater, Dawson, Faribault, Perham) and the 3 MN POET plants (Bingham Lake, Lake Crystal, Preston) will keep showing their 2026-06-05 last-good values until farmbucks serves again. `newvision`'s `poet-ashton` is Ashton **IA** — a different plant — so it does not cover the MN POET locations.
+- If still dark past ~14 days, the alert re-fires — revisit then (mark directory, remove, or find an alternate source). See HANDOFF_QUEUE.md.
+
+---
+
 ## v1.174 (2026-05-29T19:00Z)
 
 ### Fix push-main.ps1 — Skipped Data-Sync Commit & Missing Checkout Guard
