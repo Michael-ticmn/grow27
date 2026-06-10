@@ -2,9 +2,121 @@
   "id": "rockcreek",
   "name": "Rock Creek Livestock Market",
   "location": "Pine City MN",
-  "lastUpdated": "2026-05-29",
-  "lastSuccess": "2026-05-20",
+  "lastUpdated": "2026-06-10",
+  "lastSuccess": "2026-06-08",
   "history": [
+    {
+      "date": "2026-06-08",
+      "slaughter": {
+        "beef": {
+          "low": 215,
+          "high": 252
+        },
+        "crossbred": null,
+        "holstein": {
+          "low": 226,
+          "high": 233
+        }
+      },
+      "feeder": {
+        "beef": {
+          "low": 330,
+          "high": 330
+        },
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [
+        {
+          "range": "110–145#",
+          "low": 290,
+          "price": 330,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        }
+      ],
+      "saleDay": "Monday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
+      "date": "2026-06-03",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "source": "fetch_failed",
+      "saleDay": null,
+      "error": "Navigation timeout of 30000 ms exceeded"
+    },
+    {
+      "date": "2026-06-01",
+      "slaughter": {
+        "beef": {
+          "low": 215,
+          "high": 257
+        },
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": {
+          "low": 330,
+          "high": 330
+        },
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [
+        {
+          "range": "110–145#",
+          "low": 290,
+          "price": 330,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        }
+      ],
+      "saleDay": "Monday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
+      "date": "2026-06-01",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": null,
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
     {
       "date": "2026-05-20",
       "slaughter": {
@@ -153,6 +265,26 @@
         }
       ],
       "saleDay": "Wednesday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
+      "date": "2026-05-20",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": null,
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
@@ -4980,7 +5112,7 @@
       "source": "scraped"
     },
     {
-      "date": "2026-05-20",
+      "date": "2026-06-08",
       "slaughter": {
         "beef": null,
         "crossbred": null,
