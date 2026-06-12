@@ -1,7 +1,7 @@
 {
   "id": "alcorn",
   "name": "Al-Corn Clean Fuel",
-  "lastUpdated": "2026-06-11",
+  "lastUpdated": "2026-06-12",
   "lastSuccess": "2026-06-11",
   "history": [
     {
@@ -6035,6 +6035,13 @@
         }
       },
       "source": "scraped"
+    },
+    {
+      "date": "2026-06-12",
+      "scrapedAt": "2026-06-12T07:12:50.329Z",
+      "locations": {},
+      "source": "fetch_failed",
+      "error": "Waiting for selector `table.cih-table` failed: Waiting failed: 15000ms exceeded"
     }
   ]
 }
