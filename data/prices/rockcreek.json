@@ -2,7 +2,7 @@
   "id": "rockcreek",
   "name": "Rock Creek Livestock Market",
   "location": "Pine City MN",
-  "lastUpdated": "2026-06-13",
+  "lastUpdated": "2026-06-14",
   "lastSuccess": "2026-06-08",
   "history": [
     {
@@ -39,6 +39,26 @@
         }
       ],
       "saleDay": "Monday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
+      "date": "2026-06-08",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": null,
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
@@ -5112,7 +5132,7 @@
       "source": "scraped"
     },
     {
-      "date": "2026-06-08",
+      "date": "2026-06-14",
       "slaughter": {
         "beef": null,
         "crossbred": null,
@@ -5124,12 +5144,9 @@
         "holstein": null,
         "liteTest": false
       },
-      "feederWeights": [],
+      "source": "fetch_failed",
       "saleDay": null,
-      "liteTestNote": null,
-      "repSales": null,
-      "hogs": null,
-      "source": "scraped"
+      "error": "Navigation timeout of 30000 ms exceeded"
     }
   ]
 }
