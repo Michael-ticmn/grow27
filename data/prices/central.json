@@ -2,9 +2,133 @@
   "id": "central",
   "name": "Central Livestock Association",
   "location": "Zumbrota MN",
-  "lastUpdated": "2026-06-14",
+  "lastUpdated": "2026-06-15",
   "lastSuccess": "2026-06-10",
   "history": [
+    {
+      "date": "2026-06-10",
+      "slaughter": {
+        "beef": {
+          "low": 245,
+          "high": 256
+        },
+        "crossbred": {
+          "low": 235,
+          "high": 253.5
+        },
+        "holstein": {
+          "low": 230,
+          "high": 249
+        }
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": "Wednesday",
+      "liteTestNote": null,
+      "repSales": {
+        "finishWeightAvgs": [
+          {
+            "range": "1400-1499 lbs",
+            "type": "beef",
+            "avgPrice": 249,
+            "head": 2
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "beef",
+            "avgPrice": 255,
+            "head": 2
+          },
+          {
+            "range": "1600-1699 lbs",
+            "type": "holstein",
+            "avgPrice": 242.07,
+            "head": 21
+          },
+          {
+            "range": "1700-1799 lbs",
+            "type": "holstein",
+            "avgPrice": 240,
+            "head": 1
+          },
+          {
+            "range": "1800-1899 lbs",
+            "type": "holstein",
+            "avgPrice": 244.2,
+            "head": 5
+          },
+          {
+            "range": "2200-2299 lbs",
+            "type": "holstein",
+            "avgPrice": 230,
+            "head": 7
+          }
+        ],
+        "feederWeightAvgs": [],
+        "bullsWeightAvgs": [
+          {
+            "range": "1900-1999 lbs",
+            "avgPrice": 175,
+            "head": 1
+          },
+          {
+            "range": "2000-2099 lbs",
+            "avgPrice": 178,
+            "head": 1
+          }
+        ],
+        "cowsWeightAvgs": [
+          {
+            "range": "1100-1199 lbs",
+            "avgPrice": 186,
+            "head": 1
+          },
+          {
+            "range": "1300-1399 lbs",
+            "avgPrice": 130,
+            "head": 1
+          },
+          {
+            "range": "1400-1499 lbs",
+            "avgPrice": 156.4,
+            "head": 5
+          },
+          {
+            "range": "1600-1699 lbs",
+            "avgPrice": 151.33,
+            "head": 3
+          },
+          {
+            "range": "1900-1999 lbs",
+            "avgPrice": 171,
+            "head": 1
+          }
+        ],
+        "headCount": {
+          "finished": 38,
+          "feeder": 0,
+          "bulls": 2,
+          "cows": 11
+        }
+      },
+      "hogs": {
+        "marketHogs": null,
+        "sows": {
+          "low": 230,
+          "high": 249
+        },
+        "boars": {
+          "low": 130,
+          "high": 159
+        }
+      },
+      "source": "scraped"
+    },
     {
       "date": "2026-06-08",
       "slaughter": {
@@ -5114,20 +5238,11 @@
       "source": "scraped"
     },
     {
-      "date": "2026-06-10",
+      "date": "2026-06-15",
       "slaughter": {
-        "beef": {
-          "low": 245,
-          "high": 256
-        },
-        "crossbred": {
-          "low": 235,
-          "high": 253.5
-        },
-        "holstein": {
-          "low": 230,
-          "high": 249
-        }
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
       },
       "feeder": {
         "beef": null,
@@ -5138,104 +5253,10 @@
       "feederWeights": [],
       "saleDay": "Wednesday",
       "liteTestNote": null,
-      "repSales": {
-        "finishWeightAvgs": [
-          {
-            "range": "1400-1499 lbs",
-            "type": "beef",
-            "avgPrice": 249,
-            "head": 2
-          },
-          {
-            "range": "1500-1599 lbs",
-            "type": "beef",
-            "avgPrice": 255,
-            "head": 2
-          },
-          {
-            "range": "1600-1699 lbs",
-            "type": "holstein",
-            "avgPrice": 242.07,
-            "head": 21
-          },
-          {
-            "range": "1700-1799 lbs",
-            "type": "holstein",
-            "avgPrice": 240,
-            "head": 1
-          },
-          {
-            "range": "1800-1899 lbs",
-            "type": "holstein",
-            "avgPrice": 244.2,
-            "head": 5
-          },
-          {
-            "range": "2200-2299 lbs",
-            "type": "holstein",
-            "avgPrice": 230,
-            "head": 7
-          }
-        ],
-        "feederWeightAvgs": [],
-        "bullsWeightAvgs": [
-          {
-            "range": "1900-1999 lbs",
-            "avgPrice": 175,
-            "head": 1
-          },
-          {
-            "range": "2000-2099 lbs",
-            "avgPrice": 178,
-            "head": 1
-          }
-        ],
-        "cowsWeightAvgs": [
-          {
-            "range": "1100-1199 lbs",
-            "avgPrice": 186,
-            "head": 1
-          },
-          {
-            "range": "1300-1399 lbs",
-            "avgPrice": 130,
-            "head": 1
-          },
-          {
-            "range": "1400-1499 lbs",
-            "avgPrice": 156.4,
-            "head": 5
-          },
-          {
-            "range": "1600-1699 lbs",
-            "avgPrice": 151.33,
-            "head": 3
-          },
-          {
-            "range": "1900-1999 lbs",
-            "avgPrice": 171,
-            "head": 1
-          }
-        ],
-        "headCount": {
-          "finished": 38,
-          "feeder": 0,
-          "bulls": 2,
-          "cows": 11
-        }
-      },
-      "hogs": {
-        "marketHogs": null,
-        "sows": {
-          "low": 230,
-          "high": 249
-        },
-        "boars": {
-          "low": 130,
-          "high": 159
-        }
-      },
-      "source": "scraped"
+      "repSales": null,
+      "hogs": null,
+      "source": "fetch_failed",
+      "error": "no og:image meta tag found"
     }
   ]
 }
