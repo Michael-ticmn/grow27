@@ -2,8 +2,8 @@
   "id": "central",
   "name": "Central Livestock Association",
   "location": "Zumbrota MN",
-  "lastUpdated": "2026-06-15",
-  "lastSuccess": "2026-06-10",
+  "lastUpdated": "2026-06-16",
+  "lastSuccess": "2026-06-15",
   "history": [
     {
       "date": "2026-06-15",
@@ -25,6 +25,299 @@
       "hogs": null,
       "source": "fetch_failed",
       "error": "no og:image meta tag found"
+    },
+    {
+      "date": "2026-06-15",
+      "slaughter": {
+        "beef": {
+          "low": 245,
+          "high": 260.5
+        },
+        "crossbred": {
+          "low": 240,
+          "high": 254
+        },
+        "holstein": {
+          "low": 230,
+          "high": 245
+        }
+      },
+      "feeder": {
+        "beef": {
+          "low": null,
+          "high": 500
+        },
+        "crossbred": {
+          "low": null,
+          "high": 496.2
+        },
+        "holstein": {
+          "low": 184.5,
+          "high": 229.5
+        },
+        "liteTest": true
+      },
+      "feederWeights": [
+        {
+          "range": "350–600#",
+          "price": 500,
+          "types": [
+            "beef",
+            "crossbred"
+          ]
+        },
+        {
+          "range": "600–800#",
+          "price": 350,
+          "types": [
+            "beef",
+            "crossbred"
+          ]
+        },
+        {
+          "range": "800–1000#",
+          "price": 320,
+          "types": [
+            "beef",
+            "crossbred"
+          ]
+        },
+        {
+          "range": "600–800#",
+          "price": 335,
+          "types": [
+            "holstein"
+          ]
+        },
+        {
+          "range": "800–1000#",
+          "price": 330,
+          "types": [
+            "holstein"
+          ]
+        }
+      ],
+      "saleDay": "Monday",
+      "liteTestNote": null,
+      "repSales": {
+        "finishWeightAvgs": [
+          {
+            "range": "1200-1299 lbs",
+            "type": "beef",
+            "avgPrice": 248.54,
+            "head": 14
+          },
+          {
+            "range": "1300-1399 lbs",
+            "type": "beef",
+            "avgPrice": 256.09,
+            "head": 23
+          },
+          {
+            "range": "1300-1399 lbs",
+            "type": "holstein",
+            "avgPrice": 233.43,
+            "head": 7
+          },
+          {
+            "range": "1400-1499 lbs",
+            "type": "beef",
+            "avgPrice": 258.92,
+            "head": 6
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "beef",
+            "avgPrice": 259.58,
+            "head": 12
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "crossbred",
+            "avgPrice": 252.5,
+            "head": 2
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "holstein",
+            "avgPrice": 236.64,
+            "head": 7
+          },
+          {
+            "range": "1600-1699 lbs",
+            "type": "beef",
+            "avgPrice": 257,
+            "head": 2
+          },
+          {
+            "range": "1600-1699 lbs",
+            "type": "holstein",
+            "avgPrice": 234.38,
+            "head": 25
+          },
+          {
+            "range": "1700-1799 lbs",
+            "type": "crossbred",
+            "avgPrice": 253.25,
+            "head": 11
+          },
+          {
+            "range": "1700-1799 lbs",
+            "type": "beef",
+            "avgPrice": 235,
+            "head": 1
+          },
+          {
+            "range": "1700-1799 lbs",
+            "type": "holstein",
+            "avgPrice": 230,
+            "head": 2
+          },
+          {
+            "range": "1800-1899 lbs",
+            "type": "beef",
+            "avgPrice": 249,
+            "head": 1
+          },
+          {
+            "range": "1800-1899 lbs",
+            "type": "crossbred",
+            "avgPrice": 246.75,
+            "head": 6
+          },
+          {
+            "range": "1800-1899 lbs",
+            "type": "holstein",
+            "avgPrice": 235,
+            "head": 2
+          }
+        ],
+        "feederWeightAvgs": [
+          {
+            "range": "400-499 lbs",
+            "type": "beef",
+            "avgPrice": 425,
+            "head": 3
+          },
+          {
+            "range": "500-599 lbs",
+            "type": "beef",
+            "avgPrice": 403.33,
+            "head": 3
+          },
+          {
+            "range": "700-799 lbs",
+            "type": "holstein",
+            "avgPrice": 335,
+            "head": 2
+          },
+          {
+            "range": "700-799 lbs",
+            "type": "beef",
+            "avgPrice": 295,
+            "head": 4
+          },
+          {
+            "range": "800-899 lbs",
+            "type": "holstein",
+            "avgPrice": 330,
+            "head": 6
+          },
+          {
+            "range": "800-899 lbs",
+            "type": "crossbred",
+            "avgPrice": 265,
+            "head": 2
+          }
+        ],
+        "bullsWeightAvgs": [
+          {
+            "range": "1400-1499 lbs",
+            "avgPrice": 202,
+            "head": 1
+          },
+          {
+            "range": "1500-1599 lbs",
+            "avgPrice": 214,
+            "head": 1
+          },
+          {
+            "range": "1600-1699 lbs",
+            "avgPrice": 224,
+            "head": 1
+          },
+          {
+            "range": "1900-1999 lbs",
+            "avgPrice": 233,
+            "head": 1
+          },
+          {
+            "range": "2000-2099 lbs",
+            "avgPrice": 216,
+            "head": 2
+          },
+          {
+            "range": "2100-2199 lbs",
+            "avgPrice": 238,
+            "head": 1
+          }
+        ],
+        "cowsWeightAvgs": [
+          {
+            "range": "900-999 lbs",
+            "avgPrice": 137.5,
+            "head": 1
+          },
+          {
+            "range": "1000-1099 lbs",
+            "avgPrice": 184,
+            "head": 1
+          },
+          {
+            "range": "1100-1199 lbs",
+            "avgPrice": 152,
+            "head": 2
+          },
+          {
+            "range": "1200-1299 lbs",
+            "avgPrice": 148,
+            "head": 3
+          },
+          {
+            "range": "1300-1399 lbs",
+            "avgPrice": 158.4,
+            "head": 5
+          },
+          {
+            "range": "1400-1499 lbs",
+            "avgPrice": 171.67,
+            "head": 3
+          },
+          {
+            "range": "1500-1599 lbs",
+            "avgPrice": 166,
+            "head": 5
+          },
+          {
+            "range": "1600-1699 lbs",
+            "avgPrice": 148,
+            "head": 1
+          },
+          {
+            "range": "1800-1899 lbs",
+            "avgPrice": 165,
+            "head": 1
+          }
+        ],
+        "headCount": {
+          "finished": 121,
+          "feeder": 20,
+          "bulls": 7,
+          "cows": 22
+        }
+      },
+      "hogs": null,
+      "source": "scraped"
     },
     {
       "date": "2026-06-08",
