@@ -931,7 +931,7 @@
     "id": "lanesboro",
     "name": "Lanesboro Sales Commission",
     "location": "Lanesboro MN",
-    "lastSuccess": "2026-06-17",
+    "lastSuccess": "2026-06-19",
     "slaughter": {
       "beef": {
         "low": 234,
@@ -1205,6 +1205,134 @@
     "liteTestNote": null,
     "saleDays": [
       {
+        "day": "Friday",
+        "date": "2026-06-19",
+        "slaughter": {
+          "beef": null,
+          "crossbred": null,
+          "holstein": null
+        },
+        "feeder": {
+          "beef": {
+            "low": 275,
+            "high": 550
+          },
+          "crossbred": {
+            "low": null,
+            "high": 520
+          },
+          "holstein": {
+            "low": 325,
+            "high": 340
+          },
+          "liteTest": false
+        },
+        "feederWeights": [
+          {
+            "range": "300–500#",
+            "low": 470,
+            "price": 550,
+            "types": [
+              "beef"
+            ],
+            "sex": "steer"
+          },
+          {
+            "range": "500–700#",
+            "low": 410,
+            "price": 467.5,
+            "types": [
+              "beef"
+            ],
+            "sex": "steer"
+          },
+          {
+            "range": "700–900#",
+            "low": null,
+            "price": 397.5,
+            "types": [
+              "beef"
+            ],
+            "sex": "steer"
+          },
+          {
+            "range": "500–700#",
+            "low": null,
+            "price": 457.5,
+            "types": [
+              "beef"
+            ],
+            "sex": "heifer"
+          },
+          {
+            "range": "700–900#",
+            "low": 275,
+            "price": 326,
+            "types": [
+              "beef"
+            ],
+            "sex": "heifer"
+          },
+          {
+            "range": "300–600#",
+            "low": null,
+            "price": 520,
+            "types": [
+              "crossbred"
+            ],
+            "sex": "steer"
+          },
+          {
+            "range": "600–900#",
+            "low": null,
+            "price": 425,
+            "types": [
+              "crossbred"
+            ],
+            "sex": "steer"
+          },
+          {
+            "range": "300–600#",
+            "low": null,
+            "price": 490,
+            "types": [
+              "crossbred"
+            ],
+            "sex": "heifer"
+          },
+          {
+            "range": "600–900#",
+            "low": null,
+            "price": 425,
+            "types": [
+              "crossbred"
+            ],
+            "sex": "heifer"
+          },
+          {
+            "range": "400–600#",
+            "low": 340,
+            "price": 340,
+            "types": [
+              "holstein"
+            ],
+            "sex": "steer"
+          },
+          {
+            "range": "600–1000#",
+            "low": 325,
+            "price": 325,
+            "types": [
+              "holstein"
+            ],
+            "sex": "steer"
+          }
+        ],
+        "repSales": null,
+        "hogs": null,
+        "liteTestNote": null
+      },
+      {
         "day": "Wednesday",
         "date": "2026-06-17",
         "slaughter": {
@@ -1345,125 +1473,6 @@
             "cows": 0
           }
         },
-        "hogs": null,
-        "liteTestNote": null
-      },
-      {
-        "day": "Friday",
-        "date": "2026-06-12",
-        "slaughter": {
-          "beef": null,
-          "crossbred": null,
-          "holstein": null
-        },
-        "feeder": {
-          "beef": {
-            "low": 275,
-            "high": 525
-          },
-          "crossbred": {
-            "low": null,
-            "high": 510
-          },
-          "holstein": {
-            "low": 287,
-            "high": 340
-          },
-          "liteTest": false
-        },
-        "feederWeights": [
-          {
-            "range": "300–500#",
-            "low": null,
-            "price": 490,
-            "types": [
-              "beef"
-            ],
-            "sex": "steer"
-          },
-          {
-            "range": "500–700#",
-            "low": 345,
-            "price": 462.5,
-            "types": [
-              "beef"
-            ],
-            "sex": "steer"
-          },
-          {
-            "range": "700–900#",
-            "low": 301,
-            "price": 370,
-            "types": [
-              "beef"
-            ],
-            "sex": "steer"
-          },
-          {
-            "range": "300–500#",
-            "low": 430,
-            "price": 525,
-            "types": [
-              "beef"
-            ],
-            "sex": "heifer"
-          },
-          {
-            "range": "500–700#",
-            "low": 330,
-            "price": 431.5,
-            "types": [
-              "beef"
-            ],
-            "sex": "heifer"
-          },
-          {
-            "range": "700–900#",
-            "low": 275,
-            "price": 326,
-            "types": [
-              "beef"
-            ],
-            "sex": "heifer"
-          },
-          {
-            "range": "300–600#",
-            "low": null,
-            "price": 485,
-            "types": [
-              "crossbred"
-            ],
-            "sex": "steer"
-          },
-          {
-            "range": "300–600#",
-            "low": null,
-            "price": 510,
-            "types": [
-              "crossbred"
-            ],
-            "sex": "heifer"
-          },
-          {
-            "range": "400–600#",
-            "low": 340,
-            "price": 340,
-            "types": [
-              "holstein"
-            ],
-            "sex": "steer"
-          },
-          {
-            "range": "600–1000#",
-            "low": 287,
-            "price": 287,
-            "types": [
-              "holstein"
-            ],
-            "sex": "steer"
-          }
-        ],
-        "repSales": null,
         "hogs": null,
         "liteTestNote": null
       }
