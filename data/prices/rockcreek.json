@@ -6,6 +6,45 @@
   "lastSuccess": "2026-07-13",
   "history": [
     {
+      "date": "2026-07-13",
+      "slaughter": {
+        "beef": {
+          "low": 200,
+          "high": 250
+        },
+        "crossbred": null,
+        "holstein": {
+          "low": 200,
+          "high": 216
+        }
+      },
+      "feeder": {
+        "beef": {
+          "low": 300,
+          "high": 300
+        },
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [
+        {
+          "range": "110–145#",
+          "low": 210,
+          "price": 300,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        }
+      ],
+      "saleDay": "Monday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
       "date": "2026-07-06",
       "slaughter": {
         "beef": {
@@ -5577,37 +5616,18 @@
     {
       "date": "2026-07-13",
       "slaughter": {
-        "beef": {
-          "low": 200,
-          "high": 250
-        },
+        "beef": null,
         "crossbred": null,
-        "holstein": {
-          "low": 200,
-          "high": 216
-        }
+        "holstein": null
       },
       "feeder": {
-        "beef": {
-          "low": 300,
-          "high": 300
-        },
+        "beef": null,
         "crossbred": null,
         "holstein": null,
         "liteTest": false
       },
-      "feederWeights": [
-        {
-          "range": "110–145#",
-          "low": 210,
-          "price": 300,
-          "types": [
-            "beef"
-          ],
-          "label": "steers"
-        }
-      ],
-      "saleDay": "Monday",
+      "feederWeights": [],
+      "saleDay": null,
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
