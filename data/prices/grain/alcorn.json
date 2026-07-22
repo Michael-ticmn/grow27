@@ -8732,103 +8732,10 @@
     },
     {
       "date": "2026-07-22",
-      "scrapedAt": "2026-07-22T05:40:10.518Z",
-      "locations": {
-        "claremont": {
-          "name": "Al-Corn",
-          "corn": [
-            {
-              "delivery": "Jul26",
-              "cash": 4.21,
-              "basis": -0.33,
-              "futuresMonth": "Sep26",
-              "cbot": "4.5400",
-              "change": "0.0125"
-            },
-            {
-              "delivery": "Aug26",
-              "cash": 4.21,
-              "basis": -0.33,
-              "futuresMonth": "Sep26",
-              "cbot": "4.5400",
-              "change": "0.0125"
-            },
-            {
-              "delivery": "Sep26",
-              "cash": 4.24,
-              "basis": -0.3,
-              "futuresMonth": "Sep26",
-              "cbot": "4.5400",
-              "change": "0.0125"
-            },
-            {
-              "delivery": "Oct26",
-              "cash": 4.36,
-              "basis": -0.4,
-              "futuresMonth": "Dec26",
-              "cbot": "4.7675",
-              "change": "0.0150"
-            },
-            {
-              "delivery": "Nov26",
-              "cash": 4.36,
-              "basis": -0.4,
-              "futuresMonth": "Dec26",
-              "cbot": "4.7675",
-              "change": "0.0150"
-            },
-            {
-              "delivery": "Dec26",
-              "cash": 4.46,
-              "basis": -0.3,
-              "futuresMonth": "Dec26",
-              "cbot": "4.7675",
-              "change": "0.0150"
-            },
-            {
-              "delivery": "Jan27",
-              "cash": 4.5,
-              "basis": -0.42,
-              "futuresMonth": "Mar27",
-              "cbot": "4.9250",
-              "change": "0.0150"
-            },
-            {
-              "delivery": "Feb27",
-              "cash": 4.52,
-              "basis": -0.4,
-              "futuresMonth": "Mar27",
-              "cbot": "4.9250",
-              "change": "0.0150"
-            },
-            {
-              "delivery": "Mar27",
-              "cash": 4.52,
-              "basis": -0.4,
-              "futuresMonth": "Mar27",
-              "cbot": "4.9250",
-              "change": "0.0150"
-            },
-            {
-              "delivery": "Apr27",
-              "cash": 4.61,
-              "basis": -0.4,
-              "futuresMonth": "May27",
-              "cbot": "5.0125",
-              "change": "0.0150"
-            },
-            {
-              "delivery": "May27",
-              "cash": 4.61,
-              "basis": -0.4,
-              "futuresMonth": "May27",
-              "cbot": "5.0125",
-              "change": "0.0150"
-            }
-          ]
-        }
-      },
-      "source": "scraped"
+      "scrapedAt": "2026-07-22T11:43:14.500Z",
+      "locations": {},
+      "source": "fetch_failed",
+      "error": "Waiting for selector `table.cih-table` failed: Waiting failed: 15000ms exceeded"
     }
   ]
 }
