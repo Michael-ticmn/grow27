@@ -1,7 +1,7 @@
 {
   "id": "crystalvalley",
   "name": "Crystal Valley Cooperative",
-  "lastUpdated": "2026-07-23",
+  "lastUpdated": "2026-07-24",
   "lastSuccess": "2026-07-23",
   "history": [
     {
@@ -68861,6 +68861,49 @@
         }
       },
       "source": "scraped"
+    },
+    {
+      "date": "2026-07-24",
+      "scrapedAt": "2026-07-24T05:40:58.323Z",
+      "locations": {
+        "hope": {
+          "name": "Hope",
+          "corn": [],
+          "beans": []
+        },
+        "jackson": {
+          "name": "Jackson",
+          "corn": [],
+          "beans": []
+        },
+        "la-salle": {
+          "name": "La Salle",
+          "corn": [],
+          "beans": []
+        },
+        "lake-crystal": {
+          "name": "Lake Crystal",
+          "corn": [],
+          "beans": []
+        },
+        "madelia": {
+          "name": "Madelia",
+          "corn": [],
+          "beans": []
+        },
+        "trimont": {
+          "name": "Trimont",
+          "corn": [],
+          "beans": []
+        },
+        "vernon-center": {
+          "name": "Vernon Center",
+          "corn": [],
+          "beans": []
+        }
+      },
+      "source": "fetch_failed",
+      "error": "HTTP 503 for https://crystalvalley.coop/wp-json/cv/v1/bids?location=vernon%20center"
     }
   ]
 }
