@@ -2,9 +2,124 @@
   "id": "lanesboro",
   "name": "Lanesboro Sales Commission",
   "location": "Lanesboro MN",
-  "lastUpdated": "2026-07-29",
-  "lastSuccess": "2026-07-24",
+  "lastUpdated": "2026-07-30",
+  "lastSuccess": "2026-07-29",
   "history": [
+    {
+      "date": "2026-07-29",
+      "slaughter": {
+        "beef": {
+          "low": 215,
+          "high": 240
+        },
+        "crossbred": null,
+        "holstein": {
+          "low": 228,
+          "high": 234
+        }
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": "Wednesday",
+      "liteTestNote": null,
+      "repSales": {
+        "label": "topProducers",
+        "finishWeightAvgs": [
+          {
+            "range": "1300-1399 lbs",
+            "type": "beef",
+            "avgPrice": 235.13,
+            "head": 2
+          },
+          {
+            "range": "1300-1399 lbs",
+            "type": "holstein",
+            "avgPrice": 228.25,
+            "head": 1
+          },
+          {
+            "range": "1400-1499 lbs",
+            "type": "beef",
+            "avgPrice": 235.43,
+            "head": 7
+          },
+          {
+            "range": "1400-1499 lbs",
+            "type": "holstein",
+            "avgPrice": 227,
+            "head": 1
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "beef",
+            "avgPrice": 235.97,
+            "head": 8
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "holstein",
+            "avgPrice": 229.67,
+            "head": 3
+          },
+          {
+            "range": "1600-1699 lbs",
+            "type": "beef",
+            "avgPrice": 237,
+            "head": 3
+          },
+          {
+            "range": "1600-1699 lbs",
+            "type": "holstein",
+            "avgPrice": 231,
+            "head": 2
+          },
+          {
+            "range": "1700-1799 lbs",
+            "type": "holstein",
+            "avgPrice": 230.05,
+            "head": 5
+          },
+          {
+            "range": "2200-2299 lbs",
+            "type": "beef",
+            "avgPrice": 235,
+            "head": 1
+          }
+        ],
+        "feederWeightAvgs": [],
+        "bullsWeightAvgs": [
+          {
+            "range": "1500-1599 lbs",
+            "avgPrice": 185,
+            "head": 2
+          },
+          {
+            "range": "1600-1699 lbs",
+            "avgPrice": 186,
+            "head": 1
+          },
+          {
+            "range": "1700-1799 lbs",
+            "avgPrice": 186.5,
+            "head": 2
+          }
+        ],
+        "cowsWeightAvgs": [],
+        "headCount": {
+          "finished": 33,
+          "feeder": 0,
+          "bulls": 5,
+          "cows": 0
+        }
+      },
+      "hogs": null,
+      "source": "scraped"
+    },
     {
       "date": "2026-07-22",
       "slaughter": {
