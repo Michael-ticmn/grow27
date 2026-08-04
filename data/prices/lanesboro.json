@@ -2,8 +2,8 @@
   "id": "lanesboro",
   "name": "Lanesboro Sales Commission",
   "location": "Lanesboro MN",
-  "lastUpdated": "2026-08-03",
-  "lastSuccess": "2026-07-29",
+  "lastUpdated": "2026-08-04",
+  "lastSuccess": "2026-07-31",
   "history": [
     {
       "date": "2026-07-29",
@@ -117,6 +117,144 @@
           "cows": 0
         }
       },
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
+      "date": "2026-07-24",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": {
+          "low": 320,
+          "high": 550
+        },
+        "crossbred": {
+          "low": null,
+          "high": 527.5
+        },
+        "holstein": {
+          "low": 267,
+          "high": 600
+        },
+        "liteTest": false
+      },
+      "feederWeights": [
+        {
+          "range": "300–500#",
+          "low": 410,
+          "price": 550,
+          "types": [
+            "beef"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "500–700#",
+          "low": 340,
+          "price": 445,
+          "types": [
+            "beef"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "700–900#",
+          "low": 322,
+          "price": 360,
+          "types": [
+            "beef"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "300–500#",
+          "low": 340,
+          "price": 550,
+          "types": [
+            "beef"
+          ],
+          "sex": "heifer"
+        },
+        {
+          "range": "500–700#",
+          "low": 320,
+          "price": 350,
+          "types": [
+            "beef"
+          ],
+          "sex": "heifer"
+        },
+        {
+          "range": "300–600#",
+          "low": null,
+          "price": 527.5,
+          "types": [
+            "crossbred"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "600–900#",
+          "low": null,
+          "price": 375,
+          "types": [
+            "crossbred"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "300–600#",
+          "low": null,
+          "price": 475,
+          "types": [
+            "crossbred"
+          ],
+          "sex": "heifer"
+        },
+        {
+          "range": "600–900#",
+          "low": null,
+          "price": 370,
+          "types": [
+            "crossbred"
+          ],
+          "sex": "heifer"
+        },
+        {
+          "range": "200–400#",
+          "low": 550,
+          "price": 600,
+          "types": [
+            "holstein"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "400–600#",
+          "low": null,
+          "price": 390,
+          "types": [
+            "holstein"
+          ],
+          "sex": "steer"
+        },
+        {
+          "range": "600–1000#",
+          "low": 267,
+          "price": 344,
+          "types": [
+            "holstein"
+          ],
+          "sex": "steer"
+        }
+      ],
+      "saleDay": "Friday",
+      "liteTestNote": null,
+      "repSales": null,
       "hogs": null,
       "source": "scraped"
     },
@@ -4775,7 +4913,7 @@
       "source": "scraped"
     },
     {
-      "date": "2026-07-24",
+      "date": "2026-07-31",
       "slaughter": {
         "beef": null,
         "crossbred": null,
@@ -4783,24 +4921,24 @@
       },
       "feeder": {
         "beef": {
-          "low": 320,
-          "high": 550
+          "low": 280,
+          "high": 470
         },
         "crossbred": {
           "low": null,
-          "high": 527.5
+          "high": 452.5
         },
         "holstein": {
-          "low": 267,
-          "high": 600
+          "low": 270,
+          "high": 525
         },
         "liteTest": false
       },
       "feederWeights": [
         {
           "range": "300–500#",
-          "low": 410,
-          "price": 550,
+          "low": null,
+          "price": 470,
           "types": [
             "beef"
           ],
@@ -4808,8 +4946,8 @@
         },
         {
           "range": "500–700#",
-          "low": 340,
-          "price": 445,
+          "low": 345,
+          "price": 440,
           "types": [
             "beef"
           ],
@@ -4817,8 +4955,8 @@
         },
         {
           "range": "700–900#",
-          "low": 322,
-          "price": 360,
+          "low": 311,
+          "price": 380,
           "types": [
             "beef"
           ],
@@ -4826,8 +4964,8 @@
         },
         {
           "range": "300–500#",
-          "low": 340,
-          "price": 550,
+          "low": 360,
+          "price": 440,
           "types": [
             "beef"
           ],
@@ -4835,8 +4973,17 @@
         },
         {
           "range": "500–700#",
-          "low": 320,
-          "price": 350,
+          "low": 330,
+          "price": 437.5,
+          "types": [
+            "beef"
+          ],
+          "sex": "heifer"
+        },
+        {
+          "range": "700–900#",
+          "low": 280,
+          "price": 372,
           "types": [
             "beef"
           ],
@@ -4845,16 +4992,7 @@
         {
           "range": "300–600#",
           "low": null,
-          "price": 527.5,
-          "types": [
-            "crossbred"
-          ],
-          "sex": "steer"
-        },
-        {
-          "range": "600–900#",
-          "low": null,
-          "price": 375,
+          "price": 452.5,
           "types": [
             "crossbred"
           ],
@@ -4863,16 +5001,7 @@
         {
           "range": "300–600#",
           "low": null,
-          "price": 475,
-          "types": [
-            "crossbred"
-          ],
-          "sex": "heifer"
-        },
-        {
-          "range": "600–900#",
-          "low": null,
-          "price": 370,
+          "price": 430,
           "types": [
             "crossbred"
           ],
@@ -4880,8 +5009,8 @@
         },
         {
           "range": "200–400#",
-          "low": 550,
-          "price": 600,
+          "low": 350,
+          "price": 525,
           "types": [
             "holstein"
           ],
@@ -4889,8 +5018,8 @@
         },
         {
           "range": "400–600#",
-          "low": null,
-          "price": 390,
+          "low": 270,
+          "price": 450,
           "types": [
             "holstein"
           ],
@@ -4898,8 +5027,8 @@
         },
         {
           "range": "600–1000#",
-          "low": 267,
-          "price": 344,
+          "low": null,
+          "price": 330,
           "types": [
             "holstein"
           ],
