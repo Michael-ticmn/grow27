@@ -9523,95 +9523,10 @@
     },
     {
       "date": "2026-08-04",
-      "scrapedAt": "2026-08-04T11:56:13.039Z",
-      "locations": {
-        "claremont": {
-          "name": "Al-Corn",
-          "corn": [
-            {
-              "delivery": "Aug26",
-              "cash": 4.13,
-              "basis": -0.33,
-              "futuresMonth": "Sep26",
-              "cbot": "4.4625",
-              "change": "-0.0300"
-            },
-            {
-              "delivery": "Sep26",
-              "cash": 4.16,
-              "basis": -0.3,
-              "futuresMonth": "Sep26",
-              "cbot": "4.4625",
-              "change": "-0.0300"
-            },
-            {
-              "delivery": "Oct26",
-              "cash": 4.29,
-              "basis": -0.4,
-              "futuresMonth": "Dec26",
-              "cbot": "4.6925",
-              "change": "-0.0325"
-            },
-            {
-              "delivery": "Nov26",
-              "cash": 4.29,
-              "basis": -0.4,
-              "futuresMonth": "Dec26",
-              "cbot": "4.6925",
-              "change": "-0.0325"
-            },
-            {
-              "delivery": "Dec26",
-              "cash": 4.39,
-              "basis": -0.3,
-              "futuresMonth": "Dec26",
-              "cbot": "4.6925",
-              "change": "-0.0325"
-            },
-            {
-              "delivery": "Jan27",
-              "cash": 4.43,
-              "basis": -0.42,
-              "futuresMonth": "Mar27",
-              "cbot": "4.8500",
-              "change": "-0.0325"
-            },
-            {
-              "delivery": "Feb27",
-              "cash": 4.45,
-              "basis": -0.4,
-              "futuresMonth": "Mar27",
-              "cbot": "4.8500",
-              "change": "-0.0325"
-            },
-            {
-              "delivery": "Mar27",
-              "cash": 4.45,
-              "basis": -0.4,
-              "futuresMonth": "Mar27",
-              "cbot": "4.8500",
-              "change": "-0.0325"
-            },
-            {
-              "delivery": "Apr27",
-              "cash": 4.53,
-              "basis": -0.4,
-              "futuresMonth": "May27",
-              "cbot": "4.9325",
-              "change": "-0.0375"
-            },
-            {
-              "delivery": "May27",
-              "cash": 4.53,
-              "basis": -0.4,
-              "futuresMonth": "May27",
-              "cbot": "4.9325",
-              "change": "-0.0375"
-            }
-          ]
-        }
-      },
-      "source": "scraped"
+      "scrapedAt": "2026-08-04T14:17:49.372Z",
+      "locations": {},
+      "source": "fetch_failed",
+      "error": "Navigation timeout of 30000 ms exceeded"
     }
   ]
 }
