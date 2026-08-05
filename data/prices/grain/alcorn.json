@@ -1,8 +1,8 @@
 {
   "id": "alcorn",
   "name": "Al-Corn Clean Fuel",
-  "lastUpdated": "2026-08-04",
-  "lastSuccess": "2026-08-04",
+  "lastUpdated": "2026-08-05",
+  "lastSuccess": "2026-08-05",
   "history": [
     {
       "date": "2026-03-26",
@@ -9527,6 +9527,98 @@
       "locations": {},
       "source": "fetch_failed",
       "error": "Navigation timeout of 30000 ms exceeded"
+    },
+    {
+      "date": "2026-08-05",
+      "scrapedAt": "2026-08-05T05:37:13.670Z",
+      "locations": {
+        "claremont": {
+          "name": "Al-Corn",
+          "corn": [
+            {
+              "delivery": "Aug26",
+              "cash": 4.07,
+              "basis": -0.33,
+              "futuresMonth": "Sep26",
+              "cbot": "4.4050",
+              "change": "-0.0175"
+            },
+            {
+              "delivery": "Sep26",
+              "cash": 4.1,
+              "basis": -0.3,
+              "futuresMonth": "Sep26",
+              "cbot": "4.4050",
+              "change": "-0.0175"
+            },
+            {
+              "delivery": "Oct26",
+              "cash": 4.23,
+              "basis": -0.4,
+              "futuresMonth": "Dec26",
+              "cbot": "4.6350",
+              "change": "-0.0200"
+            },
+            {
+              "delivery": "Nov26",
+              "cash": 4.23,
+              "basis": -0.4,
+              "futuresMonth": "Dec26",
+              "cbot": "4.6350",
+              "change": "-0.0200"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4.33,
+              "basis": -0.3,
+              "futuresMonth": "Dec26",
+              "cbot": "4.6350",
+              "change": "-0.0200"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 4.37,
+              "basis": -0.42,
+              "futuresMonth": "Mar27",
+              "cbot": "4.7950",
+              "change": "-0.0200"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 4.39,
+              "basis": -0.4,
+              "futuresMonth": "Mar27",
+              "cbot": "4.7950",
+              "change": "-0.0200"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 4.39,
+              "basis": -0.4,
+              "futuresMonth": "Mar27",
+              "cbot": "4.7950",
+              "change": "-0.0200"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 4.48,
+              "basis": -0.4,
+              "futuresMonth": "May27",
+              "cbot": "4.8825",
+              "change": "-0.0225"
+            },
+            {
+              "delivery": "May27",
+              "cash": 4.48,
+              "basis": -0.4,
+              "futuresMonth": "May27",
+              "cbot": "4.8825",
+              "change": "-0.0225"
+            }
+          ]
+        }
+      },
+      "source": "scraped"
     }
   ]
 }
