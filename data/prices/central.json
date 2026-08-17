@@ -6,6 +6,27 @@
   "lastSuccess": "2026-08-12",
   "history": [
     {
+      "date": "2026-08-17",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": "Monday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "fetch_failed",
+      "error": "no og:image meta tag found"
+    },
+    {
       "date": "2026-08-16",
       "slaughter": {
         "beef": null,
@@ -8681,7 +8702,7 @@
       "repSales": null,
       "hogs": null,
       "source": "fetch_failed",
-      "error": "no og:image meta tag found"
+      "error": "HTTP 429"
     }
   ]
 }
