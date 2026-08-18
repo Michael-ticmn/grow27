@@ -2,9 +2,30 @@
   "id": "central",
   "name": "Central Livestock Association",
   "location": "Zumbrota MN",
-  "lastUpdated": "2026-08-17",
+  "lastUpdated": "2026-08-18",
   "lastSuccess": "2026-08-12",
   "history": [
+    {
+      "date": "2026-08-18",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": "Monday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "fetch_failed",
+      "error": "no og:image meta tag found"
+    },
     {
       "date": "2026-08-17",
       "slaughter": {
@@ -25,6 +46,27 @@
       "hogs": null,
       "source": "fetch_failed",
       "error": "no og:image meta tag found"
+    },
+    {
+      "date": "2026-08-17",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "feederWeights": [],
+      "saleDay": "Wednesday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "fetch_failed",
+      "error": "HTTP 429"
     },
     {
       "date": "2026-08-16",
@@ -8684,7 +8726,7 @@
       "source": "scraped"
     },
     {
-      "date": "2026-08-17",
+      "date": "2026-08-18",
       "slaughter": {
         "beef": null,
         "crossbred": null,
@@ -8702,7 +8744,7 @@
       "repSales": null,
       "hogs": null,
       "source": "fetch_failed",
-      "error": "HTTP 429"
+      "error": "no og:image meta tag found"
     }
   ]
 }
