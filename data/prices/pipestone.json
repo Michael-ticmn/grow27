@@ -2,9 +2,24 @@
   "id": "pipestone",
   "name": "Pipestone Livestock Auction",
   "location": "Pipestone MN",
-  "lastUpdated": "2026-09-07",
+  "lastUpdated": "2026-09-08",
   "lastSuccess": null,
   "history": [
+    {
+      "date": "2026-09-07",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null,
+        "liteTest": false
+      },
+      "source": "pending"
+    },
     {
       "date": "2026-09-06",
       "slaughter": {
@@ -2526,7 +2541,7 @@
       "source": "pending"
     },
     {
-      "date": "2026-09-07",
+      "date": "2026-09-08",
       "slaughter": {
         "beef": null,
         "crossbred": null,
