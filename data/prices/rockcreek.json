@@ -2,9 +2,168 @@
   "id": "rockcreek",
   "name": "Rock Creek Livestock Market",
   "location": "Pine City MN",
-  "lastUpdated": "2026-10-05",
-  "lastSuccess": "2026-09-21",
+  "lastUpdated": "2026-10-06",
+  "lastSuccess": "2026-10-05",
   "history": [
+    {
+      "date": "2026-10-05",
+      "slaughter": {
+        "beef": {
+          "low": 190,
+          "high": 215
+        },
+        "crossbred": null,
+        "holstein": {
+          "low": 175,
+          "high": 185
+        }
+      },
+      "feeder": {
+        "beef": {
+          "low": 240,
+          "high": 580
+        },
+        "crossbred": null,
+        "holstein": {
+          "low": 290,
+          "high": 290
+        },
+        "liteTest": false
+      },
+      "feederWeights": [
+        {
+          "range": "110–145#",
+          "low": 200,
+          "price": 240,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "400–800#",
+          "low": 220,
+          "price": 290,
+          "types": [
+            "holstein"
+          ],
+          "label": "hol"
+        },
+        {
+          "range": "300–400#",
+          "low": 440,
+          "price": 580,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "400–500#",
+          "low": 410,
+          "price": 510,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "500–600#",
+          "low": 305,
+          "price": 410,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "600–700#",
+          "low": 342.5,
+          "price": 360,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "700–800#",
+          "low": 242.5,
+          "price": 315,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "800–900#",
+          "low": 272.5,
+          "price": 305,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "300–400#",
+          "low": 391,
+          "price": 482,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "400–500#",
+          "low": 385,
+          "price": 395,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "500–600#",
+          "low": 357,
+          "price": 380,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "600–700#",
+          "low": 260,
+          "price": 342.5,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "700–800#",
+          "low": 250,
+          "price": 300,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "800–900#",
+          "low": 255,
+          "price": 275,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        }
+      ],
+      "saleDay": "Monday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
     {
       "date": "2026-09-21",
       "slaughter": {
@@ -20,6 +179,165 @@
       },
       "feederWeights": [],
       "saleDay": null,
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
+      "date": "2026-09-21",
+      "slaughter": {
+        "beef": {
+          "low": 189,
+          "high": 215
+        },
+        "crossbred": null,
+        "holstein": {
+          "low": 175,
+          "high": 185
+        }
+      },
+      "feeder": {
+        "beef": {
+          "low": 247.5,
+          "high": 580
+        },
+        "crossbred": null,
+        "holstein": {
+          "low": 290,
+          "high": 290
+        },
+        "liteTest": false
+      },
+      "feederWeights": [
+        {
+          "range": "110–145#",
+          "low": 180,
+          "price": 247.5,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "400–800#",
+          "low": 220,
+          "price": 290,
+          "types": [
+            "holstein"
+          ],
+          "label": "hol"
+        },
+        {
+          "range": "300–400#",
+          "low": 440,
+          "price": 580,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "400–500#",
+          "low": 410,
+          "price": 510,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "500–600#",
+          "low": 305,
+          "price": 410,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "600–700#",
+          "low": 342.5,
+          "price": 360,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "700–800#",
+          "low": 242.5,
+          "price": 315,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "800–900#",
+          "low": 272.5,
+          "price": 305,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "300–400#",
+          "low": 391,
+          "price": 482,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "400–500#",
+          "low": 385,
+          "price": 395,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "500–600#",
+          "low": 357,
+          "price": 380,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "600–700#",
+          "low": 260,
+          "price": 342.5,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "700–800#",
+          "low": 250,
+          "price": 300,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "800–900#",
+          "low": 255,
+          "price": 275,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        }
+      ],
+      "saleDay": "Monday",
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
@@ -7823,44 +8141,44 @@
       "source": "scraped"
     },
     {
-      "date": "2026-09-21",
+      "date": "2025-07-14",
       "slaughter": {
         "beef": {
-          "low": 189,
-          "high": 215
+          "low": 220,
+          "high": 230
         },
         "crossbred": null,
         "holstein": {
-          "low": 175,
-          "high": 185
+          "low": 184,
+          "high": 201
         }
       },
       "feeder": {
         "beef": {
-          "low": 247.5,
-          "high": 580
+          "low": 253,
+          "high": 422
         },
         "crossbred": null,
         "holstein": {
-          "low": 290,
-          "high": 290
+          "low": 220,
+          "high": 305
         },
         "liteTest": false
       },
       "feederWeights": [
         {
-          "range": "110–145#",
-          "low": 180,
-          "price": 247.5,
+          "range": "400–800#",
+          "low": 195,
+          "price": 305,
           "types": [
-            "beef"
+            "holstein"
           ],
-          "label": "steers"
+          "label": "hol"
         },
         {
-          "range": "400–800#",
-          "low": 220,
-          "price": 290,
+          "range": "800–1100#",
+          "low": 126,
+          "price": 220,
           "types": [
             "holstein"
           ],
@@ -7868,8 +8186,8 @@
         },
         {
           "range": "300–400#",
-          "low": 440,
-          "price": 580,
+          "low": 330,
+          "price": 420,
           "types": [
             "beef"
           ],
@@ -7877,8 +8195,8 @@
         },
         {
           "range": "400–500#",
-          "low": 410,
-          "price": 510,
+          "low": 360,
+          "price": 385,
           "types": [
             "beef"
           ],
@@ -7886,8 +8204,8 @@
         },
         {
           "range": "500–600#",
-          "low": 305,
-          "price": 410,
+          "low": 290,
+          "price": 377.5,
           "types": [
             "beef"
           ],
@@ -7895,8 +8213,8 @@
         },
         {
           "range": "600–700#",
-          "low": 342.5,
-          "price": 360,
+          "low": 280,
+          "price": 320,
           "types": [
             "beef"
           ],
@@ -7904,8 +8222,8 @@
         },
         {
           "range": "700–800#",
-          "low": 242.5,
-          "price": 315,
+          "low": 265,
+          "price": 320,
           "types": [
             "beef"
           ],
@@ -7913,8 +8231,8 @@
         },
         {
           "range": "800–900#",
-          "low": 272.5,
-          "price": 305,
+          "low": 210,
+          "price": 285,
           "types": [
             "beef"
           ],
@@ -7922,8 +8240,8 @@
         },
         {
           "range": "300–400#",
-          "low": 391,
-          "price": 482,
+          "low": 278,
+          "price": 422,
           "types": [
             "beef"
           ],
@@ -7931,8 +8249,8 @@
         },
         {
           "range": "400–500#",
-          "low": 385,
-          "price": 395,
+          "low": 370,
+          "price": 407.5,
           "types": [
             "beef"
           ],
@@ -7940,8 +8258,8 @@
         },
         {
           "range": "500–600#",
-          "low": 357,
-          "price": 380,
+          "low": 310,
+          "price": 342,
           "types": [
             "beef"
           ],
@@ -7949,8 +8267,8 @@
         },
         {
           "range": "600–700#",
-          "low": 260,
-          "price": 342.5,
+          "low": 245,
+          "price": 310,
           "types": [
             "beef"
           ],
@@ -7958,8 +8276,8 @@
         },
         {
           "range": "700–800#",
-          "low": 250,
-          "price": 300,
+          "low": 275,
+          "price": 280,
           "types": [
             "beef"
           ],
@@ -7967,8 +8285,8 @@
         },
         {
           "range": "800–900#",
-          "low": 255,
-          "price": 275,
+          "low": 232,
+          "price": 253,
           "types": [
             "beef"
           ],
@@ -7977,7 +8295,139 @@
       ],
       "saleDay": "Monday",
       "liteTestNote": null,
-      "repSales": null,
+      "repSales": {
+        "finishWeightAvgs": [
+          {
+            "range": "1100-1199 lbs",
+            "type": "holstein",
+            "avgPrice": 184,
+            "head": 1
+          },
+          {
+            "range": "1200-1299 lbs",
+            "type": "crossbred",
+            "avgPrice": 220,
+            "head": 1
+          },
+          {
+            "range": "1200-1299 lbs",
+            "type": "beef",
+            "avgPrice": 204,
+            "head": 3
+          },
+          {
+            "range": "1300-1399 lbs",
+            "type": "holstein",
+            "avgPrice": 194.75,
+            "head": 6
+          },
+          {
+            "range": "1400-1499 lbs",
+            "type": "beef",
+            "avgPrice": 195,
+            "head": 3
+          },
+          {
+            "range": "1500-1599 lbs",
+            "type": "beef",
+            "avgPrice": 201,
+            "head": 4
+          },
+          {
+            "range": "1700-1799 lbs",
+            "type": "beef",
+            "avgPrice": 229,
+            "head": 1
+          },
+          {
+            "range": "1700-1799 lbs",
+            "type": "holstein",
+            "avgPrice": 188,
+            "head": 1
+          }
+        ],
+        "feederWeightAvgs": [],
+        "bullsWeightAvgs": [
+          {
+            "range": "1300-1399 lbs",
+            "avgPrice": 181,
+            "head": 2
+          },
+          {
+            "range": "1400-1499 lbs",
+            "avgPrice": 188,
+            "head": 1
+          },
+          {
+            "range": "1800-1899 lbs",
+            "avgPrice": 195.5,
+            "head": 2
+          },
+          {
+            "range": "2000-2099 lbs",
+            "avgPrice": 194,
+            "head": 1
+          },
+          {
+            "range": "2200-2299 lbs",
+            "avgPrice": 205,
+            "head": 1
+          }
+        ],
+        "cowsWeightAvgs": [
+          {
+            "range": "1000-1099 lbs",
+            "avgPrice": 111,
+            "head": 2
+          },
+          {
+            "range": "1100-1199 lbs",
+            "avgPrice": 126.25,
+            "head": 6
+          },
+          {
+            "range": "1200-1299 lbs",
+            "avgPrice": 126.67,
+            "head": 3
+          },
+          {
+            "range": "1300-1399 lbs",
+            "avgPrice": 143.5,
+            "head": 4
+          },
+          {
+            "range": "1400-1499 lbs",
+            "avgPrice": 146.17,
+            "head": 3
+          },
+          {
+            "range": "1500-1599 lbs",
+            "avgPrice": 145.75,
+            "head": 4
+          },
+          {
+            "range": "1600-1699 lbs",
+            "avgPrice": 159.67,
+            "head": 3
+          },
+          {
+            "range": "1700-1799 lbs",
+            "avgPrice": 130.5,
+            "head": 2
+          },
+          {
+            "range": "1800-1899 lbs",
+            "avgPrice": 137,
+            "head": 1
+          }
+        ],
+        "headCount": {
+          "finished": 20,
+          "feeder": 0,
+          "bulls": 7,
+          "cows": 28
+        }
+      },
       "hogs": null,
       "source": "scraped"
     }
