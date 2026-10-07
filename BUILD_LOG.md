@@ -4,6 +4,19 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.176 (2026-10-07T01:45Z)
+
+### Staleness Check: Temporary 7-Day Override for CFS & Ag Partners (DTN feeds empty)
+
+**Scrape Grain Cash Bids** failed every run from 2026-10-05T20:18Z on the grain staleness check: `cfs` and `agp` last succeeded 2026-10-02T17:36Z. The 2026-10-05T18:55Z run passed only because the data was still under 3 days old; it also captured 0 locations for both.
+
+Upstream, not a parser bug. Verified from a local machine (not an Actions IP) in headless Edge: AGP's DTN API `api.dtn.com/markets/sites/e0172401/cash-bids` returns 200 with `[]`, and CFS's proxy `POST cfscoop.com/DtnCashbidWidget/GetFullDetails` returns an empty string for every location while the dropdown still lists all 13. The other 7 grain sources scrape normally.
+
+- `data/grain-config.json`: added `"staleDays": 7` to `cfs` and `agp`. The check fails when age > limit, so alerts resume on the first run of 2026-10-10Z if still dark, capping the silent data loss at about one week.
+- Remove the override once resolved. See HANDOFF_QUEUE.md.
+
+---
+
 ## v1.175 (2026-06-10T14:00Z)
 
 ### Staleness Check — Per-Source Override for Jennie-O & POET (farmbucks outage)
