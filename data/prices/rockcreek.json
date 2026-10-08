@@ -6,6 +6,150 @@
   "lastSuccess": "2026-10-07",
   "history": [
     {
+      "date": "2026-10-07",
+      "slaughter": {
+        "beef": null,
+        "crossbred": null,
+        "holstein": null
+      },
+      "feeder": {
+        "beef": {
+          "low": 305,
+          "high": 540
+        },
+        "crossbred": null,
+        "holstein": {
+          "low": 290,
+          "high": 290
+        },
+        "liteTest": false
+      },
+      "feederWeights": [
+        {
+          "range": "400–800#",
+          "low": 220,
+          "price": 290,
+          "types": [
+            "holstein"
+          ],
+          "label": "hol"
+        },
+        {
+          "range": "300–400#",
+          "low": 430,
+          "price": 540,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "400–500#",
+          "low": 370,
+          "price": 452.5,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "500–600#",
+          "low": 335,
+          "price": 417.5,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "600–700#",
+          "low": 325,
+          "price": 377.5,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "700–800#",
+          "low": 242.5,
+          "price": 315,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "800–900#",
+          "low": 285,
+          "price": 316,
+          "types": [
+            "beef"
+          ],
+          "label": "steers"
+        },
+        {
+          "range": "300–400#",
+          "low": 350,
+          "price": 420,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "400–500#",
+          "low": 390,
+          "price": 425,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "500–600#",
+          "low": 330,
+          "price": 390,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "600–700#",
+          "low": 260,
+          "price": 320,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "700–800#",
+          "low": 250,
+          "price": 313,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        },
+        {
+          "range": "800–900#",
+          "low": 255,
+          "price": 305,
+          "types": [
+            "beef"
+          ],
+          "label": "heifers"
+        }
+      ],
+      "saleDay": "Wednesday",
+      "liteTestNote": null,
+      "repSales": null,
+      "hogs": null,
+      "source": "scraped"
+    },
+    {
       "date": "2026-10-05",
       "slaughter": {
         "beef": {
@@ -8459,137 +8603,13 @@
         "holstein": null
       },
       "feeder": {
-        "beef": {
-          "low": 305,
-          "high": 540
-        },
+        "beef": null,
         "crossbred": null,
-        "holstein": {
-          "low": 290,
-          "high": 290
-        },
+        "holstein": null,
         "liteTest": false
       },
-      "feederWeights": [
-        {
-          "range": "400–800#",
-          "low": 220,
-          "price": 290,
-          "types": [
-            "holstein"
-          ],
-          "label": "hol"
-        },
-        {
-          "range": "300–400#",
-          "low": 430,
-          "price": 540,
-          "types": [
-            "beef"
-          ],
-          "label": "steers"
-        },
-        {
-          "range": "400–500#",
-          "low": 370,
-          "price": 452.5,
-          "types": [
-            "beef"
-          ],
-          "label": "steers"
-        },
-        {
-          "range": "500–600#",
-          "low": 335,
-          "price": 417.5,
-          "types": [
-            "beef"
-          ],
-          "label": "steers"
-        },
-        {
-          "range": "600–700#",
-          "low": 325,
-          "price": 377.5,
-          "types": [
-            "beef"
-          ],
-          "label": "steers"
-        },
-        {
-          "range": "700–800#",
-          "low": 242.5,
-          "price": 315,
-          "types": [
-            "beef"
-          ],
-          "label": "steers"
-        },
-        {
-          "range": "800–900#",
-          "low": 285,
-          "price": 316,
-          "types": [
-            "beef"
-          ],
-          "label": "steers"
-        },
-        {
-          "range": "300–400#",
-          "low": 350,
-          "price": 420,
-          "types": [
-            "beef"
-          ],
-          "label": "heifers"
-        },
-        {
-          "range": "400–500#",
-          "low": 390,
-          "price": 425,
-          "types": [
-            "beef"
-          ],
-          "label": "heifers"
-        },
-        {
-          "range": "500–600#",
-          "low": 330,
-          "price": 390,
-          "types": [
-            "beef"
-          ],
-          "label": "heifers"
-        },
-        {
-          "range": "600–700#",
-          "low": 260,
-          "price": 320,
-          "types": [
-            "beef"
-          ],
-          "label": "heifers"
-        },
-        {
-          "range": "700–800#",
-          "low": 250,
-          "price": 313,
-          "types": [
-            "beef"
-          ],
-          "label": "heifers"
-        },
-        {
-          "range": "800–900#",
-          "low": 255,
-          "price": 305,
-          "types": [
-            "beef"
-          ],
-          "label": "heifers"
-        }
-      ],
-      "saleDay": "Wednesday",
+      "feederWeights": [],
+      "saleDay": null,
       "liteTestNote": null,
       "repSales": null,
       "hogs": null,
