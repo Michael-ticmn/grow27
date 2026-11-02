@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.176
+**Version:** 1.177
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/
-**Last updated:** 2026-06-10T14:00Z
+**Last updated:** 2026-11-02T22:45Z
 
 ---
 
@@ -26,7 +26,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 |-----------|----------|--------|
 | Barn scraper (Central, Lanesboro, Rock Creek, Sleepy Eye) | Daily 4am + 7am CT | Running on main |
 | Grain scraper (CFS, MVG, AGP, CHS, Jennie-O, New Vision, Al-Corn, Crystal Valley, POET) | Mon–Fri 4am + 7am CT | Running on main |
-| Staleness check | After each scrape | Fails workflow if source stale (default 7d barns, 3d grain/futures; per-source `staleDays` override in config — rockcreek 14d, jennieo + poet 14d while farmbucks outage persists, cfs + agp 7d temp while DTN feeds are empty since 2026-10-02Z) |
+| Staleness check | After each scrape | Fails workflow if source stale (default 7d barns, 3d grain/futures; per-source `staleDays` override in config, currently only rockcreek 14d. Grain overrides removed v1.177) |
 | robots.txt check | Daily midnight CT | Checks all sources + watchlist, writes robots-log.json |
 | Watchdog | 3x daily | Triggers missed scraper runs via workflow_dispatch |
 | Test scrapers (dry run) | Push to UserUpdates (path-filtered) | Validates parsers without committing |
@@ -48,7 +48,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 | MVG | `scripts/grain/mvg.js` | 3 | Active |
 | AGP | `scripts/grain/agp.js` | 13 | Active |
 | CHS | `scripts/grain/chs.js` | 2 | Active |
-| Jennie-O | `scripts/grain/jennieo.js` | 4 | Active — cash-only via farmbucks.com |
+| Jennie-O | `scripts/grain/jennieo.js` | 3 | Active, cash-only via farmbucks.com (Atwater, Dawson, Perham). Faribault dropped from farmbucks ~2026-10-15Z; still in config in case it returns |
 | New Vision | `scripts/grain/newvision.js` | 22 | Active — AgriCharts JSON API, corn+beans, basis+basisMonth stored |
 | Al-Corn | `scripts/grain/alcorn.js` | 1 | Active — CIH widget, corn only, Claremont MN |
 | POET | `scripts/grain/poet.js` | 3 | Active — cash-only via farmbucks.com, MN locations (Bingham Lake, Lake Crystal, Preston) |
