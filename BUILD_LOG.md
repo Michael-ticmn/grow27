@@ -4,6 +4,23 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.177 (2026-11-02T22:45Z)
+
+### Jennie-O Parser Fix (farmbucks renamed locations) + Grain Staleness Overrides Removed
+
+**Scrape Grain Cash Bids** failed both runs on 2026-11-02 (19:51Z, 21:28Z) on the staleness check: `jennieo` last success 2026-10-16, 17 days, over its 14d override. The scrape itself ran and committed data for all other sources.
+
+Not an outage. The farmbucks page still serves 27 corn rows (POET on the same site scraped 26 bids that day), but the parser matched 0 of them:
+- **Names changed ~2026-10-15.** The page now shows "Atwater", "Dawson", "Perham" plus a "Compare prices" link, and the parser required the page text to contain the full config name ("Atwater Feed Mill"). **Faribault is no longer listed** on the page.
+- **Older bug, found along the way:** the location cell uses `rowspan`, so continuation rows have 2 cells, and the parser skipped every row under 3 cells. Even on good days it stored only the first delivery month per location (4 bids total instead of 27).
+
+Changes:
+- `scripts/grain/jennieo.js`: reads continuation rows, takes the name from the cell's `.gpl-bold` span, and matches page and config names in either direction. Config names and slugs are unchanged, so history and the PWA's coordinate and buyer mappings still line up. Verified against the live page in headless Edge: 27/27 rows, 3 locations (Atwater 8 bids, Dawson 7, Perham 12).
+- `data/grain-config.json`: removed `staleDays` from `cfs`, `agp` (7d temp, DTN feeds back: 13 locations each on 2026-11-02) and `jennieo`, `poet` (14d, set for a farmbucks outage that lasted 2026-06-08 to 2026-06-11). All grain sources are back on the 3d default. The 14d leash is why this break, which started 2026-10-19, only alerted on 2026-11-02.
+- PWA effect: the curated Jennie-O (Faribault) buyer maps to `faribault-mill`, which will drop out of the index on the first good run, so that card returns to "call for daily bids" instead of showing 2026-10-16 prices.
+
+---
+
 ## v1.176 (2026-10-07T01:45Z)
 
 ### Staleness Check: Temporary 7-Day Override for CFS & Ag Partners (DTN feeds empty)

@@ -4,7 +4,12 @@ Decisions and open items for the next session to pick up.
 
 ---
 
-## Completed This Session (v1.175)
+## Completed This Session (v1.177)
+
+- [x] Jennie-O parser fixed (v1.177). farmbucks shortened location names ~2026-10-15 ("Atwater Feed Mill" → "Atwater") and the parser matched 0 of 27 rows, so the 2026-11-02 grain runs failed staleness (17d over 14d). Also fixed an older rowspan bug that kept only 1 bid per location. Live-page test: 27/27 rows, 3 locations. Faribault is no longer on the page; see pending decision 0.
+- [x] Grain `staleDays` overrides removed for cfs, agp, jennieo, poet (v1.177). DTN feeds for cfs + agp are back (13 locations each on 2026-11-02); the farmbucks outage behind the 14d override lasted only 2026-06-08 to 2026-06-11. All grain sources back on the 3d default. Closes the CFS + AGP handoff and the old farmbucks-outage decision.
+
+## Completed Earlier (v1.175)
 
 - [x] Staleness override for jennieo + poet set to 14d (v1.175). farmbucks.com stopped serving both bid pages ~2026-06-06 (now "No results", zero tables, server-rendered, confirmed via WebFetch from a non-Actions IP — upstream outage, not a code bug). Stops the daily grain-workflow false-alarm failures. **See pending decision below — re-check ~2026-06-19.**
 
@@ -19,12 +24,6 @@ Decisions and open items for the next session to pick up.
 - [x] Watchdog workflow fix — added `permissions: actions: write` for workflow_dispatch (v1.169)
 
 ## Pending Handoffs
-
-### [ ] [FROM: Code] CFS + AGP grain bids dark since 2026-10-02 — TEMP 7d OVERRIDE, alerts resume 2026-10-10Z
-- **Symptom:** every grain run since 2026-10-05 captured 0 locations for `cfs` and `agp`; last good scrape 2026-10-02T17:36Z. The other 7 grain sources scrape normally.
-- **Root cause is upstream (verified 2026-10-07T01:30Z from a local machine, not an Actions IP):** AGP's DTN API `api.dtn.com/markets/sites/e0172401/cash-bids` returns 200 with `[]` (widget spins forever). CFS's proxy `POST cfscoop.com/DtnCashbidWidget/GetFullDetails` returns an empty string for every location (dropdown still lists all 13). Both are DTN-backed. Not a parser bug.
-- **Temp fix:** `staleDays: 7` on `cfs` and `agp` in `data/grain-config.json`. The check fails when age > limit, so failures resume on the first run of 2026-10-10Z if still dark (about one week of lost data).
-- **Decision when the alert re-fires:** (a) ask CFS / Ag Partners whether their DTN bid feed is down or moved, (b) mark them `directory`, or (c) remove the override once data returns. Either way, remove the override after resolution.
 
 ### [ ] [FROM: Code] UX review: end to end (logical flow, intuitive use, visual appeal) — FIND DONE 2026-10-06T01:03Z, VERIFY NEXT
 - **Ask (Michael, 2026-10-05):** review the website end to end for logical flow, intuitive use and visual appeal; identify and classify suggested updates.
@@ -49,11 +48,10 @@ Decisions and open items for the next session to pick up.
 
 ## Pending Decisions
 
-### 0. farmbucks outage — Jennie-O & POET — RE-CHECK ~2026-06-19
-- **Status:** Both farmbucks.com bid pages went dark ~2026-06-06 ("No results — Please try again later", zero tables). Suppressed with `staleDays: 14` in `grain-config.json` (v1.175) to stop daily workflow failures. Parsers + config left intact so they resume automatically if data returns.
-- **Affected:** Jennie-O (Atwater, Dawson, Faribault, Perham); POET MN plants (Bingham Lake, Lake Crystal, Preston). `newvision`'s `poet-ashton` is Ashton **IA** — does NOT cover the MN POET plants.
-- **Decision needed if still dark at 14d (alert re-fires):** (a) mark both `directory`/`pending`, (b) remove the sources, or (c) find an alternate source (DTN, individual elevator pages, or a New Vision slug for the MN POET plants).
-- **Update 2026-10-05T19:00Z:** origin/main `data/prices/grain/index.json` shows `jennieo` (4 locations) and `poet` (3 locations) with `lastSuccess` 2026-10-05, so farmbucks is serving bids again. Remaining decision: remove the temporary `staleDays: 14` override in `data/grain-config.json` (and the matching note in CURRENT_STATE.md), or keep it.
+### 0. Jennie-O Faribault no longer on farmbucks (since ~2026-10-15Z)
+- **Status:** farmbucks' Jennie-O MN page now lists only Atwater, Dawson, Perham. `Faribault Mill` stays in `grain-config.json` so it resumes automatically if it returns; it does not affect staleness (that is per source).
+- **PWA effect:** the curated `jennyo` buyer (Faribault, `js/markets.js` GRAIN_SCRAPE_MAP) maps to `faribault-mill`, so after v1.177's first good run that card shows its static "call for daily bids" state instead of 2026-10-16 prices.
+- **Decision:** (a) leave as is, (b) remove Faribault from config, or (c) find another Faribault source (the AgHost portal is robots-blocked per `scripts/robots-check.js`).
 
 ### 1. Hog data display — DEFERRED
 - Central parser captures hog data (market hogs, sows, boars) from Wednesday reports. Stored but not displayed. Future build when needed.

@@ -4,7 +4,11 @@
 // Static HTML table — no widgets or dynamic loading.
 // Table ID: gpl-table-2-yellow-corn
 // Columns: Location | Delivery | Cash Price
-// All 4 MN locations in one filterable table. Corn only.
+// Location cell uses rowspan, so only a location's first row has 3 cells;
+// the rest are Delivery | Cash Price. Corn only.
+// ~2026-10-15 farmbucks shortened names ("Atwater Feed Mill" → "Atwater") and
+// dropped Faribault. Matching runs both ways so config names (and slugs the
+// PWA keys on) stay unchanged.
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -46,8 +50,8 @@ async function parse({ id, config, browser }) {
     await page.goto(config.url, { waitUntil: 'networkidle2', timeout: 30000 });
     await new Promise(r => setTimeout(r, 2000));
 
-    // Build set of configured location names for matching
-    const configNames = config.locations.map(l => l.name.toLowerCase());
+    // Configured location names for matching
+    const configNames = config.locations.map(l => l.name);
 
     const allBids = await page.evaluate((configNames) => {
       const table = document.querySelector('#gpl-table-2-yellow-corn');
@@ -59,19 +63,26 @@ async function parse({ id, config, browser }) {
 
       for (const tr of trs) {
         const cells = tr.querySelectorAll('td');
-        if (cells.length < 3) continue;
+        if (cells.length < 2) continue;
 
-        const locText  = (cells[0]?.textContent || '').trim();
-        const delivery = (cells[1]?.textContent || '').trim();
-        const cashRaw  = (cells[2]?.textContent || '').trim();
+        // 3 cells = new location row; 2 cells = continuation of the rowspan
+        const hasLoc   = cells.length >= 3;
+        const locCell  = hasLoc ? cells[0] : null;
+        const locText  = locCell
+          ? (locCell.querySelector('.gpl-bold')?.textContent || locCell.textContent || '').trim()
+          : '';
+        const delivery = (cells[hasLoc ? 1 : 0]?.textContent || '').trim();
+        const cashRaw  = (cells[hasLoc ? 2 : 1]?.textContent || '').trim();
 
         // Skip header-like rows
         if (/^location$/i.test(locText)) continue;
 
-        // If location cell has text, update current location
-        if (locText) {
-          const matched = configNames.some(cn => locText.toLowerCase().includes(cn));
-          currentLocation = matched ? locText : null;
+        // New location row: map page name to configured name (either may contain the other)
+        if (hasLoc) {
+          const lt = locText.toLowerCase();
+          currentLocation = lt
+            ? configNames.find(cn => lt.includes(cn.toLowerCase()) || cn.toLowerCase().includes(lt)) || null
+            : null;
         }
 
         // Skip rows outside configured locations
@@ -87,11 +98,9 @@ async function parse({ id, config, browser }) {
 
     console.log(`[${id}] ${allBids.debug}`);
 
-    // Match each row to its configured location name
+    // Rows already carry their configured location name
     for (const row of allBids.rows) {
-      const matchedLoc = config.locations.find(l =>
-        row.location.toLowerCase().includes(l.name.toLowerCase())
-      );
+      const matchedLoc = config.locations.find(l => l.name === row.location);
       if (!matchedLoc) continue;
 
       const slug = slugify(matchedLoc.name);
