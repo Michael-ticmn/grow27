@@ -143,7 +143,7 @@ prefetchYahoo().then(function() {
     loadCattlePrices(),
     loadDairyPrices(),
     loadBarnPrices(),
-    loadScrapedBarnData().then(() => loadCentralLivestockData()),
+    loadScrapedBarnData(),
     loadFeedInputPrices(),
     loadFeederWeightPrices(),
   ]).then(function() {

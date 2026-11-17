@@ -304,6 +304,15 @@ async function parse({ id, browser, html, $ }) {
         if (price !== null) { feeder.holstein = price; console.log(`[${id}] feeder.holstein = ${JSON.stringify(price)} (same line)`); }
       }
 
+      // The feeder block ends where the next sections begin: Cow/Calf Pairs, Bred Beef Cows,
+      // Hol Fresh, Open Heifers, Hol Springers (right column) or Calves (left column).
+      // Without this stop, an all-N/A Dairy Steers block picks up the calf "up to" price.
+      if (inFeederSection && currentFeederTypes &&
+          /cow\s*\/\s*calf|bred\s+beef\s+cows|hol\s+fresh|open\s+heifers|springers|\bcalves\b/i.test(line)) {
+        currentFeederTypes = null;
+        console.log(`[${id}] feeder block ended at line ${i}`);
+      }
+
       // Feeder weight ranges with upto prices
       if (inFeederSection && currentFeederTypes && /upto/i.test(line)) {
         const wm = line.match(/(\d{2,4})\s*[-–]\s*(\d{2,4})\s*[%#]/);

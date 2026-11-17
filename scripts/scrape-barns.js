@@ -121,10 +121,20 @@ async function fetchPage(id, reportUrl) {
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
     const page = await browser.newPage();
-    await page.goto(reportUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+    const resp = await page.goto(reportUrl, { waitUntil: 'networkidle2', timeout: 30000 });
     await new Promise(r => setTimeout(r, 3000));
     const html = await page.content();
-    console.log(`[${id}] fetch OK · ${html.length} bytes`);
+    const title = await page.title().catch(() => '');
+    console.log(`[${id}] fetch OK · HTTP ${resp ? resp.status() : '?'} · ${html.length} bytes · title ${JSON.stringify(title)}`);
+    if (html.length < 10000) {
+      // A small page is usually a bot challenge or block page, not a report. Log enough to tell which.
+      const text = html
+        .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      console.log(`[${id}] short page text: ${text.slice(0, 400)}`);
+    }
     if (html.length < 500) throw new Error('response too short — likely blocked or empty');
     return { browser, html };
   } catch (err) {
