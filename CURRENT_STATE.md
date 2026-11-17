@@ -1,9 +1,9 @@
 # Current State — grow27
 
-**Version:** 1.179
+**Version:** 1.180
 **Branch:** UserUpdates
 **Live site:** https://michael-ticmn.github.io/grow27/ (noindex since v1.179)
-**Last updated:** 2026-11-17T21:50Z
+**Last updated:** 2026-11-17T22:15Z
 
 ---
 
@@ -34,7 +34,7 @@ Single-page PWA served via GitHub Pages. No build step — vanilla HTML/CSS/JS.
 ### Barn Parsers
 | Barn | Parser | Status |
 |------|--------|--------|
-| Central Livestock (Zumbrota) | `scripts/barns/central.js` | Active, OCR + rep sales, Mon+Wed. **Actions runners blocked since 2026-11-11Z** (4,509-byte non-report page); 2026-11-11 and 2026-11-16 backfilled from a home connection. Hog values unreliable |
+| Central Livestock (Zumbrota) | `scripts/barns/central.js` | OCR + rep sales, Mon+Wed. **Paused on Actions (`skipScrape`, v1.180):** Weebly/Cloudflare returns HTTP 403 to GitHub runners since 2026-11-11Z. Index row still built; 2026-11-11 and 2026-11-16 backfilled from a home connection. Hog values unreliable |
 | Lanesboro Sales Commission | `scripts/barns/lanesboro.js` | Active — HTML parser, Wed (slaughter + Top Producers) + Fri (feeder) |
 | Rock Creek (Pine City) | `scripts/barns/rockcreek.js` | Active — PDF parser, Mon+Wed, batch YTD |
 | Sleepy Eye | `scripts/barns/sleepyeye.js` | Active — Google Sheets CSV, Wed (slaughter) + Sat (feeder), batch tabs |

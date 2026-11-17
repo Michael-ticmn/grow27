@@ -4,7 +4,9 @@ Decisions and open items for the next session to pick up.
 
 ---
 
-## Completed This Session (v1.178–v1.179)
+## Completed This Session (v1.178–v1.180)
+
+- [x] Central paused on Actions (v1.180): `skipScrape` in barns-config.json. No fetch and no history writes, but the index row is still built, so the PWA and the staleness check keep seeing Central (alert about 2026-11-24 if nothing new arrives).
 
 - [x] Public site (v1.179): `noopener noreferrer` on all barn directory and drawer report links; client-side Central CORS-proxy fallback removed; `noindex` meta on index.html and generate-icons.html.
 - [x] Central Holstein feeder fix (v1.178). An all-N/A Dairy Steers block no longer picks up the Holstein calf "up to" price (2026-11-16 stored 500 instead of N/A).
@@ -35,7 +37,7 @@ Decisions and open items for the next session to pick up.
 ### [ ] [FROM: Code] Central blocked on GitHub Actions runners — OPEN 2026-11-17T21:10Z
 - **Symptom:** since 2026-11-11Z the runner gets the same 4,509-byte page for both Central URLs (no report, no og:image). From a home connection both pages and the parser work. See BUILD_LOG v1.178.
 - **Confirmed (v1.178 dry run, 2026-11-17T21:07Z):** HTTP 403 "Attention Required! | Cloudflare / Sorry, you have been blocked. You are unable to access weebly.com". A Weebly platform block of GitHub runners in every Azure region since 2026-11-11 between 17:47Z and 19:21Z; nothing changed on the grow27 side.
-- **Next:** move only the Central fetch to a home machine (caddie540, planned in the homeauto session), with the Actions barn job skipping Central (its fetch-failure path deletes same-day entries). No self-hosted runner (the repo is public), and no proxies or stealth plugins. Michael decided not to contact Central.
+- **Next:** move only the Central fetch to a home machine (caddie540, planned in the homeauto session). Actions already skips Central via `skipScrape` (v1.180); the home job must bypass that flag and write only `central.json` (the next Actions run rebuilds index.json from it). No self-hosted runner (the repo is public), and no proxies or stealth plugins. Michael decided not to contact Central.
 - **Silent window:** the backfill set `lastSuccess` to 2026-11-16, so the staleness alert stays quiet until about 2026-11-23 even while runners are blocked. The 2026-11-18 Wednesday sale is lost unless fixed or captured from home. Suggested: also alert when a barn records `fetch_failed` on two runs in a row.
 
 ### [ ] [FROM: Code] UX review: end to end (logical flow, intuitive use, visual appeal) — FIND DONE 2026-10-06T01:03Z, VERIFY NEXT
