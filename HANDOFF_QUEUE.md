@@ -4,7 +4,13 @@ Decisions and open items for the next session to pick up.
 
 ---
 
-## Completed This Session (v1.177)
+## Completed This Session (v1.178)
+
+- [x] Central Holstein feeder fix (v1.178). An all-N/A Dairy Steers block no longer picks up the Holstein calf "up to" price (2026-11-16 stored 500 instead of N/A).
+- [x] Fetch diagnostics (v1.178). `fetchPage()` logs HTTP status, page title, and the text of any page under 10 KB.
+- [x] Central backfill on main (`a84ae9c`): 2026-11-11 Wednesday and 2026-11-16 Monday, fetched from a home connection, hogs null. `lastSuccess` now 2026-11-16.
+
+## Completed Earlier (v1.177)
 
 - [x] Jennie-O parser fixed (v1.177). farmbucks shortened location names ~2026-10-15 ("Atwater Feed Mill" → "Atwater") and the parser matched 0 of 27 rows, so the 2026-11-02 grain runs failed staleness (17d over 14d). Also fixed an older rowspan bug that kept only 1 bid per location. Live-page test: 27/27 rows, 3 locations. Faribault is no longer on the page; see pending decision 0.
 - [x] Grain `staleDays` overrides removed for cfs, agp, jennieo, poet (v1.177). DTN feeds for cfs + agp are back (13 locations each on 2026-11-02); the farmbucks outage behind the 14d override lasted only 2026-06-08 to 2026-06-11. All grain sources back on the 3d default. Closes the CFS + AGP handoff and the old farmbucks-outage decision.
@@ -24,6 +30,11 @@ Decisions and open items for the next session to pick up.
 - [x] Watchdog workflow fix — added `permissions: actions: write` for workflow_dispatch (v1.169)
 
 ## Pending Handoffs
+
+### [ ] [FROM: Code] Central blocked on GitHub Actions runners — OPEN 2026-11-17T21:10Z
+- **Symptom:** since 2026-11-11Z the runner gets the same 4,509-byte page for both Central URLs (no report, no og:image). From a home connection both pages and the parser work. See BUILD_LOG v1.178.
+- **Next:** read the Central lines in the v1.178 test-scrapers dry run (new HTTP status, title, and short-page text) to confirm what the page is, then choose a fix. Leading hypothesis is Cloudflare challenging data-center IPs; options then are a fetch from a home connection (scheduled task or self-hosted runner) or getting the report from Central another way. Do not try to defeat the challenge.
+- **Silent window:** the backfill set `lastSuccess` to 2026-11-16, so the staleness alert stays quiet until about 2026-11-23 even while runners are blocked. The 2026-11-18 Wednesday sale is lost unless fixed or captured from home. Suggested: also alert when a barn records `fetch_failed` on two runs in a row.
 
 ### [ ] [FROM: Code] UX review: end to end (logical flow, intuitive use, visual appeal) — FIND DONE 2026-10-06T01:03Z, VERIFY NEXT
 - **Ask (Michael, 2026-10-05):** review the website end to end for logical flow, intuitive use and visual appeal; identify and classify suggested updates.
@@ -55,6 +66,7 @@ Decisions and open items for the next session to pick up.
 
 ### 1. Hog data display — DEFERRED
 - Central parser captures hog data (market hogs, sows, boars) from Wednesday reports. Stored but not displayed. Future build when needed.
+- **The stored values are wrong (found 2026-11-17Z).** Checked against the 2026-11-11 report: `marketHogs` null (report: colored 230-290# $55.00 to $65.00, white $40.00 to $52.00), `sows` = the Holstein slaughter range ($185.00 to $195.00, report: $40.00 to $43.00), `boars` = the market cow high ($119.00, report: up to $20.00 / $20.00 to $22.00). The same pattern appears every Wednesday back to at least 2026-10-14. Fix the parser and null or re-derive hog history before displaying hogs.
 
 ### 2. Remaining barn parsers
 - Pipestone still returns `pending`. Does Pipestone publish online reports?
@@ -79,6 +91,11 @@ Decisions and open items for the next session to pick up.
 - **Why no alert fired:** `scripts/check-staleness.js:61` loops over the entries present in index.json; the config file is read only for `staleDays` overrides (lines 51-59). A configured source that disappears from the index entirely is never checked. Suggested fix: also iterate the config ids and flag any active (non-`pending`, non-`directory`) source missing from the index.
 - **Root cause:** robots.txt. origin/main `data/robots-log.json` marks both `mvg` and `sleepyeye` `"allowed": false, "reason": "disallowed by robots.txt"` (checked 2026-10-05T14:14Z), so the scrapers correctly skip them, and they then vanish silently. The concurrent PWA review (`C:\tmp\g27t\reviews\pwa-review-2026-10-05.md`, item 5) reports MVG `Disallow: /markets/` and docs.google.com `Disallow: /` since 2026-03-31 (that date is not re-verified here).
 - **Decision needed:** mark both `directory` (or remove them) and update the About page "Data Sources" table, since grow27 promises to respect robots.txt.
+
+### Barn feeder data: stale index entry and suspect Central Holstein history (found 2026-11-17Z)
+- `buildIndexRow()` (`scripts/scrape-barns.js`) picks each barn's feeder entry as the one with the most weight brackets in all history, date only as a tie-break. Current `feederDate`: central 2026-10-26, lanesboro 2026-10-09, rockcreek 2026-08-31. The PWA labels it with that date and an age badge, but a newer sale only replaces it if it has at least as many brackets. Suggested: limit candidates to a recent window.
+- Central Monday `feeder.holstein` history before v1.178 (2026-08 to 2026-11-09: 320, 390, 230, 300, 255, 380, 245, 500, 420, 265, 110) may hold calf prices from the bug fixed in v1.178. Not verified against the old reports.
+- OCR misses some feeder "up to" values (2026-11-16: 3 of 4 misread, e.g. 350.00 read as "53000"), so `feederWeights` is often incomplete. Captured values checked so far are correct.
 
 ### Commit messages v1.54–v1.64
 - Placeholder messages from PS1 bug. Fixed in v1.65, historical messages lost.

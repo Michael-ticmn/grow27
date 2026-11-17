@@ -4,6 +4,23 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.178 (2026-11-17T21:10Z)
+
+### Central Blocked on Actions Runners: Fetch Diagnostics, Holstein Feeder Fix, Nov 11 + Nov 16 Backfill
+
+**Scrape Auction Barn Prices** failed three runs (2026-11-17T02:15Z manual, 19:00Z, 20:36Z) on the staleness check: `central` last success 2026-11-09, 8 days. Every run since 2026-11-11 recorded `fetch_failed` for both sale days ("no og:image meta tag found"), and the job stayed green until the 7-day limit ran out.
+
+Not a parser or site-layout break. On the Actions runner both Central URLs return the same 4,509-byte page with no report. From a home connection both return HTTP 200, ~32 KB, the correct titles, and the unchanged `central.js` parses both. No scraper code or dependency changes since well before 2026-11-09. The site is Weebly behind Cloudflare (`__cf_bm` Bot Management cookie). Leading hypothesis: Cloudflare challenges data-center IPs. Not yet confirmed. The robots.txt check's HTTP 406 for Central predates the break (also on 2026-11-05 and 2026-11-08), so it is unrelated.
+
+Changes:
+- `scripts/scrape-barns.js` `fetchPage()`: logs HTTP status and page title, plus the first 400 characters of text for any page under 10 KB, so the next block page identifies itself in the log.
+- `scripts/barns/central.js`: the feeder block now ends at Cow/Calf Pairs, Bred Beef Cows, Hol Fresh, Open Heifers, Springers, or Calves. Before, an all-N/A Dairy Steers block kept reading into Calves and stored the Holstein calf "up to" price as `feeder.holstein` (2026-11-16: 500 instead of N/A). Verified locally against the live 2026-11-16 and 2026-11-11 reports: Holstein feeder now null, every other field unchanged.
+- Data backfill, committed straight to main as `a84ae9c` (UserUpdates cannot carry it because `push-main.ps1` overwrites `data/prices/` from main): `central.json` entries for 2026-11-11 Wednesday and 2026-11-16 Monday, fetched from a home connection in headless Edge and parsed with the fixed `central.js`. `hogs` set to null on purpose. `lastSuccess` 2026-11-09 to 2026-11-16, so the staleness alert will not fire again before about 2026-11-23 even if runners stay blocked.
+
+Found, not fixed (see HANDOFF_QUEUE.md): Central hog values are wrong on every Wednesday since at least 2026-10-14; past Monday `feeder.holstein` values are suspect; the index feeder entry is the one with the most weight brackets in all history, not the latest.
+
+---
+
 ## v1.177 (2026-11-02T22:45Z)
 
 ### Jennie-O Parser Fix (farmbucks renamed locations) + Grain Staleness Overrides Removed
