@@ -4,6 +4,20 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.180 (2026-11-17T22:15Z)
+
+### Barn Scraper: `skipScrape` Flag, Central Paused on GitHub Actions
+
+Central has returned HTTP 403 (Weebly/Cloudflare block) to every Actions run since 2026-11-11, so each run only added two `fetch_failed` entries to `central.json`. The fetch-failure path also deletes any same-day entry for that sale day before writing, which would wipe data written by a home-connection fetch on the same UTC day.
+
+- `data/barns-config.json`: `central` gets `"skipScrape"`, set to the reason string. Delete the line to resume fetching on Actions.
+- `scripts/scrape-barns.js` `run()`: a barn with `skipScrape` is not fetched and its history file is not written, but `buildIndexRow()` still runs, so the PWA keeps showing it and `check-staleness.js` keeps watching it. (The robots.txt skip path `continue`s before the index row and drops the barn from index.json, which is why it was not reused.) With `lastSuccess` 2026-11-16, the staleness alert fires about 2026-11-24 if nothing new arrives.
+- Local test in a temp worktree with a stub browser: Central logged `SKIPPED — skipScrape`, `central.json` stayed byte-identical, its rebuilt index row equaled production's, and the staleness check passed.
+
+A home-connection Central job (caddie540) must bypass this flag.
+
+---
+
 ## v1.179 (2026-11-17T21:50Z)
 
 ### Public Site: No-Referrer on Barn Links, Client-Side Central Fallback Removed, noindex

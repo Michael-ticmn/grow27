@@ -230,6 +230,16 @@ async function run() {
     // Load existing file
     const barnData = loadBarnFile(id, name, location);
 
+    // skipScrape (barns-config.json): the barn is fetched elsewhere, e.g. from a home
+    // connection. Don't fetch or write its history here, but still emit its index row so
+    // the PWA keeps showing it and check-staleness.js keeps watching it. (The robots.txt
+    // skip below drops the barn from index.json entirely, which is not wanted here.)
+    if (config.skipScrape) {
+      console.log(`[${id}] SKIPPED — skipScrape: ${config.skipScrape}`);
+      indexOut.push(buildIndexRow(barnData, id, name, location));
+      continue;
+    }
+
     // Build list of reports to scrape:
     //   - config.reports[] (new multi-report format)
     //   - config.reportUrl (legacy single-report format)

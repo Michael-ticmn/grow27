@@ -4,6 +4,7 @@
     "name": "Central Livestock Association",
     "location": "Zumbrota MN",
     "hasTypeBreakdown": true,
+    "skipScrape": "Weebly/Cloudflare returns HTTP 403 to GitHub runners since 2026-11-11; fetch from a home connection instead",
     "reports": [
       { "day": "Monday",    "url": "https://centrallivestock.com/monday---cattle.html" },
       { "day": "Wednesday", "url": "https://www.centrallivestock.com/wednesday---cattle-hogs.html" }
