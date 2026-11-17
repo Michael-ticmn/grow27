@@ -4,6 +4,20 @@ Chronological record of what was built, when, and why.
 
 ---
 
+## v1.179 (2026-11-17T21:50Z)
+
+### Public Site: No-Referrer on Barn Links, Client-Side Central Fallback Removed, noindex
+
+Three changes to the public Pages site, requested by Michael.
+
+- **Barn outbound links send no referrer.** `rel="noopener noreferrer"` on every barn directory link (`buildBarnDirectory()` extra links: barn websites, DVAuction, LMA, Facebook) and on every barn's drawer "view report" link. Done per link, not with a site-wide `<meta name="referrer">`, because the site calls Nominatim (`js/app.js` reverse geocode) and Overpass from the browser, and Nominatim's usage policy asks browser apps to identify themselves with a Referer. Directions (Google Maps), grain buyer, locker, and dairy plant links are unchanged.
+- **Removed `loadCentralLivestockData()`** (the client-side Central scraper through corsproxy.io, allorigins, codetabs), its call in `js/app.js`, and the wrapper in `js/data-loader.js` that re-assigned it. It only ran when index.json lacked Central rep sales, and it parsed `<td>` text, so it could not read the current image-only reports anyway. The barn table is rendered by `data-loader.js` and `loadScrapedBarnData()`, so nothing else changes. The proxy hosts remain in `markets.js` for the Yahoo Finance futures cards and two USDA AMS reports, which do not touch Central.
+- **`<meta name="robots" content="noindex">`** on `index.html` and `generate-icons.html`. `/grow27/robots.txt` sits below the host root, so crawlers ignore it. JSON under `/data/` stays crawlable (Pages cannot send X-Robots-Tag), but the same files are public in the GitHub repo either way.
+
+Verified in headless Edge against the live v1.177 site as a baseline: noindex present, Central row still renders from index.json, `loadCentralLivestockData` undefined, all 9 directory links and the drawer link carry `noopener noreferrer`, 0 requests to centrallivestock.com, and console/page errors match the baseline (the existing null `textContent` pageerror plus Yahoo CORS failures).
+
+---
+
 ## v1.178 (2026-11-17T21:10Z)
 
 ### Central Blocked on Actions Runners: Fetch Diagnostics, Holstein Feeder Fix, Nov 11 + Nov 16 Backfill

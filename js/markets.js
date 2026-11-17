@@ -2561,158 +2561,6 @@ async function loadScrapedBarnData() {
   }
 }
 
-// ── CENTRAL LIVESTOCK SCRAPER (CORS fallback) ────────────────────────────────
-// Falls back to scraping centrallivestock.com via CORS proxies if the
-// pre-scraped data from index.json is missing or stale.
-// Sets BARNS_DATA.central.dataSource = 'live' on success.
-async function loadCentralLivestockData() {
-  // Skip if pre-scraped data already loaded (from index.json via loadScrapedBarnData)
-  if (BARNS_DATA.central.dataSource === 'live' || BARNS_DATA.central.repSales) {
-    console.log('[central] skipping CORS scraper — pre-scraped data already loaded');
-    return;
-  }
-  try {
-    const url = 'https://www.centrallivestock.com/monday---cattle.html';
-    // Try proxies in order — some block certain domains
-    const proxies = [
-      'https://corsproxy.io/?' + encodeURIComponent(url),
-      'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
-      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
-    ];
-    let html = null;
-    for(const proxyUrl of proxies) {
-      try {
-        const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
-        if(!r.ok) { console.warn('[central] proxy failed:', proxyUrl, r.status); continue; }
-        const text = await r.text();
-        if(text.length < 500) { console.warn('[central] proxy returned empty/short response:', proxyUrl); continue; }
-        console.log('[central] proxy success:', proxyUrl, 'bytes:', text.length);
-        html = text;
-        break;
-      } catch(pe) {
-        console.warn('[central] proxy error:', proxyUrl, pe.message);
-      }
-    }
-    if(!html) throw new Error('all proxies failed');
-
-    // Parse via DOM
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const cells = [...doc.querySelectorAll('td')];
-    const getText = c => c.textContent.replace(/\s+/g,' ').trim();
-
-    // Extract report date
-    const dateCell = cells.find(c => /Market Report/i.test(getText(c)));
-    const dateMatch = dateCell ? getText(dateCell).match(/(\d{1,2}\/\d{1,2}\/\d{4})/) : null;
-    const reportDate = dateMatch ? dateMatch[1] : '';
-
-    // Helper: given a cell index, scan forward for first price > threshold
-    function nextPrice(fromIdx, minVal = 150, maxVal = 500) {
-      for(let i = fromIdx + 1; i < Math.min(fromIdx + 10, cells.length); i++) {
-        const v = parseFloat(getText(cells[i]));
-        if(!isNaN(v) && v >= minVal && v <= maxVal) return v;
-      }
-      return null;
-    }
-
-    // Helper: find cell index matching text (partial, case-insensitive)
-    function findIdx(text, afterIdx = 0) {
-      for(let i = afterIdx; i < cells.length; i++) {
-        if(getText(cells[i]).toLowerCase().includes(text.toLowerCase())) return i;
-      }
-      return -1;
-    }
-
-    // ── Finish prices by type ──
-    const finishPrices = {};
-
-    // Helper: extract two prices from cells → {low, high}
-    function extractRange(startIdx) {
-      const prices = [];
-      for(let i = startIdx + 1; i < Math.min(startIdx + 10, cells.length); i++) {
-        const v = parseFloat(getText(cells[i]));
-        if(!isNaN(v) && v > 150 && v < 400) prices.push(v);
-        if(prices.length >= 2) break;
-      }
-      if(prices.length >= 2) return { low: Math.min(...prices), high: Math.max(...prices) };
-      if(prices.length === 1) return { low: prices[0], high: prices[0] };
-      return null;
-    }
-
-    const beefIdx = findIdx('Finished Beef Steers');
-    if(beefIdx > -1) {
-      const range = extractRange(beefIdx);
-      if(range) finishPrices.beef = range;
-    }
-
-    const dairyXIdx = findIdx('Dairy-X') > -1 ? findIdx('Dairy-X') : findIdx('Dairy X');
-    if(dairyXIdx > -1) {
-      const range = extractRange(dairyXIdx);
-      if(range) finishPrices.crossbred = range;
-    }
-
-    const dairyFinIdx = findIdx('Finished Dairy Steers');
-    if(dairyFinIdx > -1) {
-      const range = extractRange(dairyFinIdx);
-      if(range) finishPrices.holstein = range;
-    }
-
-    // ── Feeder weights ──
-    const feederWeights = [];
-
-    // Beef Steers & Bulls feeder section
-    const bsIdx = findIdx('Beef Steers & Bulls');
-    const bhIdx = findIdx('Beef Heifers', bsIdx > -1 ? bsIdx : 0);
-    if(bsIdx > -1) {
-      const sectionCells = cells.slice(bsIdx, bhIdx > bsIdx ? bhIdx : bsIdx + 25);
-      sectionCells.forEach((cell, ci) => {
-        const t = getText(cell);
-        const wm = t.match(/^(\d{3})\s*[-–]\s*(\d{3,4})#?$/);
-        if(wm) {
-          const range = wm[1] + '–' + wm[2] + '#';
-          const absIdx = cells.indexOf(cell);
-          const price = nextPrice(absIdx, 100, 600);
-          if(price) feederWeights.push({ range, price, types: ['beef','crossbred'] });
-        }
-      });
-    }
-
-    // Dairy Steers feeder section
-    const dsFeederIdx = findIdx('Dairy Steers') > -1
-      ? findIdx('Dairy Steers', findIdx('Feeder Cattle') > -1 ? findIdx('Feeder Cattle') : 0)
-      : -1;
-    if(dsFeederIdx > -1) {
-      const sectionCells = cells.slice(dsFeederIdx, dsFeederIdx + 25);
-      sectionCells.forEach(cell => {
-        const t = getText(cell);
-        const wm = t.match(/^(\d{3})\s*[-–]\s*(\d{3,4})#?$/);
-        if(wm) {
-          const range = wm[1] + '–' + wm[2] + '#';
-          const absIdx = cells.indexOf(cell);
-          const price = nextPrice(absIdx, 100, 600);
-          if(price) feederWeights.push({ range, price, types: ['holstein'] });
-        }
-      });
-    }
-
-    if(!Object.keys(finishPrices).length && !feederWeights.length) throw new Error('no data parsed');
-
-    // Store scraped data on the barn
-    const b = BARNS_DATA.central;
-    if(finishPrices.beef)      b.basePrice = priceMid(finishPrices.beef); // update baseline
-    b.finishPrices  = finishPrices;
-    b.feederWeights = feederWeights.length ? feederWeights : null;
-    b.dataSource    = 'live';
-    if(reportDate)  b.reportDate = reportDate;
-
-    buildBarnTable();
-
-  } catch(e) {
-    console.warn('[central] loadCentralLivestockData failed:', e.message);
-    BARNS_DATA.central._scrapeError = e.message;
-    buildBarnTable(); // re-render so error state shows in UI
-  }
-}
-
 let selectedBarnKey = null;
 let expandedBarnKey = null;
 
@@ -3099,7 +2947,7 @@ function buildBarnTable() {
               ${scrapedFinish ? `<div style="margin-top:4px;"><span style="color:var(--txt3);">Slaughter:</span> ${b.finishPrices.beef != null ? formatRange(b.finishPrices.beef) + '¢ beef' : '—'}${b.finishPrices.crossbred != null ? ' · ' + formatRange(b.finishPrices.crossbred) + '¢ cross' : ''}${b.finishPrices.holstein != null ? ' · ' + formatRange(b.finishPrices.holstein) + '¢ holstein' : ''}</div>` : ''}
               ${b.liteTestNote ? `<div style="margin-top:4px;color:var(--corn)">${b.liteTestNote}</div>` : ''}
             </div>
-            <div class="barn-drawer-mini-foot">${scrapedFinish ? b.name + ' · rep. sales sample, not all transactions' + (b.url ? ' · <a href="' + b.url + '" target="_blank" rel="noopener" style="color:var(--corn);text-decoration:none;">view report ↗</a>' : '') + ' · <a href="#" onclick="openBarnTrend(\'' + key + '\');return false;" style="color:var(--corn);text-decoration:none;">trend 📈</a>' : b.name + ' · estimated'}</div>
+            <div class="barn-drawer-mini-foot">${scrapedFinish ? b.name + ' · rep. sales sample, not all transactions' + (b.url ? ' · <a href="' + b.url + '" target="_blank" rel="noopener noreferrer" style="color:var(--corn);text-decoration:none;">view report ↗</a>' : '') + ' · <a href="#" onclick="openBarnTrend(\'' + key + '\');return false;" style="color:var(--corn);text-decoration:none;">trend 📈</a>' : b.name + ' · estimated'}</div>
           </div>
           <div class="barn-drawer-mini">
             <div class="barn-drawer-mini-header">Finish Weights <span style="font-weight:400;color:var(--txt3);">slaughter ¢/lb</span></div>
@@ -3324,7 +3172,7 @@ function buildBarnDirectory() {
       : '';
 
     const extraLinks = b.links.map(l =>
-      `<a href="${l.url}" target="_blank" rel="noopener" class="auction-link">${l.label}</a>`
+      `<a href="${l.url}" target="_blank" rel="noopener noreferrer" class="auction-link">${l.label}</a>`
     ).join('');
 
     const borderStyle = isNearest ? 'border-color:rgba(60,185,106,.25);' : '';

@@ -71,12 +71,3 @@
   }
 })();
 
-// Patch: replace CORS scraper so it skips when pre-scraped data is loaded
-var _origLoadCentral = loadCentralLivestockData;
-loadCentralLivestockData = async function() {
-  if (BARNS_DATA.central.finishPrices && BARNS_DATA.central.dataSource === 'live') {
-    console.log('[central] skipping CORS scraper — pre-scraped data already loaded');
-    return;
-  }
-  return _origLoadCentral();
-};
