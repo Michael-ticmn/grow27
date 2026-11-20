@@ -1,8 +1,8 @@
 {
   "id": "cfs",
   "name": "Central Farm Service",
-  "lastUpdated": "2026-11-19",
-  "lastSuccess": "2026-11-19",
+  "lastUpdated": "2026-11-20",
+  "lastSuccess": "2026-11-20",
   "history": [
     {
       "date": "2026-03-22",
@@ -312979,6 +312979,1339 @@
               "cash": 10.84,
               "futuresMonth": "@S7X",
               "basis": -0.85,
+              "change": "-5'0",
+              "cbot": "1169'0s"
+            }
+          ]
+        }
+      },
+      "source": "scraped"
+    },
+    {
+      "date": "2026-11-20",
+      "scrapedAt": "2026-11-20T01:00:38.434Z",
+      "locations": {
+        "randolph": {
+          "name": "Randolph",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 3.79,
+              "futuresMonth": "@C6Z",
+              "basis": -0.6,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 3.98,
+              "futuresMonth": "@C6Z",
+              "basis": -0.41,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 4.075,
+              "futuresMonth": "@C7H",
+              "basis": -0.45,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 4.105,
+              "futuresMonth": "@C7H",
+              "basis": -0.42,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 4.125,
+              "futuresMonth": "@C7H",
+              "basis": -0.4,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 4.2225,
+              "futuresMonth": "@C7K",
+              "basis": -0.39,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 4.2425,
+              "futuresMonth": "@C7K",
+              "basis": -0.37,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 4.3125,
+              "futuresMonth": "@C7N",
+              "basis": -0.37,
+              "change": "3'6",
+              "cbot": "468'2s"
+            },
+            {
+              "delivery": "Jul27",
+              "cash": 4.3325,
+              "futuresMonth": "@C7N",
+              "basis": -0.35,
+              "change": "3'6",
+              "cbot": "468'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 4.1825,
+              "futuresMonth": "@C7Z",
+              "basis": -0.6,
+              "change": "3'4",
+              "cbot": "478'2s"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Nov26",
+              "cash": 11.255,
+              "futuresMonth": "@S7F",
+              "basis": -0.82,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 11.385,
+              "futuresMonth": "@S7F",
+              "basis": -0.69,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 11.385,
+              "futuresMonth": "@S7F",
+              "basis": -0.69,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 11.0975,
+              "futuresMonth": "@S7H",
+              "basis": -1.03,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 11.0975,
+              "futuresMonth": "@S7H",
+              "basis": -1.03,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 11.1675,
+              "futuresMonth": "@S7K",
+              "basis": -1.03,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 11.1675,
+              "futuresMonth": "@S7K",
+              "basis": -1.03,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 11.3025,
+              "futuresMonth": "@S7N",
+              "basis": -0.95,
+              "change": "-6'2",
+              "cbot": "1225'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 10.74,
+              "futuresMonth": "@S7X",
+              "basis": -0.95,
+              "change": "-5'0",
+              "cbot": "1169'0s"
+            }
+          ]
+        },
+        "clarks-grove": {
+          "name": "Clarks Grove",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 3.79,
+              "futuresMonth": "@C6Z",
+              "basis": -0.6,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 3.84,
+              "futuresMonth": "@C6Z",
+              "basis": -0.55,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 3.925,
+              "futuresMonth": "@C7H",
+              "basis": -0.6,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 4.0925,
+              "futuresMonth": "@C7K",
+              "basis": -0.52,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 4.0925,
+              "futuresMonth": "@C7K",
+              "basis": -0.52,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 4.1825,
+              "futuresMonth": "@C7N",
+              "basis": -0.5,
+              "change": "3'6",
+              "cbot": "468'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 4.2325,
+              "futuresMonth": "@C7Z",
+              "basis": -0.55,
+              "change": "3'4",
+              "cbot": "478'2s"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Nov26",
+              "cash": 11.195,
+              "futuresMonth": "@S7F",
+              "basis": -0.88,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 11.195,
+              "futuresMonth": "@S7F",
+              "basis": -0.88,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 11.115,
+              "futuresMonth": "@S7F",
+              "basis": -0.96,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 11.1175,
+              "futuresMonth": "@S7H",
+              "basis": -1.01,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 11.1175,
+              "futuresMonth": "@S7H",
+              "basis": -1.01,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 11.1875,
+              "futuresMonth": "@S7K",
+              "basis": -1.01,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 11.1875,
+              "futuresMonth": "@S7K",
+              "basis": -1.01,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 11.3525,
+              "futuresMonth": "@S7N",
+              "basis": -0.9,
+              "change": "-6'2",
+              "cbot": "1225'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 10.79,
+              "futuresMonth": "@S7X",
+              "basis": -0.9,
+              "change": "-5'0",
+              "cbot": "1169'0s"
+            }
+          ]
+        },
+        "delavan": {
+          "name": "Delavan",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 3.79,
+              "futuresMonth": "@C6Z",
+              "basis": -0.6,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 3.84,
+              "futuresMonth": "@C6Z",
+              "basis": -0.55,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 3.925,
+              "futuresMonth": "@C7H",
+              "basis": -0.6,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 4.0925,
+              "futuresMonth": "@C7K",
+              "basis": -0.52,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 4.0925,
+              "futuresMonth": "@C7K",
+              "basis": -0.52,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 4.1825,
+              "futuresMonth": "@C7N",
+              "basis": -0.5,
+              "change": "3'6",
+              "cbot": "468'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 4.2325,
+              "futuresMonth": "@C7Z",
+              "basis": -0.55,
+              "change": "3'4",
+              "cbot": "478'2s"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Nov26",
+              "cash": 11.195,
+              "futuresMonth": "@S7F",
+              "basis": -0.88,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 11.195,
+              "futuresMonth": "@S7F",
+              "basis": -0.88,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 11.115,
+              "futuresMonth": "@S7F",
+              "basis": -0.96,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 11.1175,
+              "futuresMonth": "@S7H",
+              "basis": -1.01,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 11.1175,
+              "futuresMonth": "@S7H",
+              "basis": -1.01,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 11.1875,
+              "futuresMonth": "@S7K",
+              "basis": -1.01,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 11.1875,
+              "futuresMonth": "@S7K",
+              "basis": -1.01,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 11.3525,
+              "futuresMonth": "@S7N",
+              "basis": -0.9,
+              "change": "-6'2",
+              "cbot": "1225'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 10.79,
+              "futuresMonth": "@S7X",
+              "basis": -0.9,
+              "change": "-5'0",
+              "cbot": "1169'0s"
+            }
+          ]
+        },
+        "dolliver": {
+          "name": "Dolliver",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 3.79,
+              "futuresMonth": "@C6Z",
+              "basis": -0.6,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 3.84,
+              "futuresMonth": "@C6Z",
+              "basis": -0.55,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 3.925,
+              "futuresMonth": "@C7H",
+              "basis": -0.6,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 4.0925,
+              "futuresMonth": "@C7K",
+              "basis": -0.52,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 4.0925,
+              "futuresMonth": "@C7K",
+              "basis": -0.52,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 4.1825,
+              "futuresMonth": "@C7N",
+              "basis": -0.5,
+              "change": "3'6",
+              "cbot": "468'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 4.2325,
+              "futuresMonth": "@C7Z",
+              "basis": -0.55,
+              "change": "3'4",
+              "cbot": "478'2s"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Nov26",
+              "cash": 11.195,
+              "futuresMonth": "@S7F",
+              "basis": -0.88,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 11.195,
+              "futuresMonth": "@S7F",
+              "basis": -0.88,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 11.115,
+              "futuresMonth": "@S7F",
+              "basis": -0.96,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 11.1175,
+              "futuresMonth": "@S7H",
+              "basis": -1.01,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 11.1175,
+              "futuresMonth": "@S7H",
+              "basis": -1.01,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 11.1875,
+              "futuresMonth": "@S7K",
+              "basis": -1.01,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 11.1875,
+              "futuresMonth": "@S7K",
+              "basis": -1.01,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 11.3525,
+              "futuresMonth": "@S7N",
+              "basis": -0.9,
+              "change": "-6'2",
+              "cbot": "1225'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 10.79,
+              "futuresMonth": "@S7X",
+              "basis": -0.9,
+              "change": "-5'0",
+              "cbot": "1169'0s"
+            }
+          ]
+        },
+        "st-james-feedmill": {
+          "name": "St James Feedmill",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 3.69,
+              "futuresMonth": "@C6Z",
+              "basis": -0.7,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 3.84,
+              "futuresMonth": "@C6Z",
+              "basis": -0.55,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 3.925,
+              "futuresMonth": "@C7H",
+              "basis": -0.6,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 4.1225,
+              "futuresMonth": "@C7K",
+              "basis": -0.49,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 4.1225,
+              "futuresMonth": "@C7K",
+              "basis": -0.49,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 4.1825,
+              "futuresMonth": "@C7N",
+              "basis": -0.5,
+              "change": "3'6",
+              "cbot": "468'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 4.2325,
+              "futuresMonth": "@C7Z",
+              "basis": -0.55,
+              "change": "3'4",
+              "cbot": "478'2s"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Nov26",
+              "cash": 11.345,
+              "futuresMonth": "@S7F",
+              "basis": -0.73,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 11.345,
+              "futuresMonth": "@S7F",
+              "basis": -0.73,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 11.275,
+              "futuresMonth": "@S7F",
+              "basis": -0.8,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 11.2575,
+              "futuresMonth": "@S7H",
+              "basis": -0.87,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 11.2575,
+              "futuresMonth": "@S7H",
+              "basis": -0.87,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 11.3275,
+              "futuresMonth": "@S7K",
+              "basis": -0.87,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 11.3275,
+              "futuresMonth": "@S7K",
+              "basis": -0.87,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 11.4025,
+              "futuresMonth": "@S7N",
+              "basis": -0.85,
+              "change": "-6'2",
+              "cbot": "1225'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 10.84,
+              "futuresMonth": "@S7X",
+              "basis": -0.85,
+              "change": "-5'0",
+              "cbot": "1169'0s"
+            }
+          ]
+        },
+        "freeborn": {
+          "name": "Freeborn",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 3.79,
+              "futuresMonth": "@C6Z",
+              "basis": -0.6,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 3.87,
+              "futuresMonth": "@C6Z",
+              "basis": -0.52,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 4.005,
+              "futuresMonth": "@C7H",
+              "basis": -0.52,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 4.055,
+              "futuresMonth": "@C7H",
+              "basis": -0.47,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 4.1125,
+              "futuresMonth": "@C7K",
+              "basis": -0.5,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 4.1225,
+              "futuresMonth": "@C7K",
+              "basis": -0.49,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 4.1825,
+              "futuresMonth": "@C7N",
+              "basis": -0.5,
+              "change": "3'6",
+              "cbot": "468'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 4.2325,
+              "futuresMonth": "@C7Z",
+              "basis": -0.55,
+              "change": "3'4",
+              "cbot": "478'2s"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Nov26",
+              "cash": 11.425,
+              "futuresMonth": "@S7F",
+              "basis": -0.65,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 11.425,
+              "futuresMonth": "@S7F",
+              "basis": -0.65,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 11.375,
+              "futuresMonth": "@S7F",
+              "basis": -0.7,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 11.3375,
+              "futuresMonth": "@S7H",
+              "basis": -0.79,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 11.3375,
+              "futuresMonth": "@S7H",
+              "basis": -0.79,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 11.4075,
+              "futuresMonth": "@S7K",
+              "basis": -0.79,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 11.4075,
+              "futuresMonth": "@S7K",
+              "basis": -0.79,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 11.4025,
+              "futuresMonth": "@S7N",
+              "basis": -0.85,
+              "change": "-6'2",
+              "cbot": "1225'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 10.84,
+              "futuresMonth": "@S7X",
+              "basis": -0.85,
+              "change": "-5'0",
+              "cbot": "1169'0s"
+            }
+          ]
+        },
+        "lewisville": {
+          "name": "Lewisville",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 4.02,
+              "futuresMonth": "@C6Z",
+              "basis": -0.37,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4,
+              "futuresMonth": "@C6Z",
+              "basis": -0.39,
+              "change": "3'4",
+              "cbot": "439'0s"
+            }
+          ],
+          "beans": []
+        },
+        "st-james": {
+          "name": "St. James",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 4.02,
+              "futuresMonth": "@C6Z",
+              "basis": -0.37,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4,
+              "futuresMonth": "@C6Z",
+              "basis": -0.39,
+              "change": "3'4",
+              "cbot": "439'0s"
+            }
+          ],
+          "beans": []
+        },
+        "truman": {
+          "name": "Truman",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 4.02,
+              "futuresMonth": "@C6Z",
+              "basis": -0.37,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4,
+              "futuresMonth": "@C6Z",
+              "basis": -0.39,
+              "change": "3'4",
+              "cbot": "439'0s"
+            }
+          ],
+          "beans": []
+        },
+        "welcome": {
+          "name": "Welcome",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 4.02,
+              "futuresMonth": "@C6Z",
+              "basis": -0.37,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4,
+              "futuresMonth": "@C6Z",
+              "basis": -0.39,
+              "change": "3'4",
+              "cbot": "439'0s"
+            }
+          ],
+          "beans": []
+        },
+        "hayfield": {
+          "name": "Hayfield",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 4.02,
+              "futuresMonth": "@C6Z",
+              "basis": -0.37,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 4,
+              "futuresMonth": "@C6Z",
+              "basis": -0.39,
+              "change": "3'4",
+              "cbot": "439'0s"
+            }
+          ],
+          "beans": []
+        },
+        "kenyon": {
+          "name": "Kenyon",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 3.64,
+              "futuresMonth": "@C6Z",
+              "basis": -0.75,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 3.81,
+              "futuresMonth": "@C6Z",
+              "basis": -0.58,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 3.905,
+              "futuresMonth": "@C7H",
+              "basis": -0.62,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 3.935,
+              "futuresMonth": "@C7H",
+              "basis": -0.59,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 3.955,
+              "futuresMonth": "@C7H",
+              "basis": -0.57,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 4.0725,
+              "futuresMonth": "@C7K",
+              "basis": -0.54,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 4.0925,
+              "futuresMonth": "@C7K",
+              "basis": -0.52,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 4.1625,
+              "futuresMonth": "@C7N",
+              "basis": -0.52,
+              "change": "3'6",
+              "cbot": "468'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 4.1825,
+              "futuresMonth": "@C7Z",
+              "basis": -0.6,
+              "change": "3'4",
+              "cbot": "478'2s"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Nov26",
+              "cash": 11.225,
+              "futuresMonth": "@S7F",
+              "basis": -0.85,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 11.225,
+              "futuresMonth": "@S7F",
+              "basis": -0.85,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 11.145,
+              "futuresMonth": "@S7F",
+              "basis": -0.93,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 11.1475,
+              "futuresMonth": "@S7H",
+              "basis": -0.98,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 11.1475,
+              "futuresMonth": "@S7H",
+              "basis": -0.98,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 11.2175,
+              "futuresMonth": "@S7K",
+              "basis": -0.98,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 11.2175,
+              "futuresMonth": "@S7K",
+              "basis": -0.98,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 11.3025,
+              "futuresMonth": "@S7N",
+              "basis": -0.95,
+              "change": "-6'2",
+              "cbot": "1225'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 10.74,
+              "futuresMonth": "@S7X",
+              "basis": -0.95,
+              "change": "-5'0",
+              "cbot": "1169'0s"
+            }
+          ]
+        },
+        "northfield": {
+          "name": "Northfield",
+          "corn": [
+            {
+              "delivery": "Nov26",
+              "cash": 3.81,
+              "futuresMonth": "@C6Z",
+              "basis": -0.58,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 3.81,
+              "futuresMonth": "@C6Z",
+              "basis": -0.58,
+              "change": "3'4",
+              "cbot": "439'0s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 3.925,
+              "futuresMonth": "@C7H",
+              "basis": -0.6,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 3.975,
+              "futuresMonth": "@C7H",
+              "basis": -0.55,
+              "change": "4'0",
+              "cbot": "452'4s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 4.1225,
+              "futuresMonth": "@C7K",
+              "basis": -0.49,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 4.1225,
+              "futuresMonth": "@C7K",
+              "basis": -0.49,
+              "change": "4'2",
+              "cbot": "461'2s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 4.1125,
+              "futuresMonth": "@C7N",
+              "basis": -0.57,
+              "change": "3'6",
+              "cbot": "468'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 4.2325,
+              "futuresMonth": "@C7Z",
+              "basis": -0.55,
+              "change": "3'4",
+              "cbot": "478'2s"
+            }
+          ],
+          "beans": [
+            {
+              "delivery": "Nov26",
+              "cash": 11.135,
+              "futuresMonth": "@S7F",
+              "basis": -0.94,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Dec26",
+              "cash": 11.135,
+              "futuresMonth": "@S7F",
+              "basis": -0.94,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Jan27",
+              "cash": 11.055,
+              "futuresMonth": "@S7F",
+              "basis": -1.02,
+              "change": "-9'2",
+              "cbot": "1207'4s"
+            },
+            {
+              "delivery": "Feb27",
+              "cash": 11.0575,
+              "futuresMonth": "@S7H",
+              "basis": -1.07,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Mar27",
+              "cash": 11.0575,
+              "futuresMonth": "@S7H",
+              "basis": -1.07,
+              "change": "-7'4",
+              "cbot": "1212'6s"
+            },
+            {
+              "delivery": "Apr27",
+              "cash": 11.1275,
+              "futuresMonth": "@S7K",
+              "basis": -1.07,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "May27",
+              "cash": 11.1275,
+              "futuresMonth": "@S7K",
+              "basis": -1.07,
+              "change": "-7'0",
+              "cbot": "1219'6s"
+            },
+            {
+              "delivery": "Jun27",
+              "cash": 11.3025,
+              "futuresMonth": "@S7N",
+              "basis": -0.95,
+              "change": "-6'2",
+              "cbot": "1225'2s"
+            },
+            {
+              "delivery": "Oct27",
+              "cash": 10.74,
+              "futuresMonth": "@S7X",
+              "basis": -0.95,
               "change": "-5'0",
               "cbot": "1169'0s"
             }
